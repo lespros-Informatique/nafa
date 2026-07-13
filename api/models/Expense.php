@@ -48,6 +48,12 @@ class Expense
         return $stmt->fetchAll();
     }
 
+    public static function getAll(): array
+    {
+        $stmt = Database::getConnection()->query('SELECT * FROM depenses ORDER BY date_depense_depense DESC');
+        return $stmt->fetchAll();
+    }
+
     public static function delete(string $codeDepense): bool
     {
         $stmt = Database::getConnection()->prepare('DELETE FROM depenses WHERE code_depense = :code_depense');

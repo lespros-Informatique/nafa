@@ -58,6 +58,12 @@ class Sale
         return $stmt->fetchAll();
     }
 
+    public static function getAll(): array
+    {
+        $stmt = Database::getConnection()->query('SELECT * FROM ventes ORDER BY created_at_vente DESC');
+        return $stmt->fetchAll();
+    }
+
     public static function search(string $shopCode, string $query, int $limit = 20): array
     {
         $stmt = Database::getConnection()->prepare(

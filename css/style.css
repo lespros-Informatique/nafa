@@ -7,6 +7,8 @@
     --text: #1A1A1A;
     --text-light: #6B7280;
     --danger: #DC2626;
+    --danger-light: #FEE2E2;
+    --danger-dark: #B91C1C;
     --shadow: rgba(0, 0, 0, 0.06);
 }
 
@@ -79,7 +81,7 @@ html, body {
 .header-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 12px;
 }
 
@@ -429,7 +431,28 @@ html, body {
 }
 
 .list-item-amount.positive { color: var(--primary); }
-.list-item-amount.negative { color: var(--primary-dark); }
+.list-item-amount.negative { color: var(--danger-dark); }
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.badge-actif,
+.badge-role {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+}
+
+.badge-inactif {
+    background: var(--danger-light);
+    color: var(--danger-dark);
+}
 
 .list-item-delete {
     background: none;
@@ -481,6 +504,30 @@ html, body {
     width: 100% !important;
     height: 220px !important;
 }
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text-light);
+}
+
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chart-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+}
+
+.chart-legend-dot.sales { background: var(--primary); }
+.chart-legend-dot.expenses { background: var(--danger); }
 
 /* Cash */
 .cash-summary {
@@ -837,4 +884,59 @@ html, body {
     align-items: center;
     justify-content: center;
     padding: 4px;
+}
+
+.confirm-sheet {
+    padding: 24px 20px 32px;
+    text-align: center;
+}
+
+.confirm-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.confirm-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #FEF2F2;
+    color: var(--danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.confirm-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.confirm-message {
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.confirm-actions .btn {
+    flex: 1;
+}
+
+.btn-secondary {
+    background: var(--white);
+    color: var(--text);
+    border: 2px solid #E5E7EB;
+    box-shadow: none;
+}
+
+.btn-secondary:active {
+    background: #F3F4F6;
 }

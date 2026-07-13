@@ -164,6 +164,16 @@
                 </div>
                 <div class="chart-container">
                     <canvas id="report-chart" height="220"></canvas>
+                    <div class="chart-legend">
+                        <div class="chart-legend-item">
+                            <span class="chart-legend-dot sales"></span>
+                            <span>Ventes</span>
+                        </div>
+                        <div class="chart-legend-item">
+                            <span class="chart-legend-dot expenses"></span>
+                            <span>Dépenses</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="bottom-spacer"></div>
@@ -316,6 +326,23 @@
         <button id="logout-top" class="logout-top" onclick="app.logout()" style="display:none;">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         </button>
+
+        <!-- CONFIRM MODAL -->
+        <div id="confirm-modal" class="modal-overlay" onclick="if(event.target===this)app.closeConfirm()">
+            <div class="modal-sheet confirm-sheet">
+                <div class="confirm-body">
+                    <div class="confirm-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </div>
+                    <h3 class="confirm-title">Supprimer cette opération ?</h3>
+                    <p class="confirm-message">Cette action est irréversible.</p>
+                </div>
+                <div class="confirm-actions">
+                    <button class="btn btn-secondary" onclick="app.closeConfirm()">Annuler</button>
+                    <button class="btn btn-danger" onclick="app.confirmDelete()">Supprimer</button>
+                </div>
+            </div>
+        </div>
     </div>
     <script src="js/app.js"></script>
 </body>

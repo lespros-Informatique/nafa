@@ -7,13 +7,20 @@ class ReportController extends Controller
     public function index(): void
     {
         $user = $this->requireAuth();
-        $shop = Shop::findByUserCode($user['code_user']);
-        if (!$shop) {
-            Response::error('Boutique introuvable', [], 404);
+        $isDev = ($user['role_user'] ?? '') === 'developpeur';
+
+        if ($isDev) {
+            $sales = Sale::getAll();
+            $expenses = Expense::getAll();
+        } else {
+            $shop = Shop::findByUserCode($user['code_user']);
+            if (!$shop) {
+                Response::error('Boutique introuvable', [], 404);
+            }
+            $sales = Sale::getAllByShop($shop['code_boutique']);
+            $expenses = Expense::getAllByShop($shop['code_boutique']);
         }
 
-        $sales = Sale::getAllByShop($shop['code_boutique']);
-        $expenses = Expense::getAllByShop($shop['code_boutique']);
         $totalSales = array_sum(array_column($sales, 'montant_vente'));
         $totalExpenses = array_sum(array_column($expenses, 'montant_depense'));
 

@@ -5,6 +5,7 @@ const app = {
     currentShop: null,
     historyFilter: 'today',
     reportPeriod: 'day',
+    pendingDelete: null,
 
     toast(msg) {
         const el = document.getElementById('toast');
@@ -55,6 +56,7 @@ const app = {
         this.closeCreateUserModal();
         this.closeCreateShopModal();
         this.closeUserDetail();
+        this.closeConfirm();
 
         const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
         document.querySelectorAll('.dev-only').forEach(el => el.style.display = isDev ? '' : 'none');
@@ -284,18 +286,21 @@ const app = {
                 list.innerHTML = '<div class="empty-state">Aucune boutique</div>';
                 return;
             }
-            list.innerHTML = shops.map(s => `
+            list.innerHTML = shops.map(s => {
+                const statusClass = s.statut_boutique === 'actif' ? 'badge-actif' : 'badge-inactif';
+                return `
                 <div class="list-item">
                     <div class="list-item-info">
                         <div class="list-item-title">${s.libelle_boutique}</div>
                         <div class="list-item-meta">${s.code_boutique} • ${s.devise_boutique}</div>
                     </div>
-                    <span class="list-item-amount">${s.statut_boutique}</span>
+                    <span class="badge ${statusClass}">${s.statut_boutique}</span>
                     <button class="list-item-arrow" onclick="app.openShopDetail('${s.code_boutique}')">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                     </button>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         } catch (err) {
             this.toast(err.message);
         }
@@ -385,7 +390,7 @@ const app = {
                 <div class="list-item">
                     <div class="list-item-info">
                         <div class="list-item-title">${u.nom_user}</div>
-                        <div class="list-item-meta">${u.telephone_user} • ${u.role_user}</div>
+                        <div class="list-item-meta">${u.telephone_user} • <span class="badge badge-role">${u.role_user}</span></div>
                     </div>
                     <span class="list-item-amount">${u.code_user}</span>
                     <button class="list-item-arrow" onclick="app.openUserDetail('${u.code_user}')">
@@ -523,7 +528,23 @@ const app = {
     },
 
     async deleteItem(type, id) {
-        if (!confirm('Supprimer cette opération ?')) return;
+        this.pendingDelete = { type, id };
+        this.openConfirm();
+    },
+
+    openConfirm() {
+        document.getElementById('confirm-modal').classList.add('open');
+    },
+
+    closeConfirm() {
+        document.getElementById('confirm-modal').classList.remove('open');
+        this.pendingDelete = null;
+    },
+
+    async confirmDelete() {
+        if (!this.pendingDelete) return;
+        const { type, id } = this.pendingDelete;
+        this.closeConfirm();
         try {
             await this.api('/history/delete', {
                 method: 'POST',
@@ -598,7 +619,7 @@ const app = {
                 ctx.fill();
             }
             if (hE > 0) {
-                ctx.fillStyle = '#166534';
+                ctx.fillStyle = '#DC2626';
                 ctx.beginPath();
                 ctx.roundRect(x + 2, startY - hE, barWidth / 3 - 2, hE, 4);
                 ctx.fill();

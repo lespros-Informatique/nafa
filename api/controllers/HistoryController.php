@@ -7,14 +7,21 @@ class HistoryController extends Controller
     public function index(): void
     {
         $user = $this->requireAuth();
-        $shop = Shop::findByUserCode($user['code_user']);
-        if (!$shop) {
-            Response::error('Boutique introuvable', [], 404);
-        }
+        $isDev = ($user['role_user'] ?? '') === 'developpeur';
 
         $filter = $_GET['filter'] ?? 'today';
-        $sales = Sale::getAllByShop($shop['code_boutique']);
-        $expenses = Expense::getAllByShop($shop['code_boutique']);
+
+        if ($isDev) {
+            $sales = Sale::getAll();
+            $expenses = Expense::getAll();
+        } else {
+            $shop = Shop::findByUserCode($user['code_user']);
+            if (!$shop) {
+                Response::error('Boutique introuvable', [], 404);
+            }
+            $sales = Sale::getAllByShop($shop['code_boutique']);
+            $expenses = Expense::getAllByShop($shop['code_boutique']);
+        }
 
         $items = [];
         foreach ($sales as $sale) {
