@@ -72,7 +72,7 @@ const app = {
         return data;
     },
 
-    getAuthToken(): string | null {
+    getAuthToken() {
         const match = document.cookie.match(/nafa_token=([^;]+)/);
         return match ? match[1] : null;
     },

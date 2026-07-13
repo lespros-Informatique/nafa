@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : lun. 13 juil. 2026 à 16:51
+-- Généré le : lun. 13 juil. 2026 à 17:32
 -- Version du serveur : 9.1.0
 -- Version de PHP : 8.3.14
 
@@ -32,11 +32,11 @@ CREATE TABLE IF NOT EXISTS `boutiques` (
   `id` int NOT NULL AUTO_INCREMENT,
   `code_boutique` varchar(20) NOT NULL,
   `user_code` varchar(20) NOT NULL,
-  `libelle` varchar(150) NOT NULL,
-  `devise` varchar(10) DEFAULT 'FCFA',
-  `statut` enum('actif','inactif') DEFAULT 'actif',
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `libelle_boutique` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `devise_boutique` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'FCFA',
+  `statut_boutique` enum('actif','inactif') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'actif',
+  `created_at_boutique` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at_boutique` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `code_boutique` (`code_boutique`),
   UNIQUE KEY `uk_boutiques_user_code` (`user_code`),
@@ -54,11 +54,11 @@ CREATE TABLE IF NOT EXISTS `depenses` (
   `id_depense` int NOT NULL AUTO_INCREMENT,
   `code_depense` varchar(20) NOT NULL,
   `boutique_code` varchar(20) NOT NULL,
-  `libelle` varchar(150) NOT NULL,
-  `montant` decimal(12,2) NOT NULL,
-  `date_depense` datetime NOT NULL,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `libelle_depense` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `montant_depense` decimal(12,2) NOT NULL,
+  `date_depense_depense` datetime NOT NULL,
+  `created_at_depense` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at_depense` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_depense`),
   UNIQUE KEY `code_depense` (`code_depense`),
   KEY `fk_depenses_boutiques` (`boutique_code`)
@@ -74,11 +74,12 @@ DROP TABLE IF EXISTS `users`;
 CREATE TABLE IF NOT EXISTS `users` (
   `id_user` int NOT NULL AUTO_INCREMENT,
   `code_user` varchar(20) NOT NULL,
+  `role_user` enum('developpeur','vendeur','','') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'vendeur',
   `nom_user` varchar(150) NOT NULL,
   `telephone_user` varchar(20) NOT NULL,
-  `statut` enum('actif','inactif') DEFAULT 'actif',
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `statut_user` enum('actif','inactif') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'actif',
+  `created_at_user` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at_user` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_user`),
   UNIQUE KEY `code_user` (`code_user`),
   UNIQUE KEY `telephone_user` (`telephone_user`)
@@ -95,10 +96,10 @@ CREATE TABLE IF NOT EXISTS `ventes` (
   `id_vente` int NOT NULL AUTO_INCREMENT,
   `code_vente` varchar(20) NOT NULL,
   `boutique_code` varchar(20) NOT NULL,
-  `montant` decimal(12,2) NOT NULL,
-  `mode_paiement` enum('especes','wave','orange','mtn','moov','carte','autre') DEFAULT 'especes',
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `montant_vente` decimal(12,2) NOT NULL,
+  `mode_paiement_vente` enum('especes','wave','orange','mtn','moov','carte','autre') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'especes',
+  `created_at_vente` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at_vente` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_vente`),
   UNIQUE KEY `code_vente` (`code_vente`),
   KEY `fk_ventes_boutiques` (`boutique_code`)
