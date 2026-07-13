@@ -69,6 +69,13 @@ html, body {
     margin-top: 4px;
 }
 
+.header-user {
+    font-size: 13px;
+    color: var(--text);
+    margin-top: 6px;
+    font-weight: 500;
+}
+
 /* Buttons */
 .btn {
     display: inline-flex;

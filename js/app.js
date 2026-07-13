@@ -148,6 +148,8 @@ const app = {
             document.getElementById('dash-expenses').textContent = data.data.expenses;
             document.getElementById('dash-net').textContent = data.data.net;
             document.getElementById('dash-count').textContent = data.data.count + ' vente' + (data.data.count > 1 ? 's' : '');
+            const nameEl = document.getElementById('dash-user-name');
+            if (nameEl) nameEl.textContent = this.currentUser ? this.currentUser.nom_user : '';
             this.renderRecentSales(data.data.recent);
         } catch (err) {
             this.toast(err.message);
@@ -164,9 +166,9 @@ const app = {
             <div class="list-item">
                 <div class="list-item-info">
                     <div class="list-item-title">Vente</div>
-                    <div class="list-item-meta">${new Date(s.created_at).toLocaleString('fr-FR')}</div>
+                    <div class="list-item-meta">${this.formatFrenchDate(s.created_at_vente)}</div>
                 </div>
-                <span class="list-item-amount positive">+${this.formatMoney(s.montant)}</span>
+                <span class="list-item-amount positive">+${this.formatMoney(s.montant_vente)}</span>
             </div>
         `).join('');
     },
@@ -425,6 +427,19 @@ const app = {
 
     formatMoney(amount) {
         return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
+    },
+
+    formatFrenchDate(dateStr) {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr;
+        const days = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+        const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+        const day = days[date.getDay()];
+        const d = date.getDate();
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+        const hours = date.getHours();
+        return `${day}, ${d} ${month.charAt(0).toUpperCase() + month.slice(1)} ${year} à ${hours}h`;
     },
 
     loadMockData() {
