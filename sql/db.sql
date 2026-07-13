@@ -131,6 +131,15 @@ CREATE TABLE IF NOT EXISTS `forfaits` (
   UNIQUE KEY `code_forfait` (`code_forfait`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Déchargement des données de la table `forfaits`
+--
+
+INSERT INTO `forfaits` (`code_forfait`, `libelle_forfait`, `prix_forfait`, `duree_forfait`, `description_forfait`, `statut_forfait`) VALUES
+('DEC001', 'Découverte', 0.00, 30, 'Essai gratuit 30 jours', 'actif'),
+('STD001', 'Standard', 5000.00, 365, '1 an complet pour un commerçant', 'actif'),
+('PRE001', 'Premium', 12000.00, 365, '1 an + support prioritaire', 'actif');
+
 -- --------------------------------------------------------
 
 --

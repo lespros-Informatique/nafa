@@ -430,8 +430,17 @@ html, body {
     text-align: right;
 }
 
-.list-item-amount.positive { color: var(--primary); }
-.list-item-amount.negative { color: var(--danger-dark); }
+.list-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: 8px;
+}
+
+.list-item-actions .btn {
+    min-height: 44px;
+    padding: 10px 18px;
+}
 
 .badge {
     display: inline-flex;
@@ -452,6 +461,118 @@ html, body {
 .badge-inactif {
     background: var(--danger-light);
     color: var(--danger-dark);
+}
+
+.badge-en_attente {
+    background: #FEF3C7;
+    color: #B45309;
+}
+
+.badge-expire {
+    background: #F3F4F6;
+    color: #4B5563;
+}
+
+.badge-suspendu {
+    background: var(--danger-light);
+    color: var(--danger-dark);
+}
+
+.list-item-column {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+}
+
+.abonnement-statut {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #E5E7EB;
+    border-radius: 12px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    background: var(--white);
+    color: var(--text);
+}
+
+.abonnement-statut:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.reabonnement-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.reabonnement-row .abonnement-statut {
+    flex: 1;
+}
+
+.reabonnement-row .btn {
+    min-height: 44px;
+    padding: 10px 18px;
+    white-space: nowrap;
+}
+
+.expired-box {
+    text-align: center;
+    padding: 24px 16px;
+}
+
+.expired-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.expired-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 8px;
+}
+
+.expired-message {
+    font-size: 14px;
+    color: var(--text-light);
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.expired-contact {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+}
+
+.expired-contact-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--white);
+    border: 2px solid #E5E7EB;
+    border-radius: 14px;
+    padding: 14px 16px;
+    text-decoration: none;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.expired-contact-item strong {
+    color: var(--primary-dark);
+    font-weight: 600;
 }
 
 .list-item-delete {

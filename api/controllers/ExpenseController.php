@@ -6,7 +6,7 @@ class ExpenseController extends Controller
 {
     public function store(): void
     {
-        $user = $this->requireAuth();
+        $user = $this->requireActiveSubscription();
         $shop = Shop::findByUserCode($user['code_user']);
         if (!$shop) {
             Response::error('Boutique introuvable', [], 404);

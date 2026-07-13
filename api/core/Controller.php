@@ -50,4 +50,28 @@ abstract class Controller
         }
         return $user;
     }
+
+    protected function requireActiveSubscription(): array
+    {
+        $user = $this->requireAuth();
+
+        if (($user['role_user'] ?? '') === 'developpeur') {
+            return $user;
+        }
+
+        $shop = Shop::findByUserCode($user['code_user']);
+        if (!$shop) {
+            Response::error('Boutique introuvable', [], 404);
+        }
+
+        if (!Abonnement::isActive($shop['code_boutique'])) {
+            $dejaAbonne = Abonnement::findByBoutique($shop['code_boutique']);
+            if ($dejaAbonne) {
+                Response::error('Votre période d\'essai est terminée', ['code' => 'SUBSCRIPTION_EXPIRED'], 402);
+            }
+            Response::error('Abonnement requis pour continuer', ['code' => 'SUBSCRIPTION_REQUIRED'], 402);
+        }
+
+        return $user;
+    }
 }
