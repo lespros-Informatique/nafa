@@ -69,13 +69,14 @@ class Sale
         $stmt = Database::getConnection()->prepare(
             'SELECT * FROM ventes
              WHERE boutique_code = :boutique_code
-               AND (CAST(montant_vente AS CHAR) LIKE :query OR DATE_FORMAT(created_at_vente, "%d/%m/%Y %H:%i") LIKE :query)
+               AND (CAST(montant_vente AS CHAR) LIKE :query1 OR DATE_FORMAT(created_at_vente, "%d/%m/%Y %H:%i") LIKE :query2)
              ORDER BY created_at_vente DESC
              LIMIT :limit'
         );
         $like = '%' . $query . '%';
         $stmt->bindValue(':boutique_code', $shopCode);
-        $stmt->bindValue(':query', $like);
+        $stmt->bindValue(':query1', $like);
+        $stmt->bindValue(':query2', $like);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll();
