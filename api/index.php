@@ -13,6 +13,7 @@ require_once __DIR__ . '/controllers/ExpenseController.php';
 require_once __DIR__ . '/controllers/HistoryController.php';
 require_once __DIR__ . '/controllers/ReportController.php';
 require_once __DIR__ . '/controllers/SearchController.php';
+require_once __DIR__ . '/controllers/DeveloperController.php';
 
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -35,6 +36,8 @@ $routes = [
         '/api/sales' => [SaleController::class, 'store'],
         '/api/expenses' => [ExpenseController::class, 'store'],
         '/api/history/delete' => [HistoryController::class, 'delete'],
+        '/api/dev/users' => [DeveloperController::class, 'createUser'],
+        '/api/dev/shops' => [DeveloperController::class, 'createShop'],
     ],
     'GET' => [
         '/api/auth/me' => [AuthController::class, 'me'],
@@ -42,6 +45,7 @@ $routes = [
         '/api/history' => [HistoryController::class, 'index'],
         '/api/reports' => [ReportController::class, 'index'],
         '/api/search' => [SearchController::class, 'search'],
+        '/api/dev/users' => [DeveloperController::class, 'listUsers'],
     ],
 ];
 

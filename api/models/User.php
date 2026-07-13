@@ -40,4 +40,14 @@ class User
         $shop = $stmt->fetch();
         return $shop ?: null;
     }
+
+    public static function findByUserCode(string $userCode): ?array
+    {
+        $stmt = Database::getConnection()->prepare(
+            'SELECT * FROM users WHERE code_user = :code_user LIMIT 1'
+        );
+        $stmt->execute(['code_user' => $userCode]);
+        $user = $stmt->fetch();
+        return $user ?: null;
+    }
 }

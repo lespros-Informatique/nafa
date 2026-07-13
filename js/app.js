@@ -20,7 +20,9 @@ const app = {
         if (saved) {
             const s = JSON.parse(saved);
             this.currentUser = s.user;
-            this.currentShop = s.shop;
+            this.currentShop = s.shop || null;
+            const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
+            document.querySelectorAll('.dev-only').forEach(el => el.style.display = isDev ? '' : 'none');
             this.navigate('dashboard');
         } else {
             this.navigate('login');
@@ -45,13 +47,19 @@ const app = {
         document.getElementById('bottom-nav').style.display = loggedIn ? 'flex' : 'none';
         document.getElementById('fab-container').style.display = (loggedIn && page === 'dashboard') ? 'flex' : 'none';
 
+        const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
+        document.querySelectorAll('.dev-only').forEach(el => el.style.display = isDev ? '' : 'none');
+
         document.querySelectorAll('.nav-item').forEach(i => {
-            i.classList.toggle('active', i.dataset.page === page);
+            const pageName = i.dataset.page;
+            const active = pageName === page || (isDev && pageName && page.startsWith('dev-') && pageName === page);
+            i.classList.toggle('active', active);
         });
 
         if (page === 'dashboard') this.renderDashboard();
         if (page === 'history') this.renderHistory();
         if (page === 'reports') this.renderReports();
+        if (page === 'dev-list') this.renderDevUsers();
     },
 
     async api(url, options = {}) {
@@ -95,7 +103,7 @@ const app = {
                 body: JSON.stringify({ phone }),
             });
             this.currentUser = data.data.user;
-            this.currentShop = data.data.shop;
+            this.currentShop = data.data.shop || null;
             this.saveSession();
             this.navigate('dashboard');
             this.toast('Connexion réussie');
@@ -163,7 +171,7 @@ const app = {
         e.preventDefault();
         const label = document.getElementById('expense-label').value.trim();
         const amount = parseFloat(document.getElementById('expense-amount').value);
-        if (!label || !amount) return;
+        if (!$label || !amount) return;
 
         try {
             await this.api('/expenses', {
@@ -173,6 +181,67 @@ const app = {
             document.getElementById('expense-label').value = '';
             document.getElementById('expense-amount').value = '';
             this.toast('Dépense enregistrée');
+        } catch (err) {
+            this.toast(err.message);
+        }
+    },
+
+    async handleCreateUser(e) {
+        e.preventDefault();
+        const phone = document.getElementById('dev-user-phone').value.trim();
+        const name = document.getElementById('dev-user-name').value.trim();
+        const role = document.getElementById('dev-user-role').value;
+
+        try {
+            await this.api('/dev/users', {
+                method: 'POST',
+                body: JSON.stringify({ phone, name, role }),
+            });
+            document.getElementById('dev-user-phone').value = '';
+            document.getElementById('dev-user-name').value = '';
+            this.toast('Utilisateur créé');
+        } catch (err) {
+            this.toast(err.message);
+        }
+    },
+
+    async handleCreateShop(e) {
+        e.preventDefault();
+        const userCode = document.getElementById('dev-shop-user-code').value.trim();
+        const label = document.getElementById('dev-shop-label').value.trim();
+        const currency = document.getElementById('dev-shop-currency').value.trim();
+
+        try {
+            await this.api('/dev/shops', {
+                method: 'POST',
+                body: JSON.stringify({ user_code: userCode, label, currency }),
+            });
+            document.getElementById('dev-shop-user-code').value = '';
+            document.getElementById('dev-shop-label').value = '';
+            this.toast('Boutique créée');
+        } catch (err) {
+            this.toast(err.message);
+        }
+    },
+
+    async renderDevUsers() {
+        const list = document.getElementById('dev-user-list');
+        try {
+            const data = await this.api('/dev/users');
+            const users = data.data.users;
+            if (!users.length) {
+                list.innerHTML = '<div class="empty-state">Aucun utilisateur</div>';
+                return;
+            }
+            list.innerHTML = users.map(u => `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${u.nom_user}</div>
+                        <div class="list-item-meta">${u.telephone_user} • ${u.role_user}</div>
+                    </div>
+                    <span class="list-item-amount">${u.code_user}</span>
+                </div>
+            `).join('');
         } catch (err) {
             this.toast(err.message);
         }
