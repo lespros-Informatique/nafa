@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NAFA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- TOAST -->
+        <div id="toast" class="toast"></div>
+
+        <!-- LOGIN PAGE -->
+        <div id="page-login" class="page active">
+            <div class="login-container">
+                <div class="logo-section">
+                    <div class="logo-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                    </div>
+                    <h1 class="app-title">NAFA</h1>
+                    <p class="app-subtitle">Profit - Bénéfice - Gain</p>
+                </div>
+                <form class="login-form" onsubmit="app.handleLogin(event)">
+                    <div class="input-group">
+                        <label for="phone">Numéro de téléphone</label>
+                        <input type="tel" id="phone" placeholder="+221 77 000 00 00" required inputmode="tel">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Continuer</button>
+                </form>
+                <p class="login-hint">Entrez votre numéro pour commencer</p>
+            </div>
+        </div>
+
+        <!-- SHOP SELECTION PAGE -->
+        <div id="page-shop" class="page">
+            <div class="header">
+                <h2>Choisir une boutique</h2>
+                <p class="header-subtitle">Sélectionnez votre boutique pour continuer</p>
+            </div>
+            <div class="shop-list" id="shop-list"></div>
+            <div class="bottom-spacer"></div>
+        </div>
+
+        <!-- DASHBOARD PAGE -->
+        <div id="page-dashboard" class="page">
+            <div class="header">
+                <h2 id="dash-greeting">Bonjour</h2>
+                <p class="header-subtitle" id="dash-date"></p>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card metric-sales">
+                    <span class="metric-label">Ventes du jour</span>
+                    <span class="metric-value" id="dash-sales">0 FCFA</span>
+                </div>
+                <div class="metric-card metric-expenses">
+                    <span class="metric-label">Dépenses du jour</span>
+                    <span class="metric-value" id="dash-expenses">0 FCFA</span>
+                </div>
+                <div class="metric-card metric-net">
+                    <span class="metric-label">Net du jour</span>
+                    <span class="metric-value" id="dash-net">0 FCFA</span>
+                </div>
+                <div class="metric-card metric-count">
+                    <span class="metric-label">Ventes</span>
+                    <span class="metric-value" id="dash-count">0</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="list-container" id="recent-list"></div>
+                <button class="btn-search-trigger" onclick="app.openSearch()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    Rechercher
+                </button>
+            </div>
+
+            <div class="bottom-spacer"></div>
+        </div>
+
+        <!-- NEW SALE PAGE -->
+        <div id="page-sale" class="page">
+            <div class="header">
+                <button class="btn-back" onclick="app.navigate('dashboard')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </button>
+                <h2>Nouvelle vente</h2>
+            </div>
+            <form class="form-page" onsubmit="app.handleSale(event)">
+                <div class="input-group">
+                    <label for="sale-amount">Montant</label>
+                    <input type="number" id="sale-amount" placeholder="0" required inputmode="decimal" step="1" min="0">
+                </div>
+                <button type="submit" class="btn btn-success btn-full">Enregistrer</button>
+            </form>
+        </div>
+
+        <!-- NEW EXPENSE PAGE -->
+        <div id="page-expense" class="page">
+            <div class="header">
+                <button class="btn-back" onclick="app.navigate('dashboard')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </button>
+                <h2>Nouvelle dépense</h2>
+            </div>
+            <form class="form-page" onsubmit="app.handleExpense(event)">
+                <div class="input-group">
+                    <label for="expense-label">Libellé</label>
+                    <input type="text" id="expense-label" placeholder="Ex: Achat marchandise" required>
+                </div>
+                <div class="input-group">
+                    <label for="expense-amount">Montant</label>
+                    <input type="number" id="expense-amount" placeholder="0" required inputmode="decimal" step="1" min="0">
+                </div>
+                <button type="submit" class="btn btn-danger btn-full">Enregistrer</button>
+            </form>
+        </div>
+
+        <!-- HISTORY PAGE -->
+        <div id="page-history" class="page">
+            <div class="header">
+                <h2>Historique</h2>
+                <p class="header-subtitle">Toutes vos opérations</p>
+            </div>
+            <div class="filter-bar">
+                <button class="filter-btn active" onclick="app.setHistoryFilter('today')" data-filter="today">Aujourd'hui</button>
+                <button class="filter-btn" onclick="app.setHistoryFilter('week')" data-filter="week">Semaine</button>
+                <button class="filter-btn" onclick="app.setHistoryFilter('month')" data-filter="month">Mois</button>
+            </div>
+            <div class="list-container" id="history-list"></div>
+            <div class="bottom-spacer"></div>
+        </div>
+
+        <!-- REPORTS PAGE -->
+        <div id="page-reports" class="page">
+            <div class="header">
+                <h2>Rapports</h2>
+                <p class="header-subtitle">Vue d'ensemble</p>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card metric-sales">
+                    <span class="metric-label">Total ventes</span>
+                    <span class="metric-value" id="report-sales">0 FCFA</span>
+                </div>
+                <div class="metric-card metric-expenses">
+                    <span class="metric-label">Total dépenses</span>
+                    <span class="metric-value" id="report-expenses">0 FCFA</span>
+                </div>
+                <div class="metric-card metric-net">
+                    <span class="metric-label">Résultat net</span>
+                    <span class="metric-value" id="report-net">0 FCFA</span>
+                </div>
+            </div>
+            <div class="section">
+                <h3 class="section-title">Évolution</h3>
+                <div class="chart-tabs">
+                    <button class="chart-tab active" onclick="app.setReportPeriod('day')" data-period="day">Jour</button>
+                    <button class="chart-tab" onclick="app.setReportPeriod('week')" data-period="week">Semaine</button>
+                    <button class="chart-tab" onclick="app.setReportPeriod('month')" data-period="month">Mois</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="report-chart" height="220"></canvas>
+                </div>
+            </div>
+            <div class="bottom-spacer"></div>
+        </div>
+
+        <!-- FLOATING ACTION BUTTON -->
+        <div id="fab-container" class="fab-container" style="display:none;">
+            <button class="fab" onclick="app.navigate('sale')">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+            <div class="fab-menu" id="fab-menu">
+                <button class="fab-menu-item" onclick="app.navigate('sale')">
+                    <span class="fab-menu-dot" style="background:#16A34A"></span>Vente
+                </button>
+                <button class="fab-menu-item" onclick="app.navigate('expense')">
+                    <span class="fab-menu-dot" style="background:#166534"></span>Dépense
+                </button>
+            </div>
+        </div>
+
+        <!-- SEARCH MODAL -->
+        <div id="search-modal" class="modal-overlay" onclick="if(event.target===this)app.closeSearch()">
+            <div class="modal-sheet">
+                <div class="modal-header">
+                    <h3>Rechercher</h3>
+                    <button class="modal-close" onclick="app.closeSearch()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="search-input" placeholder="Rechercher une vente..." oninput="app.performSearch(this.value)">
+                </div>
+                <div class="list-container" id="search-results"></div>
+            </div>
+        </div>
+
+        <!-- BOTTOM NAVIGATION -->
+        <nav id="bottom-nav" class="bottom-nav" style="display:none;">
+            <button class="nav-item active" onclick="app.navigate('dashboard')" data-page="dashboard">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span>Accueil</span>
+            </button>
+            <button class="nav-item" onclick="app.navigate('history')" data-page="history">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>Historique</span>
+            </button>
+            <button class="nav-item" onclick="app.navigate('reports')" data-page="reports">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                <span>Rapports</span>
+            </button>
+        </nav>
+    </div>
+    <script src="js/app.js"></script>
+</body>
+</html>
