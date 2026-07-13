@@ -45,6 +45,15 @@ class Abonnement
         return self::findByCode($code);
     }
 
+    public static function countExpired(): int
+    {
+        $stmt = Database::getConnection()->query(
+            "SELECT COUNT(*) AS total FROM abonnements
+             WHERE NOT (statut_abonnement = 'actif' AND date_fin_abonnement >= CURDATE())"
+        );
+        return (int) $stmt->fetchColumn();
+    }
+
     public static function findByBoutique(string $boutiqueCode): array
     {
         $stmt = Database::getConnection()->prepare(

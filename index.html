@@ -81,7 +81,29 @@
                 </div>
             </div>
 
-            <div class="section">
+            <div class="section dev-only" id="dashboard-dev" style="display:none;">
+                <h3 class="section-title">Vue d'ensemble</h3>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <span class="metric-label">Boutiques</span>
+                        <span class="metric-value" id="dev-boutiques">0</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Vendeurs</span>
+                        <span class="metric-value" id="dev-vendeurs">0</span>
+                    </div>
+                    <div class="metric-card metric-expenses">
+                        <span class="metric-label">Abonnements expirés</span>
+                        <span class="metric-value" id="dev-expires">0</span>
+                    </div>
+                </div>
+                <div class="dev-actions">
+                    <button class="btn btn-primary" onclick="app.navigate('dev-forfaits')">Forfaits</button>
+                    <button class="btn btn-primary" onclick="app.navigate('dev-abonnements')">Abonnements</button>
+                </div>
+            </div>
+
+            <div class="section" id="dashboard-recent">
                 <div class="list-container" id="recent-list"></div>
                 <button class="btn-search-trigger" onclick="app.openSearch()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -390,14 +412,6 @@
             <button class="nav-item dev-only" style="display:none;" onclick="app.navigate('dev-list')" data-page="dev-list">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
                 <span>User</span>
-            </button>
-            <button class="nav-item dev-only" style="display:none;" onclick="app.navigate('dev-forfaits')" data-page="dev-forfaits">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"></path></svg>
-                <span>Forfaits</span>
-            </button>
-            <button class="nav-item dev-only" style="display:none;" onclick="app.navigate('dev-abonnements')" data-page="dev-abonnements">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"></path><path d="M4 12h16v8H4z"></path><line x1="8" y1="16" x2="8" y2="16"></line></svg>
-                <span>Abon.</span>
             </button>
         </nav>
 

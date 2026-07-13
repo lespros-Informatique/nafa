@@ -785,6 +785,16 @@ html, body {
     border-radius: 50%;
 }
 
+.dev-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.dev-actions .btn {
+    flex: 1;
+}
+
 /* Bottom spacer */
 .bottom-spacer {
     height: 20px;

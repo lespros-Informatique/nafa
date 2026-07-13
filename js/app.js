@@ -240,7 +240,23 @@ const app = {
             document.getElementById('dash-count').textContent = data.data.count + ' vente' + (data.data.count > 1 ? 's' : '');
             const nameEl = document.getElementById('dash-user-name');
             if (nameEl) nameEl.textContent = this.currentUser ? this.currentUser.nom_user : '';
-            this.renderRecentSales(data.data.recent);
+
+            const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
+            const devSection = document.getElementById('dashboard-dev');
+            const recentSection = document.getElementById('dashboard-recent');
+
+            if (isDev) {
+                const s = data.data.stats || {};
+                document.getElementById('dev-boutiques').textContent = s.boutiques ?? 0;
+                document.getElementById('dev-vendeurs').textContent = s.vendeurs ?? 0;
+                document.getElementById('dev-expires').textContent = s.abonnements_expires ?? 0;
+                if (devSection) devSection.style.display = '';
+                if (recentSection) recentSection.style.display = 'none';
+            } else {
+                if (devSection) devSection.style.display = 'none';
+                if (recentSection) recentSection.style.display = '';
+                this.renderRecentSales(data.data.recent);
+            }
         } catch (err) {
             this.toast(err.message);
         }
