@@ -8,8 +8,8 @@ const app = {
     pendingDelete: null,
     subscriptionMode: 'select',
     contact: {
-        phone: '+225 XX XX XX XX XX',
-        whatsapp: 'https://wa.me/225000000000',
+        phone: '+225 05 66 01 55 16',
+        whatsapp: 'https://wa.me/2250566015516',
         wave: 'Wave',
         orange: 'Orange Money',
     },
