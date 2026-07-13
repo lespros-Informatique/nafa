@@ -19,14 +19,14 @@ class SearchController extends Controller
 
         $results = Sale::search($shop['code_boutique'], $query);
         $formatted = array_map(function ($sale) {
-            $date = new DateTime($sale['created_at']);
+            $date = new DateTime($sale['created_at_vente']);
             return [
                 'type' => 'vente',
                 'id' => $sale['code_vente'],
                 'title' => 'Vente',
                 'meta' => $date->format('d/m/Y H:i'),
-                'amount' => (float) $sale['montant'],
-                'mode' => $sale['mode_paiement'],
+                'amount' => (float) $sale['montant_vente'],
+                'mode' => $sale['mode_paiement_vente'],
             ];
         }, $results);
 

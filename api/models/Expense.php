@@ -7,16 +7,16 @@ class Expense
     public static function create(array $data): array
     {
         $stmt = Database::getConnection()->prepare(
-            'INSERT INTO depenses (code_depense, boutique_code, libelle, montant, date_depense, created_at)
-             VALUES (:code_depense, :boutique_code, :libelle, :montant, :date_depense, :created_at)'
+            'INSERT INTO depenses (code_depense, boutique_code, libelle_depense, montant_depense, date_depense_depense, created_at_depense)
+             VALUES (:code_depense, :boutique_code, :libelle_depense, :montant_depense, :date_depense_depense, :created_at_depense)'
         );
         $stmt->execute([
             'code_depense' => $data['code_depense'],
             'boutique_code' => $data['boutique_code'],
-            'libelle' => $data['libelle'],
-            'montant' => $data['montant'],
-            'date_depense' => $data['date_depense'],
-            'created_at' => $data['created_at'],
+            'libelle_depense' => $data['libelle_depense'],
+            'montant_depense' => $data['montant_depense'],
+            'date_depense_depense' => $data['date_depense_depense'],
+            'created_at_depense' => $data['created_at_depense'],
         ]);
         $id = Database::getConnection()->lastInsertId();
         return self::findById((int)$id);
@@ -33,7 +33,7 @@ class Expense
     public static function getTodayByShop(string $shopCode): array
     {
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM depenses WHERE boutique_code = :boutique_code AND DATE(date_depense) = CURDATE()'
+            'SELECT * FROM depenses WHERE boutique_code = :boutique_code AND DATE(date_depense_depense) = CURDATE()'
         );
         $stmt->execute(['boutique_code' => $shopCode]);
         return $stmt->fetchAll();
@@ -42,7 +42,7 @@ class Expense
     public static function getAllByShop(string $shopCode): array
     {
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM depenses WHERE boutique_code = :boutique_code ORDER BY date_depense DESC'
+            'SELECT * FROM depenses WHERE boutique_code = :boutique_code ORDER BY date_depense_depense DESC'
         );
         $stmt->execute(['boutique_code' => $shopCode]);
         return $stmt->fetchAll();

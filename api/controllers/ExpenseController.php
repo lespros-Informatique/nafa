@@ -25,10 +25,10 @@ class ExpenseController extends Controller
         $expense = Expense::create([
             'code_depense' => 'DEP' . time(),
             'boutique_code' => $shop['code_boutique'],
-            'libelle' => $libelle,
-            'montant' => $montant,
-            'date_depense' => date('Y-m-d H:i:s'),
-            'created_at' => date('Y-m-d H:i:s'),
+            'libelle_depense' => $libelle,
+            'montant_depense' => $montant,
+            'date_depense_depense' => date('Y-m-d H:i:s'),
+            'created_at_depense' => date('Y-m-d H:i:s'),
         ]);
 
         Response::success('Dépense enregistrée', ['expense' => $expense]);

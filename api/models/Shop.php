@@ -7,7 +7,7 @@ class Shop
     public static function findByUserCode(string $userCode): ?array
     {
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM boutiques WHERE user_code = :user_code AND statut = "actif" LIMIT 1'
+            'SELECT * FROM boutiques WHERE user_code = :user_code AND statut_boutique = "actif" LIMIT 1'
         );
         $stmt->execute(['user_code' => $userCode]);
         $shop = $stmt->fetch();
@@ -18,16 +18,16 @@ class Shop
     {
         $codeBoutique = 'BTE' . time();
         $stmt = Database::getConnection()->prepare(
-            'INSERT INTO boutiques (code_boutique, user_code, libelle, devise, statut, created_at)
-             VALUES (:code_boutique, :user_code, :libelle, :devise, :statut, :created_at)'
+            'INSERT INTO boutiques (code_boutique, user_code, libelle_boutique, devise_boutique, statut_boutique, created_at_boutique)
+             VALUES (:code_boutique, :user_code, :libelle_boutique, :devise_boutique, :statut_boutique, :created_at_boutique)'
         );
         $stmt->execute([
             'code_boutique' => $codeBoutique,
             'user_code' => $userCode,
-            'libelle' => 'Ma boutique',
-            'devise' => 'FCFA',
-            'statut' => 'actif',
-            'created_at' => date('Y-m-d H:i:s'),
+            'libelle_boutique' => 'Ma boutique',
+            'devise_boutique' => 'FCFA',
+            'statut_boutique' => 'actif',
+            'created_at_boutique' => date('Y-m-d H:i:s'),
         ]);
         return self::findByUserCode($userCode);
     }

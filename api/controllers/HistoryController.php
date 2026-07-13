@@ -18,27 +18,27 @@ class HistoryController extends Controller
 
         $items = [];
         foreach ($sales as $sale) {
-            $date = new DateTime($sale['created_at']);
+            $date = new DateTime($sale['created_at_vente']);
             if ($this->matchFilter($date, $filter)) {
                 $items[] = [
                     'type' => 'vente',
                     'id' => $sale['code_vente'],
                     'title' => 'Vente',
                     'meta' => $date->format('d/m/Y H:i'),
-                    'amount' => (float) $sale['montant'],
-                    'mode' => $sale['mode_paiement'],
+                    'amount' => (float) $sale['montant_vente'],
+                    'mode' => $sale['mode_paiement_vente'],
                 ];
             }
         }
         foreach ($expenses as $expense) {
-            $date = new DateTime($expense['date_depense']);
+            $date = new DateTime($expense['date_depense_depense']);
             if ($this->matchFilter($date, $filter)) {
                 $items[] = [
                     'type' => 'depense',
                     'id' => $expense['code_depense'],
-                    'title' => $expense['libelle'],
+                    'title' => $expense['libelle_depense'],
                     'meta' => $date->format('d/m/Y H:i'),
-                    'amount' => (float) $expense['montant'],
+                    'amount' => (float) $expense['montant_depense'],
                     'mode' => '-',
                 ];
             }

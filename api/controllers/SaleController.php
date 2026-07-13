@@ -20,9 +20,9 @@ class SaleController extends Controller
         $sale = Sale::create([
             'code_vente' => 'VTE' . time(),
             'boutique_code' => $shop['code_boutique'],
-            'montant' => $montant,
-            'mode_paiement' => 'especes',
-            'created_at' => date('Y-m-d H:i:s'),
+            'montant_vente' => $montant,
+            'mode_paiement_vente' => 'especes',
+            'created_at_vente' => date('Y-m-d H:i:s'),
         ]);
 
         Response::success('Vente enregistrée', ['sale' => $sale]);

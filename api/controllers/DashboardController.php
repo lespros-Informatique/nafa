@@ -14,8 +14,8 @@ class DashboardController extends Controller
 
         $todaySales = Sale::getTodayByShop($shop['code_boutique']);
         $todayExpenses = Expense::getTodayByShop($shop['code_boutique']);
-        $totalSales = array_sum(array_column($todaySales, 'montant'));
-        $totalExpenses = array_sum(array_column($todayExpenses, 'montant'));
+        $totalSales = array_sum(array_column($todaySales, 'montant_vente'));
+        $totalExpenses = array_sum(array_column($todayExpenses, 'montant_depense'));
 
         Response::success('Dashboard', [
             'sales' => $this->formatMoney($totalSales),

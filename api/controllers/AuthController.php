@@ -13,13 +13,14 @@ class AuthController extends Controller
 
         $user = User::findByPhone($phone);
         if (!$user) {
-            $user = User::create([
-                'code_user' => 'USR' . time(),
-                'nom_user' => 'Utilisateur ' . substr($phone, -4),
-                'telephone_user' => $phone,
-                'statut' => 'actif',
-                'created_at' => date('Y-m-d H:i:s'),
-            ]);
+        $user = User::create([
+            'code_user' => 'USR' . time(),
+            'role_user' => 'vendeur',
+            'nom_user' => 'Utilisateur ' . substr($phone, -4),
+            'telephone_user' => $phone,
+            'statut_user' => 'actif',
+            'created_at_user' => date('Y-m-d H:i:s'),
+        ]);
             $shop = Shop::createDefaultForUser($user['code_user']);
         } else {
             $shop = Shop::findByUserCode($user['code_user']);

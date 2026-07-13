@@ -14,8 +14,8 @@ class ReportController extends Controller
 
         $sales = Sale::getAllByShop($shop['code_boutique']);
         $expenses = Expense::getAllByShop($shop['code_boutique']);
-        $totalSales = array_sum(array_column($sales, 'montant'));
-        $totalExpenses = array_sum(array_column($expenses, 'montant'));
+        $totalSales = array_sum(array_column($sales, 'montant_vente'));
+        $totalExpenses = array_sum(array_column($expenses, 'montant_depense'));
 
         $period = $_GET['period'] ?? 'day';
         $chartData = $this->buildChartData($sales, $expenses, $period);
@@ -41,8 +41,8 @@ class ReportController extends Controller
                 $d->modify("-$i days");
                 $labels[] = $days[(int)$d->format('w')];
                 $dayStr = $d->format('Y-m-d');
-                $dataV[] = array_sum(array_column(array_filter($sales, fn($s) => str_starts_with($s['created_at'], $dayStr)), 'montant'));
-                $dataE[] = array_sum(array_column(array_filter($expenses, fn($e) => str_starts_with($e['created_at'], $dayStr)), 'montant'));
+                $dataV[] = array_sum(array_column(array_filter($sales, fn($s) => str_starts_with($s['created_at_vente'], $dayStr)), 'montant_vente'));
+                $dataE[] = array_sum(array_column(array_filter($expenses, fn($e) => str_starts_with($e['created_at_depense'], $dayStr)), 'montant_depense'));
             }
         } elseif ($period === 'week') {
             for ($i = 3; $i >= 0; $i--) {
@@ -52,13 +52,13 @@ class ReportController extends Controller
                 $weekStart = (clone $d)->modify('monday this week')->format('Y-m-d');
                 $weekEnd = (clone $d)->modify('sunday this week')->format('Y-m-d');
                 $dataV[] = array_sum(array_column(array_filter($sales, function($s) use ($weekStart, $weekEnd) {
-                    $d = substr($s['created_at'], 0, 10);
+                    $d = substr($s['created_at_vente'], 0, 10);
                     return $d >= $weekStart && $d <= $weekEnd;
-                }), 'montant'));
+                }), 'montant_vente'));
                 $dataE[] = array_sum(array_column(array_filter($expenses, function($e) use ($weekStart, $weekEnd) {
-                    $d = substr($e['created_at'], 0, 10);
+                    $d = substr($e['created_at_depense'], 0, 10);
                     return $d >= $weekStart && $d <= $weekEnd;
-                }), 'montant'));
+                }), 'montant_depense'));
             }
         } else {
             $months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
@@ -67,8 +67,8 @@ class ReportController extends Controller
                 $d->modify("-$i months");
                 $labels[] = $months[(int)$d->format('n') - 1];
                 $month = $d->format('Y-m');
-                $dataV[] = array_sum(array_column(array_filter($sales, fn($s) => str_starts_with($s['created_at'], $month)), 'montant'));
-                $dataE[] = array_sum(array_column(array_filter($expenses, fn($e) => str_starts_with($e['created_at'], $month)), 'montant'));
+                $dataV[] = array_sum(array_column(array_filter($sales, fn($s) => str_starts_with($s['created_at_vente'], $month)), 'montant_vente'));
+                $dataE[] = array_sum(array_column(array_filter($expenses, fn($e) => str_starts_with($e['created_at_depense'], $month)), 'montant_depense'));
             }
         }
 

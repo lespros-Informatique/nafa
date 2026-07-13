@@ -7,15 +7,15 @@ class Sale
     public static function create(array $data): array
     {
         $stmt = Database::getConnection()->prepare(
-            'INSERT INTO ventes (code_vente, boutique_code, montant, mode_paiement, created_at)
-             VALUES (:code_vente, :boutique_code, :montant, :mode_paiement, :created_at)'
+            'INSERT INTO ventes (code_vente, boutique_code, montant_vente, mode_paiement_vente, created_at_vente)
+             VALUES (:code_vente, :boutique_code, :montant_vente, :mode_paiement_vente, :created_at_vente)'
         );
         $stmt->execute([
             'code_vente' => $data['code_vente'],
             'boutique_code' => $data['boutique_code'],
-            'montant' => $data['montant'],
-            'mode_paiement' => $data['mode_paiement'],
-            'created_at' => $data['created_at'],
+            'montant_vente' => $data['montant_vente'],
+            'mode_paiement_vente' => $data['mode_paiement_vente'],
+            'created_at_vente' => $data['created_at_vente'],
         ]);
         $id = Database::getConnection()->lastInsertId();
         return self::findById((int)$id);
@@ -32,7 +32,7 @@ class Sale
     public static function getRecentByShop(string $shopCode, int $limit = 10): array
     {
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM ventes WHERE boutique_code = :boutique_code ORDER BY created_at DESC LIMIT :limit'
+            'SELECT * FROM ventes WHERE boutique_code = :boutique_code ORDER BY created_at_vente DESC LIMIT :limit'
         );
         $stmt->bindValue(':boutique_code', $shopCode);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -43,7 +43,7 @@ class Sale
     public static function getTodayByShop(string $shopCode): array
     {
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM ventes WHERE boutique_code = :boutique_code AND DATE(created_at) = CURDATE()'
+            'SELECT * FROM ventes WHERE boutique_code = :boutique_code AND DATE(created_at_vente) = CURDATE()'
         );
         $stmt->execute(['boutique_code' => $shopCode]);
         return $stmt->fetchAll();
@@ -52,7 +52,7 @@ class Sale
     public static function getAllByShop(string $shopCode): array
     {
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM ventes WHERE boutique_code = :boutique_code ORDER BY created_at DESC'
+            'SELECT * FROM ventes WHERE boutique_code = :boutique_code ORDER BY created_at_vente DESC'
         );
         $stmt->execute(['boutique_code' => $shopCode]);
         return $stmt->fetchAll();
@@ -63,8 +63,8 @@ class Sale
         $stmt = Database::getConnection()->prepare(
             'SELECT * FROM ventes
              WHERE boutique_code = :boutique_code
-               AND (CAST(montant AS CHAR) LIKE :query OR DATE_FORMAT(created_at, "%d/%m/%Y %H:%i") LIKE :query)
-             ORDER BY created_at DESC
+               AND (CAST(montant_vente AS CHAR) LIKE :query OR DATE_FORMAT(created_at_vente, "%d/%m/%Y %H:%i") LIKE :query)
+             ORDER BY created_at_vente DESC
              LIMIT :limit'
         );
         $like = '%' . $query . '%';
