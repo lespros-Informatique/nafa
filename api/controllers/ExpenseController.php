@@ -12,8 +12,8 @@ class ExpenseController extends Controller
             Response::error('Boutique introuvable', [], 404);
         }
 
-        $libelle = trim($_POST['libelle'] ?? '');
-        $montant = (float) ($_POST['montant'] ?? 0);
+        $libelle = trim($this->input('libelle', ''));
+        $montant = (float) ($this->input('montant', 0));
 
         if (!$libelle) {
             Response::error('Libellé requis');

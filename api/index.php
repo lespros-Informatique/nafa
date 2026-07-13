@@ -1,21 +1,32 @@
 <?php
 
-require_once dirname(__DIR__) . '/api/core/Database.php';
-require_once dirname(__DIR__) . '/api/core/Response.php';
-require_once dirname(__DIR__) . '/api/models/User.php';
-require_once dirname(__DIR__) . '/api/models/Shop.php';
-require_once dirname(__DIR__) . '/api/models/Sale.php';
-require_once dirname(__DIR__) . '/api/models/Expense.php';
-require_once dirname(__DIR__) . '/api/controllers/AuthController.php';
-require_once dirname(__DIR__) . '/api/controllers/DashboardController.php';
-require_once dirname(__DIR__) . '/api/controllers/SaleController.php';
-require_once dirname(__DIR__) . '/api/controllers/ExpenseController.php';
-require_once dirname(__DIR__) . '/api/controllers/HistoryController.php';
-require_once dirname(__DIR__) . '/api/controllers/ReportController.php';
-require_once dirname(__DIR__) . '/api/controllers/SearchController.php';
+require_once __DIR__ . '/core/Database.php';
+require_once __DIR__ . '/core/Response.php';
+require_once __DIR__ . '/models/User.php';
+require_once __DIR__ . '/models/Shop.php';
+require_once __DIR__ . '/models/Sale.php';
+require_once __DIR__ . '/models/Expense.php';
+require_once __DIR__ . '/controllers/AuthController.php';
+require_once __DIR__ . '/controllers/DashboardController.php';
+require_once __DIR__ . '/controllers/SaleController.php';
+require_once __DIR__ . '/controllers/ExpenseController.php';
+require_once __DIR__ . '/controllers/HistoryController.php';
+require_once __DIR__ . '/controllers/ReportController.php';
+require_once __DIR__ . '/controllers/SearchController.php';
 
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
+
+$scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+$parentDir = dirname($scriptDir);
+
+if ($parentDir !== '/' && strpos($uri, $parentDir) === 0) {
+    $uri = substr($uri, strlen($parentDir));
+}
+
+if ($uri === '' || $uri[0] !== '/') {
+    $uri = '/' . $uri;
+}
 
 $routes = [
     'POST' => [

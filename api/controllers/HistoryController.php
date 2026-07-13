@@ -52,8 +52,8 @@ class HistoryController extends Controller
     public function delete(): void
     {
         $user = $this->requireAuth();
-        $type = $_POST['type'] ?? '';
-        $id = $_POST['id'] ?? '';
+        $type = $this->input('type', '');
+        $id = $this->input('id', '');
 
         if ($type === 'vente') {
             Sale::delete($id);

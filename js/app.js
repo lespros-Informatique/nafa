@@ -65,7 +65,14 @@ const app = {
             headers: { ...headers, ...options.headers },
             credentials: 'same-origin',
         });
-        const data = await response.json();
+        const text = await response.text();
+        console.log('API response:', response.status, text);
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            data = { success: false, message: 'Réponse invalide du serveur', data: [] };
+        }
         if (!data.success) {
             throw new Error(data.message || 'Erreur API');
         }

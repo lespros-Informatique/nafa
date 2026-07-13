@@ -6,7 +6,7 @@ class AuthController extends Controller
 {
     public function login(): void
     {
-        $phone = trim($_POST['phone'] ?? '');
+        $phone = trim($this->input('phone', $this->input('telephone', '')));
         if (!$phone) {
             Response::error('Numéro de téléphone requis');
         }

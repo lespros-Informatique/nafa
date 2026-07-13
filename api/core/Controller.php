@@ -2,6 +2,29 @@
 
 abstract class Controller
 {
+    protected function input(string $key, $default = null)
+    {
+        $data = $this->jsonInput();
+        return $data[$key] ?? $default;
+    }
+
+    protected function jsonInput(): array
+    {
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        if ($method === 'GET') {
+            return $_GET;
+        }
+
+        $contentType = strtolower($_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? '');
+        if (strpos($contentType, 'application/json') !== false) {
+            $raw = file_get_contents('php://input');
+            $data = json_decode($raw, true);
+            return is_array($data) ? $data : [];
+        }
+
+        return $_POST;
+    }
+
     protected function requireAuth(): array
     {
         $headers = getallheaders();

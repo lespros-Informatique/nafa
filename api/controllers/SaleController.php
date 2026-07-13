@@ -12,7 +12,7 @@ class SaleController extends Controller
             Response::error('Boutique introuvable', [], 404);
         }
 
-        $montant = (float) ($_POST['montant'] ?? 0);
+        $montant = (float) ($this->input('montant', 0));
         if (!$montant || $montant <= 0) {
             Response::error('Montant invalide');
         }
