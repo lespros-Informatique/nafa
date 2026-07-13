@@ -1,0 +1,83 @@
+<?php
+
+require_once __DIR__ . '/../core/Controller.php';
+
+class HistoryController extends Controller
+{
+    public function index(): void
+    {
+        $user = $this->requireAuth();
+        $shop = Shop::findByUserCode($user['code_user']);
+        if (!$shop) {
+            Response::error('Boutique introuvable', [], 404);
+        }
+
+        $filter = $_GET['filter'] ?? 'today';
+        $sales = Sale::getAllByShop($shop['code_boutique']);
+        $expenses = Expense::getAllByShop($shop['code_boutique']);
+
+        $items = [];
+        foreach ($sales as $sale) {
+            $date = new DateTime($sale['created_at']);
+            if ($this->matchFilter($date, $filter)) {
+                $items[] = [
+                    'type' => 'vente',
+                    'id' => $sale['code_vente'],
+                    'title' => 'Vente',
+                    'meta' => $date->format('d/m/Y H:i'),
+                    'amount' => (float) $sale['montant'],
+                    'mode' => $sale['mode_paiement'],
+                ];
+            }
+        }
+        foreach ($expenses as $expense) {
+            $date = new DateTime($expense['date_depense']);
+            if ($this->matchFilter($date, $filter)) {
+                $items[] = [
+                    'type' => 'depense',
+                    'id' => $expense['code_depense'],
+                    'title' => $expense['libelle'],
+                    'meta' => $date->format('d/m/Y H:i'),
+                    'amount' => (float) $expense['montant'],
+                    'mode' => '-',
+                ];
+            }
+        }
+
+        usort($items, fn($a, $b) => strtotime($b['meta']) - strtotime($a['meta']));
+
+        Response::success('Historique', ['items' => $items]);
+    }
+
+    public function delete(): void
+    {
+        $user = $this->requireAuth();
+        $type = $_POST['type'] ?? '';
+        $id = $_POST['id'] ?? '';
+
+        if ($type === 'vente') {
+            Sale::delete($id);
+        } elseif ($type === 'depense') {
+            Expense::delete($id);
+        } else {
+            Response::error('Type invalide', [], 400);
+        }
+
+        Response::success('Opération supprimée');
+    }
+
+    private function matchFilter(DateTime $date, string $filter): bool
+    {
+        $now = new DateTime();
+        if ($filter === 'today') {
+            return $date->format('Y-m-d') === $now->format('Y-m-d');
+        } elseif ($filter === 'week') {
+            $weekAgo = (clone $now)->modify('-7 days');
+            return $date >= $weekAgo;
+        } elseif ($filter === 'month') {
+            $monthAgo = (clone $now)->modify('-1 month');
+            return $date >= $monthAgo;
+        }
+        return true;
+    }
+}

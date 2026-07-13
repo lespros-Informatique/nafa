@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : lun. 13 juil. 2026 à 15:42
+-- Généré le : lun. 13 juil. 2026 à 16:51
 -- Version du serveur : 9.1.0
 -- Version de PHP : 8.3.14
 
@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS `boutiques` (
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `code_boutique` (`code_boutique`),
+  UNIQUE KEY `uk_boutiques_user_code` (`user_code`),
   KEY `fk_boutiques_users` (`user_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -53,7 +54,6 @@ CREATE TABLE IF NOT EXISTS `depenses` (
   `id_depense` int NOT NULL AUTO_INCREMENT,
   `code_depense` varchar(20) NOT NULL,
   `boutique_code` varchar(20) NOT NULL,
-  `session_code` varchar(20) NOT NULL,
   `libelle` varchar(150) NOT NULL,
   `montant` decimal(12,2) NOT NULL,
   `date_depense` datetime NOT NULL,
@@ -61,30 +61,7 @@ CREATE TABLE IF NOT EXISTS `depenses` (
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_depense`),
   UNIQUE KEY `code_depense` (`code_depense`),
-  KEY `fk_depenses_boutiques` (`boutique_code`),
-  KEY `fk_depenses_sessions` (`session_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
--- --------------------------------------------------------
-
---
--- Structure de la table `sessions_caisse`
---
-
-DROP TABLE IF EXISTS `sessions_caisse`;
-CREATE TABLE IF NOT EXISTS `sessions_caisse` (
-  `id_session` int NOT NULL AUTO_INCREMENT,
-  `code_session` varchar(20) NOT NULL,
-  `boutique_code` varchar(20) NOT NULL,
-  `ouverture` datetime NOT NULL,
-  `fermeture` datetime DEFAULT NULL,
-  `fond_caisse` decimal(12,2) DEFAULT '0.00',
-  `statut` enum('ouverte','fermee') DEFAULT 'ouverte',
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id_session`),
-  UNIQUE KEY `code_session` (`code_session`),
-  KEY `fk_sessions_caisse_boutiques` (`boutique_code`)
+  KEY `fk_depenses_boutiques` (`boutique_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -118,15 +95,13 @@ CREATE TABLE IF NOT EXISTS `ventes` (
   `id_vente` int NOT NULL AUTO_INCREMENT,
   `code_vente` varchar(20) NOT NULL,
   `boutique_code` varchar(20) NOT NULL,
-  `session_code` varchar(20) NOT NULL,
   `montant` decimal(12,2) NOT NULL,
   `mode_paiement` enum('especes','wave','orange','mtn','moov','carte','autre') DEFAULT 'especes',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_vente`),
   UNIQUE KEY `code_vente` (`code_vente`),
-  KEY `fk_ventes_boutiques` (`boutique_code`),
-  KEY `fk_ventes_sessions` (`session_code`)
+  KEY `fk_ventes_boutiques` (`boutique_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
@@ -143,21 +118,13 @@ ALTER TABLE `boutiques`
 -- Contraintes pour la table `depenses`
 --
 ALTER TABLE `depenses`
-  ADD CONSTRAINT `fk_depenses_boutiques` FOREIGN KEY (`boutique_code`) REFERENCES `boutiques` (`code_boutique`),
-  ADD CONSTRAINT `fk_depenses_sessions` FOREIGN KEY (`session_code`) REFERENCES `sessions_caisse` (`code_session`);
-
---
--- Contraintes pour la table `sessions_caisse`
---
-ALTER TABLE `sessions_caisse`
-  ADD CONSTRAINT `fk_sessions_caisse_boutiques` FOREIGN KEY (`boutique_code`) REFERENCES `boutiques` (`code_boutique`);
+  ADD CONSTRAINT `fk_depenses_boutiques` FOREIGN KEY (`boutique_code`) REFERENCES `boutiques` (`code_boutique`);
 
 --
 -- Contraintes pour la table `ventes`
 --
 ALTER TABLE `ventes`
-  ADD CONSTRAINT `fk_ventes_boutiques` FOREIGN KEY (`boutique_code`) REFERENCES `boutiques` (`code_boutique`),
-  ADD CONSTRAINT `fk_ventes_sessions` FOREIGN KEY (`session_code`) REFERENCES `sessions_caisse` (`code_session`);
+  ADD CONSTRAINT `fk_ventes_boutiques` FOREIGN KEY (`boutique_code`) REFERENCES `boutiques` (`code_boutique`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
