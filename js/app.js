@@ -47,10 +47,14 @@ const app = {
 
         const loggedIn = page !== 'login';
         document.getElementById('bottom-nav').style.display = loggedIn ? 'flex' : 'none';
-        document.getElementById('fab-container').style.display = (loggedIn && page === 'dashboard') ? 'flex' : 'none';
+        document.getElementById('fab-container').style.display = (loggedIn && page === 'dashboard' && this.currentUser?.role_user !== 'developpeur') ? 'flex' : 'none';
 
         const logoutBtn = document.getElementById('logout-top');
         if (logoutBtn) logoutBtn.style.display = loggedIn ? 'flex' : 'none';
+
+        this.closeCreateUserModal();
+        this.closeCreateShopModal();
+        this.closeUserDetail();
 
         const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
         document.querySelectorAll('.dev-only').forEach(el => el.style.display = isDev ? '' : 'none');
@@ -65,6 +69,7 @@ const app = {
         if (page === 'history') this.renderHistory();
         if (page === 'reports') this.renderReports();
         if (page === 'dev-list') this.renderDevUsers();
+        if (page === 'dev-shops') this.renderDevShops();
     },
 
     async api(url, options = {}) {
@@ -194,7 +199,7 @@ const app = {
         e.preventDefault();
         const label = document.getElementById('expense-label').value.trim();
         const amount = parseFloat(document.getElementById('expense-amount').value);
-        if (!$label || !amount) return;
+        if (!label || !amount) return;
 
         try {
             await this.api('/expenses', {
@@ -216,16 +221,27 @@ const app = {
         const role = document.getElementById('dev-user-role').value;
 
         try {
-            await this.api('/dev/users', {
+            const data = await this.api('/dev/users', {
                 method: 'POST',
                 body: JSON.stringify({ phone, name, role }),
             });
+            const userCode = data.data.user.code_user;
             document.getElementById('dev-user-phone').value = '';
             document.getElementById('dev-user-name').value = '';
+            this.closeCreateUserModal();
+            this.openCreateShopModal(userCode);
             this.toast('Utilisateur créé');
         } catch (err) {
             this.toast(err.message);
         }
+    },
+
+    openCreateUserModal() {
+        document.getElementById('create-user-modal').classList.add('open');
+    },
+
+    closeCreateUserModal() {
+        document.getElementById('create-user-modal').classList.remove('open');
     },
 
     async handleCreateShop(e) {
@@ -241,9 +257,118 @@ const app = {
             });
             document.getElementById('dev-shop-user-code').value = '';
             document.getElementById('dev-shop-label').value = '';
+            this.closeCreateShopModal();
             this.toast('Boutique créée');
+            this.renderDevUsers();
         } catch (err) {
             this.toast(err.message);
+        }
+    },
+
+    openCreateShopModal(userCode) {
+        const codeInput = document.getElementById('dev-shop-user-code');
+        if (codeInput && userCode) codeInput.value = userCode;
+        document.getElementById('create-shop-modal').classList.add('open');
+    },
+
+    closeCreateShopModal() {
+        document.getElementById('create-shop-modal').classList.remove('open');
+    },
+
+    async renderDevShops() {
+        const list = document.getElementById('dev-shop-list');
+        try {
+            const data = await this.api('/dev/shops');
+            const shops = data.data.shops;
+            if (!shops.length) {
+                list.innerHTML = '<div class="empty-state">Aucune boutique</div>';
+                return;
+            }
+            list.innerHTML = shops.map(s => `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${s.libelle_boutique}</div>
+                        <div class="list-item-meta">${s.code_boutique} • ${s.devise_boutique}</div>
+                    </div>
+                    <span class="list-item-amount">${s.statut_boutique}</span>
+                    <button class="list-item-arrow" onclick="app.openShopDetail('${s.code_boutique}')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                </div>
+            `).join('');
+        } catch (err) {
+            this.toast(err.message);
+        }
+    },
+
+    async openShopDetail(shopCode) {
+        const modal = document.getElementById('user-detail-modal');
+        const sheet = document.getElementById('user-detail-sheet');
+        sheet.innerHTML = '<div class="empty-state">Chargement...</div>';
+        modal.classList.add('open');
+
+        try {
+            const data = await this.api(`/dev/shop-detail?code=${encodeURIComponent(shopCode)}`);
+            const shop = data.data.shop;
+            const transactions = data.data.transactions || [];
+            const totals = data.data.totals || {};
+
+            let html = `
+                <div class="modal-header">
+                    <h3>${shop.libelle_boutique}</h3>
+                    <button class="modal-close" onclick="app.closeUserDetail()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="detail-section">
+                        <h4 class="detail-title">Boutique</h4>
+                        <div class="detail-grid">
+                            <div class="detail-item"><span>Code</span><strong>${shop.code_boutique}</strong></div>
+                            <div class="detail-item"><span>Devise</span><strong>${shop.devise_boutique}</strong></div>
+                            <div class="detail-item"><span>Statut</span><strong>${shop.statut_boutique}</strong></div>
+                            <div class="detail-item"><span>Utilisateur</span><strong>${shop.user_code}</strong></div>
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <h4 class="detail-title">Totaux</h4>
+                        <div class="detail-grid">
+                            <div class="detail-item"><span>Ventes</span><strong>${totals.sales || '0 FCFA'}</strong></div>
+                            <div class="detail-item"><span>Dépenses</span><strong>${totals.expenses || '0 FCFA'}</strong></div>
+                            <div class="detail-item"><span>Net</span><strong>${totals.net || '0 FCFA'}</strong></div>
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <h4 class="detail-title">Transactions</h4>
+            `;
+
+            if (!transactions.length) {
+                html += '<div class="empty-state">Aucune transaction</div>';
+            } else {
+                html += '<div class="detail-transactions">';
+                for (const tx of transactions) {
+                    const isSale = tx.type === 'vente';
+                    const amountClass = isSale ? 'positive' : 'negative';
+                    const sign = isSale ? '+' : '-';
+                    const title = tx.title || 'Vente';
+                    const meta = tx.mode || '-';
+                    html += `
+                        <div class="list-item">
+                            <div class="list-item-info">
+                                <div class="list-item-title">${title}</div>
+                                <div class="list-item-meta">${this.formatFrenchDate(tx.date)} • ${meta}</div>
+                            </div>
+                            <span class="list-item-amount ${amountClass}">${sign}${this.formatMoney(tx.amount)}</span>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
+
+            html += '</div></div>';
+            sheet.innerHTML = html;
+        } catch (err) {
+            sheet.innerHTML = `<div class="empty-state">${err.message}</div>`;
         }
     },
 

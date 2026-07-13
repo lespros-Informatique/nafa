@@ -76,6 +76,17 @@ html, body {
     font-weight: 500;
 }
 
+.header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.header-row h2 {
+    margin: 0;
+}
+
 /* Buttons */
 .btn {
     display: inline-flex;

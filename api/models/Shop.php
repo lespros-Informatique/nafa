@@ -14,6 +14,16 @@ class Shop
         return $shop ?: null;
     }
 
+    public static function findByCode(string $code): ?array
+    {
+        $stmt = Database::getConnection()->prepare(
+            'SELECT * FROM boutiques WHERE code_boutique = :code LIMIT 1'
+        );
+        $stmt->execute(['code' => $code]);
+        $shop = $stmt->fetch();
+        return $shop ?: null;
+    }
+
     public static function createDefaultForUser(string $userCode): array
     {
         $codeBoutique = 'BTE' . time();

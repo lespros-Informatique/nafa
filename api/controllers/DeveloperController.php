@@ -156,4 +156,74 @@ class DeveloperController extends Controller
             'transactions' => $transactions,
         ]);
     }
+
+    public function listShops(): void
+    {
+        $this->requireDeveloper();
+
+        $stmt = Database::getConnection()->query('SELECT id, code_boutique, user_code, libelle_boutique, devise_boutique, statut_boutique, created_at_boutique FROM boutiques ORDER BY created_at_boutique DESC');
+        $shops = $stmt->fetchAll();
+
+        Response::success('Liste des boutiques', ['shops' => $shops]);
+    }
+
+    public function shopDetail(): void
+    {
+        $this->requireDeveloper();
+
+        $shopCode = trim($_GET['code'] ?? '');
+        if (!$shopCode) {
+            Response::error('Code boutique requis');
+        }
+
+        $stmt = Database::getConnection()->prepare('SELECT * FROM boutiques WHERE code_boutique = :code LIMIT 1');
+        $stmt->execute(['code' => $shopCode]);
+        $shop = $stmt->fetch();
+        if (!$shop) {
+            Response::error('Boutique introuvable', [], 404);
+        }
+
+        $sales = Sale::getAllByShop($shopCode);
+        $expenses = Expense::getAllByShop($shopCode);
+
+        $transactions = [];
+        foreach ($sales as $sale) {
+            $transactions[] = [
+                'type' => 'vente',
+                'id' => $sale['code_vente'],
+                'amount' => (float) $sale['montant_vente'],
+                'mode' => $sale['mode_paiement_vente'],
+                'date' => $sale['created_at_vente'],
+            ];
+        }
+        foreach ($expenses as $expense) {
+            $transactions[] = [
+                'type' => 'depense',
+                'id' => $expense['code_depense'],
+                'title' => $expense['libelle_depense'],
+                'amount' => (float) $expense['montant_depense'],
+                'mode' => '-',
+                'date' => $expense['date_depense_depense'],
+            ];
+        }
+        usort($transactions, fn($a, $b) => strtotime($b['date']) - strtotime($a['date']));
+
+        $totalSales = array_sum(array_column($sales, 'montant_vente'));
+        $totalExpenses = array_sum(array_column($expenses, 'montant_depense'));
+
+        Response::success('Détail boutique', [
+            'shop' => $shop,
+            'transactions' => $transactions,
+            'totals' => [
+                'sales' => $this->formatMoney($totalSales),
+                'expenses' => $this->formatMoney($totalExpenses),
+                'net' => $this->formatMoney($totalSales - $totalExpenses),
+            ],
+        ]);
+    }
+
+    private function formatMoney(float $amount): string
+    {
+        return number_format($amount, 0, ',', ' ') . ' FCFA';
+    }
 }

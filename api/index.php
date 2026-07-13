@@ -47,6 +47,8 @@ $routes = [
         '/api/search' => [SearchController::class, 'search'],
         '/api/dev/users' => [DeveloperController::class, 'listUsers'],
         '/api/dev/user-detail' => [DeveloperController::class, 'userDetail'],
+        '/api/dev/shops' => [DeveloperController::class, 'listShops'],
+        '/api/dev/shop-detail' => [DeveloperController::class, 'shopDetail'],
     ],
 ];
 
