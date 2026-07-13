@@ -64,20 +64,38 @@ class Sale
         return $stmt->fetchAll();
     }
 
-    public static function search(string $shopCode, string $query, int $limit = 20): array
+    public static function search(?string $shopCode, string $query, int $limit = 20): array
     {
-        $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM ventes
-             WHERE boutique_code = :boutique_code
-               AND (CAST(montant_vente AS CHAR) LIKE :query1 OR DATE_FORMAT(created_at_vente, "%d/%m/%Y %H:%i") LIKE :query2)
-             ORDER BY created_at_vente DESC
-             LIMIT :limit'
-        );
         $like = '%' . $query . '%';
-        $stmt->bindValue(':boutique_code', $shopCode);
-        $stmt->bindValue(':query1', $like);
-        $stmt->bindValue(':query2', $like);
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $sql = 'SELECT * FROM ventes WHERE (CAST(montant_vente AS CHAR) LIKE :q1 OR code_vente LIKE :q2 OR DATE_FORMAT(created_at_vente, "%d/%m/%Y %H:%i") LIKE :q3 OR DATE_FORMAT(created_at_vente, "%W, %d %M %Y à %Hh") LIKE :q4 OR DATE_FORMAT(created_at_vente, "%Hh %imin %ss") LIKE :q5)';
+        $params = [
+            'q1' => $like,
+            'q2' => $like,
+            'q3' => $like,
+            'q4' => $like,
+            'q5' => $like,
+            'limit' => $limit,
+        ];
+
+        if ($shopCode) {
+            $sql .= ' AND boutique_code = :boutique_code';
+            $params['boutique_code'] = $shopCode;
+        }
+
+        $sql .= ' ORDER BY created_at_vente DESC LIMIT :limit';
+
+        $stmt = Database::getConnection()->prepare($sql);
+        $stmt->bindValue(':q1', $params['q1']);
+        $stmt->bindValue(':q2', $params['q2']);
+        $stmt->bindValue(':q3', $params['q3']);
+        $stmt->bindValue(':q4', $params['q4']);
+        $stmt->bindValue(':q5', $params['q5']);
+        $stmt->bindValue(':limit', $params['limit'], PDO::PARAM_INT);
+
+        if ($shopCode) {
+            $stmt->bindValue(':boutique_code', $params['boutique_code']);
+        }
+
         $stmt->execute();
         return $stmt->fetchAll();
     }

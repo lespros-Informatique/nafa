@@ -54,6 +54,44 @@ class Expense
         return $stmt->fetchAll();
     }
 
+    public static function search(?string $shopCode, string $query, int $limit = 20): array
+    {
+        $like = '%' . $query . '%';
+        $sql = 'SELECT * FROM depenses WHERE (CAST(montant_depense AS CHAR) LIKE :q1 OR code_depense LIKE :q2 OR libelle_depense LIKE :q3 OR DATE_FORMAT(date_depense_depense, "%d/%m/%Y %H:%i") LIKE :q4 OR DATE_FORMAT(date_depense_depense, "%W, %d %M %Y à %Hh") LIKE :q5 OR DATE_FORMAT(date_depense_depense, "%Hh %imin %ss") LIKE :q6)';
+        $params = [
+            'q1' => $like,
+            'q2' => $like,
+            'q3' => $like,
+            'q4' => $like,
+            'q5' => $like,
+            'q6' => $like,
+            'limit' => $limit,
+        ];
+
+        if ($shopCode) {
+            $sql .= ' AND boutique_code = :boutique_code';
+            $params['boutique_code'] = $shopCode;
+        }
+
+        $sql .= ' ORDER BY date_depense_depense DESC LIMIT :limit';
+
+        $stmt = Database::getConnection()->prepare($sql);
+        $stmt->bindValue(':q1', $params['q1']);
+        $stmt->bindValue(':q2', $params['q2']);
+        $stmt->bindValue(':q3', $params['q3']);
+        $stmt->bindValue(':q4', $params['q4']);
+        $stmt->bindValue(':q5', $params['q5']);
+        $stmt->bindValue(':q6', $params['q6']);
+        $stmt->bindValue(':limit', $params['limit'], PDO::PARAM_INT);
+
+        if ($shopCode) {
+            $stmt->bindValue(':boutique_code', $params['boutique_code']);
+        }
+
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
     public static function delete(string $codeDepense): bool
     {
         $stmt = Database::getConnection()->prepare('DELETE FROM depenses WHERE code_depense = :code_depense');
