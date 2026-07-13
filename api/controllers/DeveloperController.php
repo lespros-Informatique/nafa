@@ -46,7 +46,7 @@ class DeveloperController extends Controller
             Response::error('Ce numéro est déjà utilisé', [], 409);
         }
 
-        $code = 'USR' . time();
+        $code = 'USR' . time() . mt_rand(100, 999);
         $user = User::create([
             'code_user' => $code,
             'role_user' => $role,
@@ -84,7 +84,7 @@ class DeveloperController extends Controller
             Response::error('Cet utilisateur a déjà une boutique', [], 409);
         }
 
-        $codeBoutique = 'BTE' . time();
+        $codeBoutique = 'BTE' . time() . mt_rand(100, 999);
         $stmt = Database::getConnection()->prepare(
             'INSERT INTO boutiques (code_boutique, user_code, libelle_boutique, devise_boutique, statut_boutique, created_at_boutique)
              VALUES (:code_boutique, :user_code, :libelle_boutique, :devise_boutique, :statut_boutique, :created_at_boutique)'

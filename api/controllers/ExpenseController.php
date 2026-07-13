@@ -23,7 +23,7 @@ class ExpenseController extends Controller
         }
 
         $expense = Expense::create([
-            'code_depense' => 'DEP' . time(),
+                'code_depense' => 'DEP' . time() . mt_rand(100, 999),
             'boutique_code' => $shop['code_boutique'],
             'libelle_depense' => $libelle,
             'montant_depense' => $montant,

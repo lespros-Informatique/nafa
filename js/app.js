@@ -173,9 +173,9 @@ const app = {
             <div class="list-item">
                 <div class="list-item-info">
                     <div class="list-item-title">Vente</div>
-                    <div class="list-item-meta">${this.formatFrenchDate(s.created_at_vente)}</div>
+                    <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(s.created_at_vente))}</div>
                 </div>
-                <span class="list-item-amount positive">+${this.formatMoney(s.montant_vente)}</span>
+                <span class="list-item-amount positive">+${this.escapeHtml(this.formatMoney(s.montant_vente))}</span>
             </div>
         `).join('');
     },
@@ -291,10 +291,10 @@ const app = {
                 return `
                 <div class="list-item">
                     <div class="list-item-info">
-                        <div class="list-item-title">${s.libelle_boutique}</div>
-                        <div class="list-item-meta">${s.code_boutique} • ${s.devise_boutique}</div>
+                        <div class="list-item-title">${this.escapeHtml(s.libelle_boutique)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(s.code_boutique)} • ${this.escapeHtml(s.devise_boutique)}</div>
                     </div>
-                    <span class="badge ${statusClass}">${s.statut_boutique}</span>
+                    <span class="badge ${statusClass}">${this.escapeHtml(s.statut_boutique)}</span>
                     <button class="list-item-arrow" onclick="app.openShopDetail('${s.code_boutique}')">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                     </button>
@@ -320,7 +320,7 @@ const app = {
 
             let html = `
                 <div class="modal-header">
-                    <h3>${shop.libelle_boutique}</h3>
+                    <h3>${this.escapeHtml(shop.libelle_boutique)}</h3>
                     <button class="modal-close" onclick="app.closeUserDetail()">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
@@ -329,10 +329,10 @@ const app = {
                     <div class="detail-section">
                         <h4 class="detail-title">Boutique</h4>
                         <div class="detail-grid">
-                            <div class="detail-item"><span>Code</span><strong>${shop.code_boutique}</strong></div>
-                            <div class="detail-item"><span>Devise</span><strong>${shop.devise_boutique}</strong></div>
-                            <div class="detail-item"><span>Statut</span><strong>${shop.statut_boutique}</strong></div>
-                            <div class="detail-item"><span>Utilisateur</span><strong>${shop.user_code}</strong></div>
+                            <div class="detail-item"><span>Code</span><strong>${this.escapeHtml(shop.code_boutique)}</strong></div>
+                            <div class="detail-item"><span>Devise</span><strong>${this.escapeHtml(shop.devise_boutique)}</strong></div>
+                            <div class="detail-item"><span>Statut</span><strong>${this.escapeHtml(shop.statut_boutique)}</strong></div>
+                            <div class="detail-item"><span>Utilisateur</span><strong>${this.escapeHtml(shop.user_code)}</strong></div>
                         </div>
                     </div>
                     <div class="detail-section">
@@ -359,10 +359,10 @@ const app = {
                     const meta = tx.mode || '-';
                     html += `
                         <div class="list-item">
-                            <div class="list-item-info">
-                                <div class="list-item-title">${title}</div>
-                                <div class="list-item-meta">${this.formatFrenchDate(tx.date)} • ${meta}</div>
-                            </div>
+                        <div class="list-item-info">
+                            <div class="list-item-title">${this.escapeHtml(title)}</div>
+                            <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(tx.date))} • ${this.escapeHtml(meta)}</div>
+                        </div>
                             <span class="list-item-amount ${amountClass}">${sign}${this.formatMoney(tx.amount)}</span>
                         </div>
                     `;
@@ -373,7 +373,7 @@ const app = {
             html += '</div></div>';
             sheet.innerHTML = html;
         } catch (err) {
-            sheet.innerHTML = `<div class="empty-state">${err.message}</div>`;
+            sheet.innerHTML = `<div class="empty-state">${this.escapeHtml(err.message)}</div>`;
         }
     },
 
@@ -389,11 +389,11 @@ const app = {
             list.innerHTML = users.map(u => `
                 <div class="list-item">
                     <div class="list-item-info">
-                        <div class="list-item-title">${u.nom_user}</div>
-                        <div class="list-item-meta">${u.telephone_user} • <span class="badge badge-role">${u.role_user}</span></div>
+                        <div class="list-item-title">${this.escapeHtml(u.nom_user)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(u.telephone_user)} • <span class="badge badge-role">${this.escapeHtml(u.role_user)}</span></div>
                     </div>
-                    <span class="list-item-amount">${u.code_user}</span>
-                    <button class="list-item-arrow" onclick="app.openUserDetail('${u.code_user}')">
+                    <span class="list-item-amount">${this.escapeHtml(u.code_user)}</span>
+                    <button class="list-item-arrow" onclick="app.openUserDetail('${this.escapeHtml(u.code_user)}')">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                     </button>
                 </div>
@@ -426,11 +426,11 @@ const app = {
                     <div class="detail-section">
                         <h4 class="detail-title">Utilisateur</h4>
                         <div class="detail-grid">
-                            <div class="detail-item"><span>Nom</span><strong>${user.nom_user}</strong></div>
-                            <div class="detail-item"><span>Téléphone</span><strong>${user.telephone_user}</strong></div>
-                            <div class="detail-item"><span>Rôle</span><strong>${user.role_user}</strong></div>
-                            <div class="detail-item"><span>Statut</span><strong>${user.statut_user}</strong></div>
-                            <div class="detail-item"><span>Code</span><strong>${user.code_user}</strong></div>
+                            <div class="detail-item"><span>Nom</span><strong>${this.escapeHtml(user.nom_user)}</strong></div>
+                            <div class="detail-item"><span>Téléphone</span><strong>${this.escapeHtml(user.telephone_user)}</strong></div>
+                            <div class="detail-item"><span>Rôle</span><strong>${this.escapeHtml(user.role_user)}</strong></div>
+                            <div class="detail-item"><span>Statut</span><strong>${this.escapeHtml(user.statut_user)}</strong></div>
+                            <div class="detail-item"><span>Code</span><strong>${this.escapeHtml(user.code_user)}</strong></div>
                         </div>
                     </div>
             `;
@@ -473,10 +473,10 @@ const app = {
                     const meta = tx.mode || '-';
                     html += `
                         <div class="list-item">
-                            <div class="list-item-info">
-                                <div class="list-item-title">${title}</div>
-                                <div class="list-item-meta">${this.formatFrenchDate(tx.date)} • ${meta}</div>
-                            </div>
+                        <div class="list-item-info">
+                            <div class="list-item-title">${this.escapeHtml(title)}</div>
+                            <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(tx.date))} • ${this.escapeHtml(meta)}</div>
+                        </div>
                             <span class="list-item-amount ${amountClass}">${sign}${this.formatMoney(tx.amount)}</span>
                         </div>
                     `;
@@ -487,7 +487,7 @@ const app = {
             html += '</div></div>';
             sheet.innerHTML = html;
         } catch (err) {
-            sheet.innerHTML = `<div class="empty-state">${err.message}</div>`;
+            sheet.innerHTML = `<div class="empty-state">${this.escapeHtml(err.message)}</div>`;
         }
     },
 
@@ -513,8 +513,8 @@ const app = {
             list.innerHTML = items.map(item => `
                 <div class="list-item">
                     <div class="list-item-info">
-                        <div class="list-item-title">${item.title}</div>
-                        <div class="list-item-meta">${item.meta} ${item.mode !== '-' ? '• ' + item.mode : ''}</div>
+                        <div class="list-item-title">${this.escapeHtml(item.title)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(item.meta)} ${item.mode !== '-' ? '• ' + this.escapeHtml(item.mode) : ''}</div>
                     </div>
                     <span class="list-item-amount ${item.type === 'vente' ? 'positive' : 'negative'}">${item.type === 'vente' ? '+' : '-'}${this.formatMoney(item.amount)}</span>
                     <button class="list-item-delete" onclick="app.deleteItem('${item.type}', '${item.id}')">
@@ -655,8 +655,8 @@ const app = {
             container.innerHTML = results.map(item => `
                 <div class="list-item">
                     <div class="list-item-info">
-                        <div class="list-item-title">${item.title}</div>
-                        <div class="list-item-meta">${item.meta} ${item.mode !== '-' ? '• ' + item.mode : ''}</div>
+                        <div class="list-item-title">${this.escapeHtml(item.title)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(item.meta)} ${item.mode !== '-' ? '• ' + this.escapeHtml(item.mode) : ''}</div>
                     </div>
                     <span class="list-item-amount positive">+${this.formatMoney(item.amount)}</span>
                 </div>
@@ -681,6 +681,12 @@ const app = {
         const year = date.getFullYear();
         const hours = date.getHours();
         return `${day}, ${d} ${month.charAt(0).toUpperCase() + month.slice(1)} ${year} à ${hours}h`;
+    },
+
+    escapeHtml(str) {
+        return String(str ?? '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
     },
 
     loadMockData() {

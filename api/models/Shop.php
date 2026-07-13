@@ -26,7 +26,7 @@ class Shop
 
     public static function createDefaultForUser(string $userCode): array
     {
-        $codeBoutique = 'BTE' . time();
+        $codeBoutique = 'BTE' . time() . mt_rand(100, 999);
         $stmt = Database::getConnection()->prepare(
             'INSERT INTO boutiques (code_boutique, user_code, libelle_boutique, devise_boutique, statut_boutique, created_at_boutique)
              VALUES (:code_boutique, :user_code, :libelle_boutique, :devise_boutique, :statut_boutique, :created_at_boutique)'

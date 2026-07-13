@@ -18,7 +18,7 @@ class SaleController extends Controller
         }
 
         $sale = Sale::create([
-            'code_vente' => 'VTE' . time(),
+            'code_vente' => 'VTE' . time() . mt_rand(100, 999),
             'boutique_code' => $shop['code_boutique'],
             'montant_vente' => $montant,
             'mode_paiement_vente' => 'especes',
