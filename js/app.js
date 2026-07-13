@@ -23,6 +23,8 @@ const app = {
             this.currentShop = s.shop || null;
             const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
             document.querySelectorAll('.dev-only').forEach(el => el.style.display = isDev ? '' : 'none');
+            const logoutBtn = document.getElementById('logout-top');
+            if (logoutBtn) logoutBtn.style.display = 'flex';
             this.navigate('dashboard');
         } else {
             this.navigate('login');
@@ -46,6 +48,9 @@ const app = {
         const loggedIn = page !== 'login';
         document.getElementById('bottom-nav').style.display = loggedIn ? 'flex' : 'none';
         document.getElementById('fab-container').style.display = (loggedIn && page === 'dashboard') ? 'flex' : 'none';
+
+        const logoutBtn = document.getElementById('logout-top');
+        if (logoutBtn) logoutBtn.style.display = loggedIn ? 'flex' : 'none';
 
         const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
         document.querySelectorAll('.dev-only').forEach(el => el.style.display = isDev ? '' : 'none');
@@ -117,6 +122,22 @@ const app = {
             user: this.currentUser,
             shop: this.currentShop,
         }));
+    },
+
+    async logout() {
+        try {
+            await this.api('/auth/logout', { method: 'POST' });
+        } catch (e) {
+            // continue local logout even if API call fails
+        } finally {
+            this.currentUser = null;
+            this.currentShop = null;
+            localStorage.removeItem('nafa_session');
+            const logoutBtn = document.getElementById('logout-top');
+            if (logoutBtn) logoutBtn.style.display = 'none';
+            this.navigate('login');
+            this.toast('Déconnexion réussie');
+        }
     },
 
     async renderDashboard() {

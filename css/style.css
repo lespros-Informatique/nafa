@@ -654,6 +654,28 @@ html, body {
     text-align: center;
 }
 
+.logout-top {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--white);
+    border: 1.5px solid #E5E7EB;
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 150;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.logout-top:active {
+    transform: scale(0.95);
+}
+
 .toast.show {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
