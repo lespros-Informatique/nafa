@@ -263,6 +263,13 @@
             </div>
         </div>
 
+        <!-- USER DETAIL MODAL -->
+        <div id="user-detail-modal" class="modal-overlay" onclick="if(event.target===this)app.closeUserDetail()">
+            <div class="modal-sheet">
+                <div id="user-detail-sheet"></div>
+            </div>
+        </div>
+
         <!-- BOTTOM NAVIGATION -->
         <nav id="bottom-nav" class="bottom-nav" style="display:none;">
             <button class="nav-item active" onclick="app.navigate('dashboard')" data-page="dashboard">

@@ -263,11 +263,106 @@ const app = {
                         <div class="list-item-meta">${u.telephone_user} • ${u.role_user}</div>
                     </div>
                     <span class="list-item-amount">${u.code_user}</span>
+                    <button class="list-item-arrow" onclick="app.openUserDetail('${u.code_user}')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
                 </div>
             `).join('');
         } catch (err) {
             this.toast(err.message);
         }
+    },
+
+    async openUserDetail(userCode) {
+        const modal = document.getElementById('user-detail-modal');
+        const sheet = document.getElementById('user-detail-sheet');
+        sheet.innerHTML = '<div class="empty-state">Chargement...</div>';
+        modal.classList.add('open');
+
+        try {
+            const data = await this.api(`/dev/user-detail?code=${encodeURIComponent(userCode)}`);
+            const user = data.data.user;
+            const shop = data.data.shop;
+            const transactions = data.data.transactions || [];
+
+            let html = `
+                <div class="modal-header">
+                    <h3>Détail utilisateur</h3>
+                    <button class="modal-close" onclick="app.closeUserDetail()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="detail-section">
+                        <h4 class="detail-title">Utilisateur</h4>
+                        <div class="detail-grid">
+                            <div class="detail-item"><span>Nom</span><strong>${user.nom_user}</strong></div>
+                            <div class="detail-item"><span>Téléphone</span><strong>${user.telephone_user}</strong></div>
+                            <div class="detail-item"><span>Rôle</span><strong>${user.role_user}</strong></div>
+                            <div class="detail-item"><span>Statut</span><strong>${user.statut_user}</strong></div>
+                            <div class="detail-item"><span>Code</span><strong>${user.code_user}</strong></div>
+                        </div>
+                    </div>
+            `;
+
+            if (shop) {
+                html += `
+                    <div class="detail-section">
+                        <h4 class="detail-title">Boutique</h4>
+                        <div class="detail-grid">
+                            <div class="detail-item"><span>Libellé</span><strong>${shop.libelle_boutique}</strong></div>
+                            <div class="detail-item"><span>Code</span><strong>${shop.code_boutique}</strong></div>
+                            <div class="detail-item"><span>Devise</span><strong>${shop.devise_boutique}</strong></div>
+                            <div class="detail-item"><span>Statut</span><strong>${shop.statut_boutique}</strong></div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="detail-section">
+                        <h4 class="detail-title">Boutique</h4>
+                        <div class="empty-state">Aucune boutique</div>
+                    </div>
+                `;
+            }
+
+            html += `
+                <div class="detail-section">
+                    <h4 class="detail-title">Transactions</h4>
+            `;
+
+            if (!transactions.length) {
+                html += '<div class="empty-state">Aucune transaction</div>';
+            } else {
+                html += '<div class="detail-transactions">';
+                for (const tx of transactions) {
+                    const isSale = tx.type === 'vente';
+                    const amountClass = isSale ? 'positive' : 'negative';
+                    const sign = isSale ? '+' : '-';
+                    const title = tx.title || 'Vente';
+                    const meta = tx.mode || '-';
+                    html += `
+                        <div class="list-item">
+                            <div class="list-item-info">
+                                <div class="list-item-title">${title}</div>
+                                <div class="list-item-meta">${this.formatFrenchDate(tx.date)} • ${meta}</div>
+                            </div>
+                            <span class="list-item-amount ${amountClass}">${sign}${this.formatMoney(tx.amount)}</span>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
+
+            html += '</div></div>';
+            sheet.innerHTML = html;
+        } catch (err) {
+            sheet.innerHTML = `<div class="empty-state">${err.message}</div>`;
+        }
+    },
+
+    closeUserDetail() {
+        document.getElementById('user-detail-modal').classList.remove('open');
     },
 
     setHistoryFilter(filter) {

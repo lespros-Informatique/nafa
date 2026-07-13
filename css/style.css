@@ -683,6 +683,63 @@ html, body {
     transform: scale(0.95);
 }
 
+.list-item-arrow {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    padding: 8px;
+    margin-left: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.detail-section {
+    padding: 16px 20px;
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.detail-section:last-child {
+    border-bottom: none;
+}
+
+.detail-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.detail-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+.detail-item strong {
+    font-weight: 600;
+    color: var(--text);
+    text-align: right;
+    max-width: 60%;
+    word-break: break-word;
+}
+
+.detail-transactions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
 .toast.show {
     opacity: 1;
     transform: translateX(-50%) translateY(0);

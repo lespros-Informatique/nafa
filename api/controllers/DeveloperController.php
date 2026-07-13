@@ -101,4 +101,59 @@ class DeveloperController extends Controller
         $shop = Shop::findByUserCode($userCode);
         Response::success('Boutique créée', ['shop' => $shop]);
     }
+
+    public function userDetail(): void
+    {
+        $this->requireDeveloper();
+
+        $userCode = trim($_GET['code'] ?? '');
+        if (!$userCode) {
+            Response::error('Code utilisateur requis');
+        }
+
+        $user = User::findByUserCode($userCode);
+        if (!$user) {
+            Response::error('Utilisateur introuvable', [], 404);
+        }
+
+        $shop = Shop::findByUserCode($userCode);
+
+        $sales = [];
+        $expenses = [];
+        $transactions = [];
+
+        if ($shop) {
+            $sales = Sale::getAllByShop($shop['code_boutique']);
+            $expenses = Expense::getAllByShop($shop['code_boutique']);
+
+            foreach ($sales as $sale) {
+                $transactions[] = [
+                    'type' => 'vente',
+                    'id' => $sale['code_vente'],
+                    'amount' => (float) $sale['montant_vente'],
+                    'mode' => $sale['mode_paiement_vente'],
+                    'date' => $sale['created_at_vente'],
+                ];
+            }
+
+            foreach ($expenses as $expense) {
+                $transactions[] = [
+                    'type' => 'depense',
+                    'id' => $expense['code_depense'],
+                    'title' => $expense['libelle_depense'],
+                    'amount' => (float) $expense['montant_depense'],
+                    'mode' => '-',
+                    'date' => $expense['date_depense_depense'],
+                ];
+            }
+
+            usort($transactions, fn($a, $b) => strtotime($b['date']) - strtotime($a['date']));
+        }
+
+        Response::success('Détail utilisateur', [
+            'user' => $user,
+            'shop' => $shop,
+            'transactions' => $transactions,
+        ]);
+    }
 }

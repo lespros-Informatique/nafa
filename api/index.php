@@ -46,6 +46,7 @@ $routes = [
         '/api/reports' => [ReportController::class, 'index'],
         '/api/search' => [SearchController::class, 'search'],
         '/api/dev/users' => [DeveloperController::class, 'listUsers'],
+        '/api/dev/user-detail' => [DeveloperController::class, 'userDetail'],
     ],
 ];
 
