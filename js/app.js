@@ -1070,7 +1070,8 @@ const app = {
         const month = months[date.getMonth()];
         const year = date.getFullYear();
         const hours = date.getHours();
-        return `${day}, ${d} ${month.charAt(0).toUpperCase() + month.slice(1)} ${year} à ${hours}h`;
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${day}, ${d} ${month.charAt(0).toUpperCase() + month.slice(1)} ${year} à ${hours}h${minutes}`;
     },
 
     getClientDate() {
