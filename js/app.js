@@ -74,7 +74,9 @@ const app = {
             const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
             document.querySelectorAll('.dev-only').forEach(el => el.style.display = isDev ? '' : 'none');
             const logoutBtn = document.getElementById('logout-top');
-            if (logoutBtn) logoutBtn.style.display = 'flex';
+            if (logoutBtn) logoutBtn.style.display = isDev ? 'flex' : 'none';
+            const downloadBtn = document.getElementById('download-top');
+            if (downloadBtn) downloadBtn.style.display = isDev ? 'flex' : 'none';
             this.navigate('dashboard');
         } else {
             this.navigate('login');
@@ -106,15 +108,17 @@ const app = {
         document.getElementById('bottom-nav').style.display = loggedIn ? 'flex' : 'none';
         document.getElementById('fab-container').style.display = (loggedIn && page === 'dashboard' && this.currentUser?.role_user !== 'developpeur') ? 'flex' : 'none';
 
+        const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
         const logoutBtn = document.getElementById('logout-top');
         if (logoutBtn) logoutBtn.style.display = loggedIn ? 'flex' : 'none';
+        const downloadBtn = document.getElementById('download-top');
+        if (downloadBtn) downloadBtn.style.display = (loggedIn && isDev) ? 'flex' : 'none';
 
         this.closeCreateUserModal();
         this.closeCreateShopModal();
         this.closeUserDetail();
         this.closeConfirm();
 
-        const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
         document.querySelectorAll('.dev-only').forEach(el => el.style.display = isDev ? '' : 'none');
 
         document.querySelectorAll('.nav-item').forEach(i => {
@@ -297,11 +301,25 @@ const app = {
             this.currentUser = null;
             this.currentShop = null;
             localStorage.removeItem('nafa_session');
+            const logoutBtn = document.getElementById('logout-top');
             if (logoutBtn) logoutBtn.style.display = 'none';
+            const downloadBtn = document.getElementById('download-top');
+            if (downloadBtn) downloadBtn.style.display = 'none';
             this.navigate('login');
             this.toast('Déconnexion réussie', 'success')
             this.setButtonLoading(logoutBtn, false);
         }
+    },
+
+    downloadApk() {
+        const apkUrl = 'images/nafa_2_1.1.apk';
+        const a = document.createElement('a');
+        a.href = apkUrl;
+        a.download = 'NAFA-2.1.1.apk';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        this.toast('Téléchargement lancé', 'success');
     },
 
     async renderDashboard() {

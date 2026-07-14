@@ -44,6 +44,51 @@
             <div class="bottom-spacer"></div>
         </div>
 
+        <!-- DOWNLOAD PAGE -->
+        <div id="page-download" class="page">
+            <div class="header">
+                <h2>Télécharger NAFA</h2>
+                <p class="header-subtitle">Application mobile de gestion</p>
+            </div>
+            <div class="section">
+                <div class="download-hero">
+                    <div class="download-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    </div>
+                    <h3 class="download-title">NAFA</h3>
+                    <p class="download-version">Version 2.1.1</p>
+                </div>
+                <div class="download-features">
+                    <div class="download-feature">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Gestion des ventes</span>
+                    </div>
+                    <div class="download-feature">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Suivi des dépenses</span>
+                    </div>
+                    <div class="download-feature">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Rapports et statistiques</span>
+                    </div>
+                    <div class="download-feature">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Gestion multi-boutiques</span>
+                    </div>
+                    <div class="download-feature">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Synchronisation en temps réel</span>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-full download-btn" onclick="app.downloadApk()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Télécharger l'application
+                </button>
+                <p class="download-note">Compatible Android 5.0 et plus</p>
+            </div>
+            <div class="bottom-spacer"></div>
+        </div>
+
         <!-- SHOP SELECTION PAGE -->
         <div id="page-shop" class="page">
             <div class="header">
@@ -417,6 +462,9 @@
 
         <button id="logout-top" class="logout-top" onclick="app.logout()" style="display:none;">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        </button>
+        <button id="download-top" class="download-top" onclick="app.navigate('download')" style="display:none;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
         </button>
 
         <!-- CONFIRM MODAL -->
