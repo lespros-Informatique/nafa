@@ -339,14 +339,37 @@ const app = {
         }
     },
 
-    downloadApk() {
-        const apkUrl = 'images/nafa_2_1.1.apk';
+    assetUrl(path) {
+        const base = API_BASE.replace(/\/api$/, '');
+        if (base && base !== '/') return base.replace(/\/$/, '') + '/' + path.replace(/^\//, '');
+        return '/' + path.replace(/^\//, '');
+    },
+
+    async downloadApk() {
+        const apkUrl = this.assetUrl('images/nafa_2_1.1.apk');
+        try {
+            const resp = await fetch(apkUrl, { credentials: 'same-origin' });
+            if (!resp.ok) throw new Error('Fichier introuvable');
+            const blob = await resp.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = objectUrl;
+            a.download = 'NAFA-2.1.1.apk';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+            this.toast('Téléchargement lancé', 'success');
+            return;
+        } catch (e) {
+            // Fallback pour file:// ou environnements sans fetch/blob
+        }
         const a = document.createElement('a');
         a.href = apkUrl;
         a.download = 'NAFA-2.1.1.apk';
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
+        a.remove();
         this.toast('Téléchargement lancé', 'success');
     },
 
