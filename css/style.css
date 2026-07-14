@@ -19,6 +19,10 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+*:focus {
+    outline: none;
+}
+
 html, body {
     font-family: 'Poppins', sans-serif;
     background: var(--bg);
@@ -858,8 +862,8 @@ html, body {
     height: 44px;
     border-radius: 12px;
     background: var(--white);
-    border: 1.5px solid #E5E7EB;
-    color: var(--text-light);
+    border: 2px solid #D1D5DB;
+    color: #4B5563;
     display: flex;
     align-items: center;
     justify-content: center;
