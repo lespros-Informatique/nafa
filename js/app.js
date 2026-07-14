@@ -235,7 +235,8 @@ const app = {
     },
 
     async renderDashboard() {
-        if (!this.currentShop) return;
+        const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
+        if (!isDev && !this.currentShop) return;
         try {
             const data = await this.api('/dashboard');
             document.getElementById('dash-sales').textContent = data.data.sales;
