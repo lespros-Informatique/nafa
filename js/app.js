@@ -1,4 +1,8 @@
-const API_BASE = '/nafa/api';
+const API_BASE = (() => {
+    const path = window.location.pathname;
+    const segments = path.split('/').filter(Boolean);
+    return segments.length > 0 ? '/' + segments[0] + '/api' : '/api';
+})();
 
 const app = {
     currentUser: null,
