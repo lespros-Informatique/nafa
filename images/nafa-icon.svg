@@ -1,0 +1,14 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fond carré arrondi type app icon -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="#16A34A"/>
+
+  <!-- Monogramme N stylisé -->
+  <g fill="#FFFFFF">
+    <path d="M 168 372 L 168 140 L 208 140 L 208 372 Z"/>
+    <path d="M 344 372 L 344 140 L 304 140 L 304 372 Z"/>
+    <path d="M 168 140 L 208 140 L 344 372 L 304 372 Z"/>
+  </g>
+
+  <!-- Accent feuille (agriculture / nature) -->
+  <path d="M 366 118 C 396 118 420 142 420 172 C 390 172 366 148 366 118 Z" fill="#DCFCE7"/>
+</svg>
