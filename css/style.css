@@ -292,6 +292,10 @@ html, body {
     gap: 8px;
 }
 
+.metric-card-full {
+    grid-column: 1 / -1;
+}
+
 .metric-label {
     font-size: 12px;
     font-weight: 500;
