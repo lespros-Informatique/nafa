@@ -9,6 +9,126 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="images/logo.png">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .offline-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #DC2626;
+            color: white;
+            text-align: center;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateY(-100%);
+            transition: transform 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+        }
+        .offline-indicator.show {
+            transform: translateY(0);
+        }
+        .sync-badge {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #DC2626;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 150;
+            display: none;
+            font-family: 'Poppins', sans-serif;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .sync-badge.show {
+            display: block;
+        }
+        .lock-container {
+            padding: 60px 24px 40px;
+            text-align: center;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .lock-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 8px;
+        }
+        .lock-subtitle {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-bottom: 32px;
+        }
+        .pin-display {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+        .pin-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid #E5E7EB;
+            background: var(--white);
+            transition: all 0.15s ease;
+        }
+        .pin-dot.filled {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        .pin-dot.error {
+            border-color: var(--danger);
+            background: var(--danger);
+        }
+        .pin-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+        .pin-btn {
+            height: 64px;
+            border-radius: 16px;
+            border: none;
+            background: var(--white);
+            color: var(--text);
+            font-family: 'Poppins', sans-serif;
+            font-size: 22px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 6px var(--shadow);
+            transition: transform 0.1s ease;
+        }
+        .pin-btn:active {
+            transform: scale(0.95);
+        }
+        .pin-btn.delete {
+            color: var(--danger);
+            font-size: 18px;
+        }
+        .pin-btn.biometric {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .lock-error {
+            color: var(--danger);
+            font-size: 13px;
+            margin-top: 20px;
+            min-height: 20px;
+        }
+    </style>
 </head>
 <body>
     <div id="app">
@@ -31,6 +151,78 @@
                     <button type="submit" class="btn btn-primary btn-full">Continuer</button>
                 </form>
                 <p class="login-hint">Entrez votre numéro pour vous connecter</p>
+            </div>
+        </div>
+
+        <!-- LOCK PAGE -->
+        <div id="page-lock" class="page">
+            <div class="lock-container">
+                <div class="logo-section">
+                    <div class="logo-icon">
+                        <img src="images/nafa-icon.svg" alt="NAFA" width="64" height="64">
+                    </div>
+                </div>
+                <div class="lock-title">Déverrouiller</div>
+                <div class="lock-subtitle">Entrez votre PIN pour accéder à l'application</div>
+                <div class="pin-display">
+                    <div class="pin-dot" data-index="0"></div>
+                    <div class="pin-dot" data-index="1"></div>
+                    <div class="pin-dot" data-index="2"></div>
+                    <div class="pin-dot" data-index="3"></div>
+                    <div class="pin-dot" data-index="4"></div>
+                    <div class="pin-dot" data-index="5"></div>
+                </div>
+                <div class="pin-pad">
+                    <button class="pin-btn" onclick="app.pinPress('1')">1</button>
+                    <button class="pin-btn" onclick="app.pinPress('2')">2</button>
+                    <button class="pin-btn" onclick="app.pinPress('3')">3</button>
+                    <button class="pin-btn" onclick="app.pinPress('4')">4</button>
+                    <button class="pin-btn" onclick="app.pinPress('5')">5</button>
+                    <button class="pin-btn" onclick="app.pinPress('6')">6</button>
+                    <button class="pin-btn" onclick="app.pinPress('7')">7</button>
+                    <button class="pin-btn" onclick="app.pinPress('8')">8</button>
+                    <button class="pin-btn" onclick="app.pinPress('9')">9</button>
+                    <button class="pin-btn biometric" onclick="app.biometricUnlock()">👁</button>
+                    <button class="pin-btn" onclick="app.pinPress('0')">0</button>
+                    <button class="pin-btn delete" onclick="app.pinDelete()">⌫</button>
+                </div>
+                <div class="lock-error" id="lock-error"></div>
+            </div>
+        </div>
+
+        <!-- SETUP PIN PAGE -->
+        <div id="page-setup-pin" class="page">
+            <div class="lock-container">
+                <div class="logo-section">
+                    <div class="logo-icon">
+                        <img src="images/nafa-icon.svg" alt="NAFA" width="64" height="64">
+                    </div>
+                </div>
+                <div class="lock-title" id="setup-pin-title">Créer un PIN</div>
+                <div class="lock-subtitle" id="setup-pin-subtitle">Ce PIN vous permettra de déverrouiller l'application hors ligne</div>
+                <div class="pin-display">
+                    <div class="pin-dot" data-index="0"></div>
+                    <div class="pin-dot" data-index="1"></div>
+                    <div class="pin-dot" data-index="2"></div>
+                    <div class="pin-dot" data-index="3"></div>
+                    <div class="pin-dot" data-index="4"></div>
+                    <div class="pin-dot" data-index="5"></div>
+                </div>
+                <div class="pin-pad">
+                    <button class="pin-btn" onclick="app.pinPress('1')">1</button>
+                    <button class="pin-btn" onclick="app.pinPress('2')">2</button>
+                    <button class="pin-btn" onclick="app.pinPress('3')">3</button>
+                    <button class="pin-btn" onclick="app.pinPress('4')">4</button>
+                    <button class="pin-btn" onclick="app.pinPress('5')">5</button>
+                    <button class="pin-btn" onclick="app.pinPress('6')">6</button>
+                    <button class="pin-btn" onclick="app.pinPress('7')">7</button>
+                    <button class="pin-btn" onclick="app.pinPress('8')">8</button>
+                    <button class="pin-btn" onclick="app.pinPress('9')">9</button>
+                    <button class="pin-btn" onclick="app.pinSetupSkip()">Passer</button>
+                    <button class="pin-btn" onclick="app.pinPress('0')">0</button>
+                    <button class="pin-btn delete" onclick="app.pinDelete()">⌫</button>
+                </div>
+                <div class="lock-error" id="setup-pin-error"></div>
             </div>
         </div>
 
@@ -391,6 +583,9 @@
             </div>
         </div>
 
+        <div id="offline-indicator" class="offline-indicator">Hors ligne - Les données seront synchronisées</div>
+        <div id="sync-badge" class="sync-badge">0 en attente</div>
+
         <!-- BOTTOM NAVIGATION -->
         <nav id="bottom-nav" class="bottom-nav" style="display:none;">
             <button class="nav-item active" onclick="app.navigate('dashboard')" data-page="dashboard">
@@ -436,6 +631,14 @@
             </div>
         </div>
     </div>
+    <script src="js/offline-manager.js"></script>
     <script src="js/app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/nafa/sw.js').catch((err) => {
+                console.warn('SW registration failed:', err);
+            });
+        }
+    </script>
 </body>
 </html>

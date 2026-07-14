@@ -13,6 +13,11 @@ const app = {
         wave: 'Wave',
         orange: 'Orange Money',
     },
+    _syncInProgress: false,
+    pinBuffer: [],
+    pinSetupMode: 'create',
+    _setupFirstPin: null,
+    PIN_LENGTH: 4,
 
     toast(msg) {
         const el = document.getElementById('toast');
@@ -22,21 +27,90 @@ const app = {
         this._toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
     },
 
-    init() {
-        this.setupEventListeners();
-        const saved = localStorage.getItem('nafa_session');
-        if (saved) {
-            const s = JSON.parse(saved);
-            this.currentUser = s.user;
-            this.currentShop = s.shop || null;
-            const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
-            document.querySelectorAll('.dev-only').forEach(el => el.style.display = isDev ? '' : 'none');
-            const logoutBtn = document.getElementById('logout-top');
-            if (logoutBtn) logoutBtn.style.display = 'flex';
-            this.navigate('dashboard');
+    updateOfflineUI() {
+        const indicator = document.getElementById('offline-indicator');
+        const syncBadge = document.getElementById('sync-badge');
+        if (!indicator || !syncBadge) return;
+
+        if (!OfflineManager.isOnline()) {
+            indicator.classList.add('show');
         } else {
-            this.navigate('login');
+            indicator.classList.remove('show');
         }
+
+        OfflineManager.getPendingCount().then((count) => {
+            if (count > 0) {
+                syncBadge.textContent = count + ' en attente';
+                syncBadge.classList.add('show');
+            } else {
+                syncBadge.classList.remove('show');
+            }
+        });
+    },
+
+    async trySync() {
+        if (this._syncInProgress || !OfflineManager.isOnline()) return;
+        this._syncInProgress = true;
+
+        try {
+            const results = await OfflineManager.syncPending();
+            if (results.length > 0) {
+                const successCount = results.filter(r => r.success).length;
+                this.toast(`Synchronisation: ${successCount}/${results.length} envoyé(s)`);
+
+                if (this.currentShop) {
+                    this.renderDashboard();
+                    this.renderHistory();
+                    this.renderReports();
+                }
+            }
+        } catch (err) {
+            console.warn('Sync failed:', err);
+        } finally {
+            this._syncInProgress = false;
+            this.updateOfflineUI();
+        }
+    },
+
+    async api(url, options = {}) {
+        if (!OfflineManager.isOnline()) {
+            throw new Error('Hors ligne - opération en attente de synchronisation');
+        }
+
+        const token = this.getAuthToken();
+        const headers = {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        };
+        const response = await fetch(`${API_BASE}${url}`, {
+            ...options,
+            headers: { ...headers, ...options.headers },
+            credentials: 'same-origin',
+        }).catch((err) => {
+            throw new Error('Erreur réseau - impossible de contacter le serveur');
+        });
+
+        const text = await response.text();
+        console.log('API response:', response.status, text);
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            data = { success: false, message: 'Réponse invalide du serveur', data: [] };
+        }
+        if (!data.success) {
+            const err = new Error(data.message || 'Erreur API');
+            err.code = data.data?.code ?? null;
+            if (err.code === 'SUBSCRIPTION_REQUIRED') {
+                this.subscriptionMode = 'select';
+                this.navigate('subscription');
+            } else if (err.code === 'SUBSCRIPTION_EXPIRED') {
+                this.subscriptionMode = 'expired';
+                this.navigate('subscription');
+            }
+            throw err;
+        }
+        return data;
     },
 
     setupEventListeners() {
@@ -46,6 +120,55 @@ const app = {
                 item.classList.add('active');
             });
         });
+    },
+
+    init() {
+        this.setupEventListeners();
+        const saved = localStorage.getItem('nafa_session');
+        if (saved) {
+            const s = JSON.parse(saved);
+            this.currentUser = s.user;
+            this.currentShop = s.shop || null;
+
+            OfflineManager.hasPin().then((hasPin) => {
+                if (hasPin) {
+                    this.navigate('lock');
+                    this.resetPinUI();
+                } else {
+                    this.navigate('setup-pin');
+                    this.resetPinUI();
+                    this.updateSetupPinTitle();
+                }
+            });
+
+            const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
+            document.querySelectorAll('.dev-only').forEach(el => el.style.display = isDev ? '' : 'none');
+            const logoutBtn = document.getElementById('logout-top');
+            if (logoutBtn) logoutBtn.style.display = 'flex';
+        } else {
+            this.navigate('login');
+        }
+
+        window.addEventListener('online', () => {
+            this.updateOfflineUI();
+            this.toast('Connexion rétablie');
+            this.trySync();
+        });
+
+        window.addEventListener('offline', () => {
+            this.updateOfflineUI();
+            this.toast('Hors ligne');
+        });
+
+        if (navigator.serviceWorker) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'SYNC_REQUESTED') {
+                    this.trySync();
+                }
+            });
+        }
+
+        this.updateOfflineUI();
     },
 
     navigate(page) {
@@ -82,40 +205,6 @@ const app = {
         if (page === 'dev-forfaits') this.renderDevForfaits();
         if (page === 'dev-abonnements') this.renderDevAbonnements();
         if (page === 'subscription') this.renderSubscription();
-    },
-
-    async api(url, options = {}) {
-        const token = this.getAuthToken();
-        const headers = {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        };
-        const response = await fetch(`${API_BASE}${url}`, {
-            ...options,
-            headers: { ...headers, ...options.headers },
-            credentials: 'same-origin',
-        });
-        const text = await response.text();
-        console.log('API response:', response.status, text);
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch (e) {
-            data = { success: false, message: 'Réponse invalide du serveur', data: [] };
-        }
-        if (!data.success) {
-            const err = new Error(data.message || 'Erreur API');
-            err.code = data.data?.code ?? null;
-            if (err.code === 'SUBSCRIPTION_REQUIRED') {
-                this.subscriptionMode = 'select';
-                this.navigate('subscription');
-            } else if (err.code === 'SUBSCRIPTION_EXPIRED') {
-                this.subscriptionMode = 'expired';
-                this.navigate('subscription');
-            }
-            throw err;
-        }
-        return data;
     },
 
     getAuthToken() {
@@ -200,8 +289,18 @@ const app = {
             this.currentUser = data.data.user;
             this.currentShop = data.data.shop || null;
             this.saveSession();
-            this.navigate('dashboard');
-            this.toast('Connexion réussie');
+
+            const hasPin = await OfflineManager.hasPin();
+            if (hasPin) {
+                this.toast('Connexion réussie');
+                this.navigate('dashboard');
+            } else {
+                this.toast('Connexion réussie');
+                this.navigate('setup-pin');
+                this.pinSetupMode = 'create';
+                this.updateSetupPinTitle();
+                this.resetPinUI();
+            }
         } catch (err) {
             this.toast(err.message);
         }
@@ -212,6 +311,145 @@ const app = {
             user: this.currentUser,
             shop: this.currentShop,
         }));
+    },
+
+    pinPress(digit) {
+        if (this.pinBuffer.length >= this.PIN_LENGTH) return;
+        this.pinBuffer.push(digit);
+        this.updatePinDots();
+        this.clearPinError();
+
+        if (this.pinBuffer.length === this.PIN_LENGTH) {
+            setTimeout(() => this.pinSubmit(), 150);
+        }
+    },
+
+    pinDelete() {
+        this.pinBuffer.pop();
+        this.updatePinDots();
+        this.clearPinError();
+    },
+
+    updatePinDots() {
+        const dots = document.querySelectorAll('.pin-dot');
+        dots.forEach((dot, index) => {
+            dot.classList.toggle('filled', index < this.pinBuffer.length);
+        });
+    },
+
+    resetPinUI() {
+        this.pinBuffer = [];
+        this.updatePinDots();
+        this.clearPinError();
+    },
+
+    clearPinError() {
+        const errorEl = document.getElementById('lock-error');
+        const setupErrorEl = document.getElementById('setup-pin-error');
+        if (errorEl) errorEl.textContent = '';
+        if (setupErrorEl) setupErrorEl.textContent = '';
+        document.querySelectorAll('.pin-dot').forEach(dot => dot.classList.remove('error'));
+    },
+
+    showPinError(message) {
+        document.querySelectorAll('.pin-dot').forEach(dot => dot.classList.add('error'));
+        const errorEl = document.getElementById('lock-error');
+        const setupErrorEl = document.getElementById('setup-pin-error');
+        if (errorEl) errorEl.textContent = message;
+        if (setupErrorEl) setupErrorEl.textContent = message;
+    },
+
+    updateSetupPinTitle() {
+        const titleEl = document.getElementById('setup-pin-title');
+        const subtitleEl = document.getElementById('setup-pin-subtitle');
+        if (titleEl) {
+            titleEl.textContent = this.pinSetupMode === 'create' ? 'Créer un PIN' : 'Confirmer le PIN';
+        }
+        if (subtitleEl) {
+            subtitleEl.textContent = this.pinSetupMode === 'create'
+                ? 'Ce PIN vous permettra de déverrouiller l\'application hors ligne'
+                : 'Entrez le PIN à nouveau pour confirmer';
+        }
+    },
+
+    async pinSubmit() {
+        const pin = this.pinBuffer.join('');
+
+        if (this.pinSetupMode === 'create') {
+            this._setupFirstPin = pin;
+            this.pinSetupMode = 'confirm';
+            this.pinBuffer = [];
+            this.updatePinDots();
+            this.updateSetupPinTitle();
+            return;
+        }
+
+        if (this.pinSetupMode === 'confirm') {
+            const firstPin = this._setupFirstPin;
+            if (pin !== firstPin) {
+                this.showPinError('Les PIN ne correspondent pas');
+                this.pinBuffer = [];
+                this.updatePinDots();
+                this.pinSetupMode = 'create';
+                this.updateSetupPinTitle();
+                return;
+            }
+
+            await OfflineManager.setPin(pin);
+            this._setupFirstPin = null;
+            this.pinBuffer = [];
+            this.updatePinDots();
+            this.toast('PIN créé avec succès');
+            this.navigate('dashboard');
+            return;
+        }
+
+        const valid = await OfflineManager.verifyPin(pin);
+        if (valid) {
+            this.pinBuffer = [];
+            this.updatePinDots();
+            this.toast('Déverrouillé');
+            this.navigate('dashboard');
+        } else {
+            this.showPinError('PIN incorrect');
+            this.pinBuffer = [];
+            this.updatePinDots();
+        }
+    },
+
+    async pinSetupSkip() {
+        this.toast('PIN non créé');
+        this.navigate('dashboard');
+    },
+
+    async biometricUnlock() {
+        if (!this.currentUser) return;
+
+        try {
+            const hasPin = await OfflineManager.hasPin();
+            if (!hasPin) {
+                this.toast('Aucun PIN enregistré');
+                return;
+            }
+
+            if (!window.PublicKeyCredential) {
+                this.toast('Biométrie non disponible');
+                return;
+            }
+
+            const pin = prompt('Entrez votre PIN comme secours :');
+            if (pin === null) return;
+
+            const valid = await OfflineManager.verifyPin(pin);
+            if (valid) {
+                this.toast('Déverrouillé');
+                this.navigate('dashboard');
+            } else {
+                this.showPinError('PIN incorrect');
+            }
+        } catch (err) {
+            this.toast('Biométrie indisponible');
+        }
     },
 
     async logout() {
@@ -233,32 +471,52 @@ const app = {
     async renderDashboard() {
         if (!this.currentShop) return;
         try {
-            const data = await this.api('/dashboard');
-            document.getElementById('dash-sales').textContent = data.data.sales;
-            document.getElementById('dash-expenses').textContent = data.data.expenses;
-            document.getElementById('dash-net').textContent = data.data.net;
-            document.getElementById('dash-count').textContent = data.data.count + ' vente' + (data.data.count > 1 ? 's' : '');
-            const nameEl = document.getElementById('dash-user-name');
-            if (nameEl) nameEl.textContent = this.currentUser ? this.currentUser.nom_user : '';
-
-            const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
-            const devSection = document.getElementById('dashboard-dev');
-            const recentSection = document.getElementById('dashboard-recent');
-
-            if (isDev) {
-                const s = data.data.stats || {};
-                document.getElementById('dev-boutiques').textContent = s.boutiques ?? 0;
-                document.getElementById('dev-vendeurs').textContent = s.vendeurs ?? 0;
-                document.getElementById('dev-expires').textContent = s.abonnements_expires ?? 0;
-                if (devSection) devSection.style.display = '';
-                if (recentSection) recentSection.style.display = 'none';
-            } else {
-                if (devSection) devSection.style.display = 'none';
-                if (recentSection) recentSection.style.display = '';
-                this.renderRecentSales(data.data.recent);
+            if (!OfflineManager.isOnline()) {
+                const cached = await OfflineManager.getCachedDashboard('main');
+                if (cached) {
+                    this.applyDashboardData(cached);
+                    this.toast('Données en cache (hors ligne)');
+                    return;
+                }
             }
+
+            const data = await this.api('/dashboard');
+            await OfflineManager.cacheDashboard('main', data.data);
+            this.applyDashboardData(data.data);
         } catch (err) {
-            this.toast(err.message);
+            const cached = await OfflineManager.getCachedDashboard('main');
+            if (cached) {
+                this.applyDashboardData(cached);
+                this.toast('Données en cache');
+            } else {
+                this.toast(err.message);
+            }
+        }
+    },
+
+    applyDashboardData(data) {
+        document.getElementById('dash-sales').textContent = data.sales;
+        document.getElementById('dash-expenses').textContent = data.expenses;
+        document.getElementById('dash-net').textContent = data.net;
+        document.getElementById('dash-count').textContent = data.count + ' vente' + (data.count > 1 ? 's' : '');
+        const nameEl = document.getElementById('dash-user-name');
+        if (nameEl) nameEl.textContent = this.currentUser ? this.currentUser.nom_user : '';
+
+        const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
+        const devSection = document.getElementById('dashboard-dev');
+        const recentSection = document.getElementById('dashboard-recent');
+
+        if (isDev) {
+            const s = data.stats || {};
+            document.getElementById('dev-boutiques').textContent = s.boutiques ?? 0;
+            document.getElementById('dev-vendeurs').textContent = s.vendeurs ?? 0;
+            document.getElementById('dev-expires').textContent = s.abonnements_expires ?? 0;
+            if (devSection) devSection.style.display = '';
+            if (recentSection) recentSection.style.display = 'none';
+        } else {
+            if (devSection) devSection.style.display = 'none';
+            if (recentSection) recentSection.style.display = '';
+            this.renderRecentSales(data.recent);
         }
     },
 
@@ -285,6 +543,21 @@ const app = {
         if (!amount) return;
 
         try {
+            if (!OfflineManager.isOnline()) {
+                const sale = {
+                    code_vente: 'VTE' + Date.now() + Math.floor(Math.random() * 900 + 100),
+                    boutique_code: this.currentShop?.code_boutique || '',
+                    montant_vente: amount,
+                    mode_paiement_vente: 'especes',
+                    created_at_vente: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                };
+                await OfflineManager.addSale(sale);
+                document.getElementById('sale-amount').value = '';
+                this.toast('Vente enregistrée (sera synchronisée)');
+                this.updateOfflineUI();
+                return;
+            }
+
             await this.api('/sales', {
                 method: 'POST',
                 body: JSON.stringify({ montant: amount }),
@@ -303,6 +576,23 @@ const app = {
         if (!label || !amount) return;
 
         try {
+            if (!OfflineManager.isOnline()) {
+                const expense = {
+                    code_depense: 'DEP' + Date.now() + Math.floor(Math.random() * 900 + 100),
+                    boutique_code: this.currentShop?.code_boutique || '',
+                    libelle_depense: label,
+                    montant_depense: amount,
+                    date_depense_depense: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                    created_at_depense: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                };
+                await OfflineManager.addExpense(expense);
+                document.getElementById('expense-label').value = '';
+                document.getElementById('expense-amount').value = '';
+                this.toast('Dépense enregistrée (sera synchronisée)');
+                this.updateOfflineUI();
+                return;
+            }
+
             await this.api('/expenses', {
                 method: 'POST',
                 body: JSON.stringify({ libelle: label, montant: amount }),
@@ -738,6 +1028,29 @@ const app = {
     async renderHistory() {
         const list = document.getElementById('history-list');
         try {
+            if (!OfflineManager.isOnline()) {
+                const sales = await OfflineManager.getSalesByShop(this.currentShop?.code_boutique || '');
+                const expenses = await OfflineManager.getExpensesByShop(this.currentShop?.code_boutique || '');
+                const items = this.buildHistoryItems(sales, expenses);
+                if (items.length === 0) {
+                    list.innerHTML = '<div class="empty-state">Aucune opération</div>';
+                    return;
+                }
+                list.innerHTML = items.map(item => `
+                    <div class="list-item">
+                        <div class="list-item-info">
+                            <div class="list-item-title">${this.escapeHtml(item.title)}</div>
+                            <div class="list-item-meta">${this.escapeHtml(item.meta)} ${item.mode !== '-' ? '• ' + this.escapeHtml(item.mode) : ''}</div>
+                        </div>
+                        <span class="list-item-amount ${item.type === 'vente' ? 'positive' : 'negative'}">${item.type === 'vente' ? '+' : '-'}${this.formatMoney(item.amount)}</span>
+                        <button class="list-item-delete" onclick="app.deleteItem('${item.type}', '${item.id}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                `).join('');
+                return;
+            }
+
             const data = await this.api(`/history?filter=${this.historyFilter}`);
             const items = data.data.items;
             if (items.length === 0) {
@@ -761,6 +1074,34 @@ const app = {
         }
     },
 
+    buildHistoryItems(sales, expenses) {
+        const items = [];
+        for (const sale of sales) {
+            items.push({
+                type: 'vente',
+                id: sale.code_vente,
+                title: 'Vente',
+                meta: this.formatFrenchDate(sale.created_at_vente),
+                amount: parseFloat(sale.montant_vente),
+                mode: sale.mode_paiement_vente || '-',
+                _sortDate: new Date(sale.created_at_vente).getTime(),
+            });
+        }
+        for (const expense of expenses) {
+            items.push({
+                type: 'depense',
+                id: expense.code_depense,
+                title: expense.libelle_depense,
+                meta: this.formatFrenchDate(expense.date_depense_depense),
+                amount: parseFloat(expense.montant_depense),
+                mode: '-',
+                _sortDate: new Date(expense.date_depense_depense).getTime(),
+            });
+        }
+        items.sort((a, b) => b._sortDate - a._sortDate);
+        return items;
+    },
+
     async deleteItem(type, id) {
         this.pendingDelete = { type, id };
         this.openConfirm();
@@ -779,7 +1120,24 @@ const app = {
         if (!this.pendingDelete) return;
         const { type, id } = this.pendingDelete;
         this.closeConfirm();
+
         try {
+            if (!OfflineManager.isOnline()) {
+                const storeName = type === 'vente' ? 'sales' : 'expenses';
+                await OfflineManager.delete(storeName, id);
+                await OfflineManager.addToSyncQueue({
+                    type,
+                    endpoint: '/api/history/delete',
+                    method: 'POST',
+                    body: { type, id },
+                    local_code: id,
+                });
+                this.renderHistory();
+                this.toast('Opération supprimée (sera synchronisée)');
+                this.updateOfflineUI();
+                return;
+            }
+
             await this.api('/history/delete', {
                 method: 'POST',
                 body: JSON.stringify({ type, id }),
@@ -799,7 +1157,21 @@ const app = {
 
     async renderReports() {
         try {
+            if (!OfflineManager.isOnline()) {
+                const cached = await OfflineManager.getCachedDashboard('reports');
+                if (cached && cached.chart) {
+                    document.getElementById('report-sales').textContent = cached.sales;
+                    document.getElementById('report-expenses').textContent = cached.expenses;
+                    document.getElementById('report-net').textContent = cached.net;
+                    this.drawChart(cached.chart);
+                    return;
+                }
+                this.toast('Données en cache indisponibles');
+                return;
+            }
+
             const data = await this.api(`/reports?period=${this.reportPeriod}`);
+            await OfflineManager.cacheDashboard('reports', data.data);
             document.getElementById('report-sales').textContent = data.data.sales;
             document.getElementById('report-expenses').textContent = data.data.expenses;
             document.getElementById('report-net').textContent = data.data.net;
@@ -928,7 +1300,7 @@ const app = {
     },
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     if (!CanvasRenderingContext2D.prototype.roundRect) {
         CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
             if (w < 2 * r) r = w / 2;
@@ -938,10 +1310,11 @@ document.addEventListener('DOMContentLoaded', () => {
             this.arcTo(x + w, y, x + w, y + h, r);
             this.arcTo(x + w, y + h, x, y + h, r);
             this.arcTo(x, y + h, x, y, r);
-            this.arcTo(x, y, x + w, y, r);
+            this.arcTo(x + r, y, x, y, r);
             this.closePath();
             return this;
         };
     }
+    await OfflineManager.initPromise;
     app.init();
 });
