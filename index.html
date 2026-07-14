@@ -34,6 +34,16 @@
             </div>
         </div>
 
+        <!-- SUBSCRIPTION PAGE -->
+        <div id="page-subscription" class="page">
+            <div class="header">
+                <h2>Accès NAFA</h2>
+                <p class="header-subtitle">Un abonnement est requis pour utiliser l'application</p>
+            </div>
+            <div class="list-container" id="subscription-content"></div>
+            <div class="bottom-spacer"></div>
+        </div>
+
         <!-- SHOP SELECTION PAGE -->
         <div id="page-shop" class="page">
             <div class="header">
@@ -71,7 +81,29 @@
                 </div>
             </div>
 
-            <div class="section">
+            <div class="section dev-only" id="dashboard-dev" style="display:none;">
+                <h3 class="section-title">Vue d'ensemble</h3>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <span class="metric-label">Boutiques</span>
+                        <span class="metric-value" id="dev-boutiques">0</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Vendeurs</span>
+                        <span class="metric-value" id="dev-vendeurs">0</span>
+                    </div>
+                    <div class="metric-card metric-expenses">
+                        <span class="metric-label">Abonnements expirés</span>
+                        <span class="metric-value" id="dev-expires">0</span>
+                    </div>
+                </div>
+                <div class="dev-actions">
+                    <button class="btn btn-primary" onclick="app.navigate('dev-forfaits')">Forfaits</button>
+                    <button class="btn btn-primary" onclick="app.navigate('dev-abonnements')">Abonnements</button>
+                </div>
+            </div>
+
+            <div class="section" id="dashboard-recent">
                 <div class="list-container" id="recent-list"></div>
                 <button class="btn-search-trigger" onclick="app.openSearch()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -204,6 +236,62 @@
             <div class="bottom-spacer"></div>
         </div>
 
+        <!-- DEV: FORFAITS LIST -->
+        <div id="page-dev-forfaits" class="page">
+            <div class="header">
+                <div class="header-row">
+                    <div>
+                        <h2>Forfaits</h2>
+                        <p class="header-subtitle">Plans d'abonnement</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="app.openCreateForfaitModal()">Nouveau</button>
+                </div>
+            </div>
+            <div class="list-container" id="dev-forfait-list"></div>
+            <div class="bottom-spacer"></div>
+        </div>
+
+        <!-- DEV: ABONNEMENTS LIST -->
+        <div id="page-dev-abonnements" class="page">
+            <div class="header">
+                <h2>Abonnements</h2>
+                <p class="header-subtitle">Tous les abonnements</p>
+            </div>
+            <div class="list-container" id="dev-abonnement-list"></div>
+            <div class="bottom-spacer"></div>
+        </div>
+
+        <!-- CREATE FORFAIT MODAL -->
+        <div id="create-forfait-modal" class="modal-overlay" onclick="if(event.target===this)app.closeCreateForfaitModal()">
+            <div class="modal-sheet">
+                <div class="modal-header">
+                    <h3>Nouveau forfait</h3>
+                    <button class="modal-close" onclick="app.closeCreateForfaitModal()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <form class="form-page" onsubmit="app.handleCreateForfait(event)">
+                    <div class="input-group">
+                        <label for="dev-forfait-libelle">Libellé</label>
+                        <input type="text" id="dev-forfait-libelle" placeholder="Ex: Standard" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="dev-forfait-prix">Prix (FCFA)</label>
+                        <input type="number" id="dev-forfait-prix" placeholder="0" required inputmode="decimal" min="0" step="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="dev-forfait-duree">Durée (jours)</label>
+                        <input type="number" id="dev-forfait-duree" placeholder="365" required inputmode="numeric" min="1" step="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="dev-forfait-description">Description</label>
+                        <input type="text" id="dev-forfait-description" placeholder="Optionnel">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Créer le forfait</button>
+                </form>
+            </div>
+        </div>
+
         <!-- FLOATING ACTION BUTTON -->
         <div id="fab-container" class="fab-container" style="display:none;">
             <button class="fab" onclick="app.navigate('sale')">
@@ -289,6 +377,10 @@
                     <div class="input-group">
                         <label for="dev-shop-label">Libellé boutique</label>
                         <input type="text" id="dev-shop-label" placeholder="Ex: Boutique centre" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="dev-shop-forfait">Forfait (essai)</label>
+                        <select id="dev-shop-forfait" required></select>
                     </div>
                     <div class="input-group">
                         <label for="dev-shop-currency">Devise</label>

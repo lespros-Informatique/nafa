@@ -24,6 +24,12 @@ class Shop
         return $shop ?: null;
     }
 
+    public static function countAll(): int
+    {
+        $stmt = Database::getConnection()->query('SELECT COUNT(*) AS total FROM boutiques');
+        return (int) $stmt->fetchColumn();
+    }
+
     public static function createDefaultForUser(string $userCode): array
     {
         $codeBoutique = 'BTE' . time() . mt_rand(100, 999);

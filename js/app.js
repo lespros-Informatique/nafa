@@ -6,6 +6,13 @@ const app = {
     historyFilter: 'today',
     reportPeriod: 'day',
     pendingDelete: null,
+    subscriptionMode: 'select',
+    contact: {
+        phone: '+225 05 66 01 55 16',
+        whatsapp: 'https://wa.me/2250566015516',
+        wave: 'Wave',
+        orange: 'Orange Money',
+    },
 
     toast(msg) {
         const el = document.getElementById('toast');
@@ -46,7 +53,7 @@ const app = {
         const target = document.getElementById('page-' + page);
         if (target) target.classList.add('active');
 
-        const loggedIn = page !== 'login';
+        const loggedIn = page !== 'login' && page !== 'subscription';
         document.getElementById('bottom-nav').style.display = loggedIn ? 'flex' : 'none';
         document.getElementById('fab-container').style.display = (loggedIn && page === 'dashboard' && this.currentUser?.role_user !== 'developpeur') ? 'flex' : 'none';
 
@@ -72,6 +79,9 @@ const app = {
         if (page === 'reports') this.renderReports();
         if (page === 'dev-list') this.renderDevUsers();
         if (page === 'dev-shops') this.renderDevShops();
+        if (page === 'dev-forfaits') this.renderDevForfaits();
+        if (page === 'dev-abonnements') this.renderDevAbonnements();
+        if (page === 'subscription') this.renderSubscription();
     },
 
     async api(url, options = {}) {
@@ -94,7 +104,16 @@ const app = {
             data = { success: false, message: 'Réponse invalide du serveur', data: [] };
         }
         if (!data.success) {
-            throw new Error(data.message || 'Erreur API');
+            const err = new Error(data.message || 'Erreur API');
+            err.code = data.data?.code ?? null;
+            if (err.code === 'SUBSCRIPTION_REQUIRED') {
+                this.subscriptionMode = 'select';
+                this.navigate('subscription');
+            } else if (err.code === 'SUBSCRIPTION_EXPIRED') {
+                this.subscriptionMode = 'expired';
+                this.navigate('subscription');
+            }
+            throw err;
         }
         return data;
     },
@@ -102,6 +121,70 @@ const app = {
     getAuthToken() {
         const match = document.cookie.match(/nafa_token=([^;]+)/);
         return match ? match[1] : null;
+    },
+
+    async renderSubscription() {
+        const list = document.getElementById('subscription-content');
+        if (this.subscriptionMode === 'expired') {
+            const c = this.contact;
+            list.innerHTML = `
+                <div class="expired-box">
+                    <div class="expired-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+                    </div>
+                    <h3 class="expired-title">Votre période d'essai est terminée</h3>
+                    <p class="expired-message">Pour continuer à utiliser NAFA, veuillez renouveler votre abonnement.</p>
+                    <div class="expired-contact">
+                        <a class="expired-contact-item" href="tel:${this.escapeHtml(c.phone)}">
+                            <span>📞 Contact</span><strong>${this.escapeHtml(c.phone)}</strong>
+                        </a>
+                        <a class="expired-contact-item" href="${this.escapeHtml(c.whatsapp)}" target="_blank" rel="noopener">
+                            <span>📱 WhatsApp</span><strong>Écrivez-nous</strong>
+                        </a>
+                        <div class="expired-contact-item">
+                            <span>💳 Paiement</span><strong>${this.escapeHtml(c.wave)} / ${this.escapeHtml(c.orange)}</strong>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        try {
+            const data = await this.api('/forfaits');
+            const forfaits = data.data.forfaits;
+            if (!forfaits.length) {
+                list.innerHTML = '<div class="empty-state">Aucun forfait disponible</div>';
+                return;
+            }
+            list.innerHTML = forfaits.map(f => `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${this.escapeHtml(f.libelle_forfait)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(f.description_forfait || '')} • ${this.escapeHtml(f.duree_forfait)} j</div>
+                    </div>
+                    <div class="list-item-actions">
+                        <span class="list-item-amount">${this.formatMoney(parseFloat(f.prix_forfait))}</span>
+                        <button class="btn btn-primary" onclick="app.subscribe('${this.escapeHtml(f.code_forfait)}')">Choisir</button>
+                    </div>
+                </div>
+            `).join('');
+        } catch (err) {
+            this.toast(err.message);
+        }
+    },
+
+    async subscribe(forfaitCode) {
+        try {
+            await this.api('/abonnements', {
+                method: 'POST',
+                body: JSON.stringify({ forfait_code: forfaitCode }),
+            });
+            this.toast('Abonnement activé');
+            this.navigate('dashboard');
+        } catch (err) {
+            this.toast(err.message);
+        }
     },
 
     async handleLogin(e) {
@@ -157,7 +240,23 @@ const app = {
             document.getElementById('dash-count').textContent = data.data.count + ' vente' + (data.data.count > 1 ? 's' : '');
             const nameEl = document.getElementById('dash-user-name');
             if (nameEl) nameEl.textContent = this.currentUser ? this.currentUser.nom_user : '';
-            this.renderRecentSales(data.data.recent);
+
+            const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
+            const devSection = document.getElementById('dashboard-dev');
+            const recentSection = document.getElementById('dashboard-recent');
+
+            if (isDev) {
+                const s = data.data.stats || {};
+                document.getElementById('dev-boutiques').textContent = s.boutiques ?? 0;
+                document.getElementById('dev-vendeurs').textContent = s.vendeurs ?? 0;
+                document.getElementById('dev-expires').textContent = s.abonnements_expires ?? 0;
+                if (devSection) devSection.style.display = '';
+                if (recentSection) recentSection.style.display = 'none';
+            } else {
+                if (devSection) devSection.style.display = 'none';
+                if (recentSection) recentSection.style.display = '';
+                this.renderRecentSales(data.data.recent);
+            }
         } catch (err) {
             this.toast(err.message);
         }
@@ -251,11 +350,12 @@ const app = {
         const userCode = document.getElementById('dev-shop-user-code').value.trim();
         const label = document.getElementById('dev-shop-label').value.trim();
         const currency = document.getElementById('dev-shop-currency').value.trim();
+        const forfaitCode = document.getElementById('dev-shop-forfait').value.trim();
 
         try {
             await this.api('/dev/shops', {
                 method: 'POST',
-                body: JSON.stringify({ user_code: userCode, label, currency }),
+                body: JSON.stringify({ user_code: userCode, label, currency, forfait_code: forfaitCode }),
             });
             document.getElementById('dev-shop-user-code').value = '';
             document.getElementById('dev-shop-label').value = '';
@@ -270,11 +370,146 @@ const app = {
     openCreateShopModal(userCode) {
         const codeInput = document.getElementById('dev-shop-user-code');
         if (codeInput && userCode) codeInput.value = userCode;
+        this.loadForfaitOptions('dev-shop-forfait', 'DEC001');
         document.getElementById('create-shop-modal').classList.add('open');
+    },
+
+    async loadForfaitOptions(selectId, selectedCode) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+        try {
+            const data = await this.api('/dev/forfaits');
+            const forfaits = data.data.forfaits;
+            select.innerHTML = forfaits.map(f =>
+                `<option value="${this.escapeHtml(f.code_forfait)}" ${f.code_forfait === selectedCode ? 'selected' : ''}>${this.escapeHtml(f.libelle_forfait)} (${this.formatMoney(parseFloat(f.prix_forfait))})</option>`
+            ).join('');
+        } catch (err) {
+            this.toast(err.message);
+        }
     },
 
     closeCreateShopModal() {
         document.getElementById('create-shop-modal').classList.remove('open');
+    },
+
+    openCreateForfaitModal() {
+        document.getElementById('create-forfait-modal').classList.add('open');
+    },
+
+    closeCreateForfaitModal() {
+        document.getElementById('create-forfait-modal').classList.remove('open');
+    },
+
+    async handleCreateForfait(e) {
+        e.preventDefault();
+        const libelle = document.getElementById('dev-forfait-libelle').value.trim();
+        const prix = parseFloat(document.getElementById('dev-forfait-prix').value);
+        const duree = parseInt(document.getElementById('dev-forfait-duree').value, 10);
+        const description = document.getElementById('dev-forfait-description').value.trim();
+        if (!libelle || isNaN(prix) || isNaN(duree)) return;
+
+        try {
+            await this.api('/dev/forfaits', {
+                method: 'POST',
+                body: JSON.stringify({ libelle, prix, duree, description }),
+            });
+            document.getElementById('dev-forfait-libelle').value = '';
+            document.getElementById('dev-forfait-prix').value = '';
+            document.getElementById('dev-forfait-duree').value = '';
+            document.getElementById('dev-forfait-description').value = '';
+            this.closeCreateForfaitModal();
+            this.toast('Forfait créé');
+            this.renderDevForfaits();
+        } catch (err) {
+            this.toast(err.message);
+        }
+    },
+
+    async renderDevForfaits() {
+        const list = document.getElementById('dev-forfait-list');
+        try {
+            const data = await this.api('/dev/forfaits');
+            const forfaits = data.data.forfaits;
+            if (!forfaits.length) {
+                list.innerHTML = '<div class="empty-state">Aucun forfait</div>';
+                return;
+            }
+            list.innerHTML = forfaits.map(f => {
+                const statusClass = f.statut_forfait === 'actif' ? 'badge-actif' : 'badge-inactif';
+                return `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${this.escapeHtml(f.libelle_forfait)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(f.code_forfait)} • ${this.escapeHtml(f.duree_forfait)} j</div>
+                    </div>
+                    <span class="list-item-amount">${this.formatMoney(parseFloat(f.prix_forfait))}</span>
+                    <span class="badge ${statusClass}">${this.escapeHtml(f.statut_forfait)}</span>
+                </div>
+            `;
+            }).join('');
+        } catch (err) {
+            this.toast(err.message);
+        }
+    },
+
+    async renderDevAbonnements() {
+        const list = document.getElementById('dev-abonnement-list');
+        try {
+            const data = await this.api('/dev/abonnements');
+            const abonnements = data.data.abonnements;
+            if (!abonnements.length) {
+                list.innerHTML = '<div class="empty-state">Aucun abonnement</div>';
+                return;
+            }
+            list.innerHTML = abonnements.map(a => {
+                const statusClass = 'badge-' + this.escapeHtml(a.statut_abonnement);
+                return `
+                <div class="list-item list-item-column">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${this.escapeHtml(a.boutique_code)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(a.forfait_code)} • ${this.formatMoney(parseFloat(a.montant_abonnement))}</div>
+                    </div>
+                    <div class="list-item-actions">
+                        <span class="badge ${statusClass}">${this.escapeHtml(a.statut_abonnement)}</span>
+                        <select class="abonnement-statut" onchange="app.setAbonnementStatut('${this.escapeHtml(a.code_abonnement)}', this.value)">
+                            <option value="en_attente" ${a.statut_abonnement === 'en_attente' ? 'selected' : ''}>En attente</option>
+                            <option value="actif" ${a.statut_abonnement === 'actif' ? 'selected' : ''}>Actif</option>
+                            <option value="expire" ${a.statut_abonnement === 'expire' ? 'selected' : ''}>Expiré</option>
+                            <option value="suspendu" ${a.statut_abonnement === 'suspendu' ? 'selected' : ''}>Suspendu</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            }).join('');
+        } catch (err) {
+            this.toast(err.message);
+        }
+    },
+
+    async setAbonnementStatut(code, statut) {
+        try {
+            await this.api('/dev/abonnement/statut', {
+                method: 'POST',
+                body: JSON.stringify({ code, statut }),
+            });
+            this.toast('Statut mis à jour');
+        } catch (err) {
+            this.toast(err.message);
+            this.renderDevAbonnements();
+        }
+    },
+
+    async reabonnement(boutiqueCode, forfaitCode) {
+        try {
+            await this.api('/dev/abonnements', {
+                method: 'POST',
+                body: JSON.stringify({ boutique_code: boutiqueCode, forfait_code: forfaitCode }),
+            });
+            this.toast('Abonnement renouvelé');
+            this.openShopDetail(boutiqueCode);
+        } catch (err) {
+            this.toast(err.message);
+        }
     },
 
     async renderDevShops() {
@@ -318,29 +553,28 @@ const app = {
             const transactions = data.data.transactions || [];
             const totals = data.data.totals || {};
 
+            let forfaitOptions = '';
+            try {
+                const fData = await this.api('/dev/forfaits');
+                forfaitOptions = (fData.data.forfaits || []).map(f =>
+                    `<option value="${this.escapeHtml(f.code_forfait)}">${this.escapeHtml(f.libelle_forfait)} (${this.formatMoney(parseFloat(f.prix_forfait))})</option>`
+                ).join('');
+            } catch (e) { /* ignore */ }
+
             let html = `
-                <div class="modal-header">
-                    <h3>${this.escapeHtml(shop.libelle_boutique)}</h3>
-                    <button class="modal-close" onclick="app.closeUserDetail()">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="detail-section">
-                        <h4 class="detail-title">Boutique</h4>
-                        <div class="detail-grid">
-                            <div class="detail-item"><span>Code</span><strong>${this.escapeHtml(shop.code_boutique)}</strong></div>
-                            <div class="detail-item"><span>Devise</span><strong>${this.escapeHtml(shop.devise_boutique)}</strong></div>
-                            <div class="detail-item"><span>Statut</span><strong>${this.escapeHtml(shop.statut_boutique)}</strong></div>
-                            <div class="detail-item"><span>Utilisateur</span><strong>${this.escapeHtml(shop.user_code)}</strong></div>
-                        </div>
-                    </div>
-                    <div class="detail-section">
-                        <h4 class="detail-title">Totaux</h4>
+                        <div class="detail-section">
+                            <h4 class="detail-title">Totaux</h4>
                         <div class="detail-grid">
                             <div class="detail-item"><span>Ventes</span><strong>${totals.sales || '0 FCFA'}</strong></div>
                             <div class="detail-item"><span>Dépenses</span><strong>${totals.expenses || '0 FCFA'}</strong></div>
                             <div class="detail-item"><span>Net</span><strong>${totals.net || '0 FCFA'}</strong></div>
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <h4 class="detail-title">Réabonnement</h4>
+                        <div class="reabonnement-row">
+                            <select id="shop-reabonnement-forfait" class="abonnement-statut">${forfaitOptions}</select>
+                            <button class="btn btn-primary" onclick="app.reabonnement('${this.escapeHtml(shop.code_boutique)}', document.getElementById('shop-reabonnement-forfait').value)">Réabonner</button>
                         </div>
                     </div>
                     <div class="detail-section">

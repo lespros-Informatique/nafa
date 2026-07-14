@@ -66,6 +66,7 @@ class DeveloperController extends Controller
         $userCode = trim($this->input('user_code', ''));
         $label = trim($this->input('label', $this->input('libelle_boutique', '')));
         $currency = trim($this->input('currency', 'FCFA'));
+        $forfaitCode = trim($this->input('forfait_code', ''));
 
         if (!$userCode) {
             Response::error('Code utilisateur requis');
@@ -99,7 +100,66 @@ class DeveloperController extends Controller
         ]);
 
         $shop = Shop::findByUserCode($userCode);
-        Response::success('Boutique créée', ['shop' => $shop]);
+
+        $abonnement = null;
+        if ($forfaitCode) {
+            $forfait = Forfait::findByCode($forfaitCode);
+            if ($forfait && ($forfait['statut_forfait'] ?? '') === 'actif') {
+                $debut = date('Y-m-d');
+                $fin = date('Y-m-d', strtotime('+' . (int) $forfait['duree_forfait'] . ' days'));
+                $abonnement = Abonnement::create([
+                    'code_abonnement' => 'ABO' . time() . mt_rand(100, 999),
+                    'boutique_code' => $shop['code_boutique'],
+                    'forfait_code' => $forfait['code_forfait'],
+                    'date_debut_abonnement' => $debut,
+                    'date_fin_abonnement' => $fin,
+                    'montant_abonnement' => $forfait['prix_forfait'],
+                    'statut_abonnement' => 'actif',
+                ]);
+            }
+        }
+
+        Response::success('Boutique créée', ['shop' => $shop, 'abonnement' => $abonnement]);
+    }
+
+    public function createAbonnement(): void
+    {
+        $this->requireDeveloper();
+
+        $boutiqueCode = trim($this->input('boutique_code', ''));
+        $forfaitCode = trim($this->input('forfait_code', ''));
+
+        if (!$boutiqueCode) {
+            Response::error('Code boutique requis');
+        }
+        if (!$forfaitCode) {
+            Response::error('Forfait requis');
+        }
+
+        $shop = Shop::findByCode($boutiqueCode);
+        if (!$shop) {
+            Response::error('Boutique introuvable', [], 404);
+        }
+
+        $forfait = Forfait::findByCode($forfaitCode);
+        if (!$forfait || ($forfait['statut_forfait'] ?? '') !== 'actif') {
+            Response::error('Forfait invalide', [], 404);
+        }
+
+        $debut = date('Y-m-d');
+        $fin = date('Y-m-d', strtotime('+' . (int) $forfait['duree_forfait'] . ' days'));
+
+        $abonnement = Abonnement::create([
+            'code_abonnement' => 'ABO' . time() . mt_rand(100, 999),
+            'boutique_code' => $shop['code_boutique'],
+            'forfait_code' => $forfait['code_forfait'],
+            'date_debut_abonnement' => $debut,
+            'date_fin_abonnement' => $fin,
+            'montant_abonnement' => $forfait['prix_forfait'],
+            'statut_abonnement' => 'actif',
+        ]);
+
+        Response::success('Abonnement créé', ['abonnement' => $abonnement]);
     }
 
     public function userDetail(): void
@@ -220,6 +280,75 @@ class DeveloperController extends Controller
                 'net' => $this->formatMoney($totalSales - $totalExpenses),
             ],
         ]);
+    }
+
+    public function listForfaitsDev(): void
+    {
+        $this->requireDeveloper();
+        $forfaits = Forfait::all();
+        Response::success('Forfaits', ['forfaits' => $forfaits]);
+    }
+
+    public function createForfait(): void
+    {
+        $this->requireDeveloper();
+
+        $libelle = trim($this->input('libelle', $this->input('libelle_forfait', '')));
+        $prix = (float) $this->input('prix', 0);
+        $duree = (int) $this->input('duree', 0);
+        $description = trim($this->input('description', ''));
+
+        if (!$libelle) {
+            Response::error('Libellé requis');
+        }
+        if ($prix < 0) {
+            Response::error('Prix invalide');
+        }
+        if ($duree <= 0) {
+            Response::error('Durée invalide');
+        }
+
+        $forfait = Forfait::create([
+            'code_forfait' => 'FOR' . time() . mt_rand(100, 999),
+            'libelle_forfait' => $libelle,
+            'prix_forfait' => $prix,
+            'duree_forfait' => $duree,
+            'description_forfait' => $description,
+            'statut_forfait' => 'actif',
+        ]);
+
+        Response::success('Forfait créé', ['forfait' => $forfait]);
+    }
+
+    public function listAbonnements(): void
+    {
+        $this->requireDeveloper();
+        $abonnements = Abonnement::all();
+        Response::success('Abonnements', ['abonnements' => $abonnements]);
+    }
+
+    public function setAbonnementStatut(): void
+    {
+        $this->requireDeveloper();
+
+        $code = trim($this->input('code', $this->input('code_abonnement', '')));
+        $statut = trim($this->input('statut', ''));
+
+        if (!$code) {
+            Response::error('Code abonnement requis');
+        }
+
+        $statutsAutorises = ['en_attente', 'actif', 'expire', 'suspendu'];
+        if (!in_array($statut, $statutsAutorises, true)) {
+            Response::error('Statut invalide');
+        }
+
+        if (!Abonnement::findByCode($code)) {
+            Response::error('Abonnement introuvable', [], 404);
+        }
+
+        $abonnement = Abonnement::updateStatut($code, $statut);
+        Response::success('Statut mis à jour', ['abonnement' => $abonnement]);
     }
 
     private function formatMoney(float $amount): string

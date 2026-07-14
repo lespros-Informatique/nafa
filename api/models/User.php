@@ -50,4 +50,11 @@ class User
         $user = $stmt->fetch();
         return $user ?: null;
     }
+
+    public static function countByRole(string $role): int
+    {
+        $stmt = Database::getConnection()->prepare('SELECT COUNT(*) AS total FROM users WHERE role_user = :role');
+        $stmt->execute(['role' => $role]);
+        return (int) $stmt->fetchColumn();
+    }
 }

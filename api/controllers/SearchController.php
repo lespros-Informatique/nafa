@@ -6,7 +6,7 @@ class SearchController extends Controller
 {
     public function search(): void
     {
-        $user = $this->requireAuth();
+        $user = $this->requireActiveSubscription();
         $shop = Shop::findByUserCode($user['code_user']);
         if (!$shop) {
             Response::error('Boutique introuvable', [], 404);

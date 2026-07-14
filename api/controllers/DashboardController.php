@@ -6,7 +6,7 @@ class DashboardController extends Controller
 {
     public function index(): void
     {
-        $user = $this->requireAuth();
+        $user = $this->requireActiveSubscription();
         $isDev = ($user['role_user'] ?? '') === 'developpeur';
 
         if ($isDev) {
@@ -26,12 +26,22 @@ class DashboardController extends Controller
         $totalSales = array_sum(array_column($todaySales, 'montant_vente'));
         $totalExpenses = array_sum(array_column($todayExpenses, 'montant_depense'));
 
+        $stats = [];
+        if ($isDev) {
+            $stats = [
+                'boutiques' => Shop::countAll(),
+                'vendeurs' => User::countByRole('vendeur'),
+                'abonnements_expires' => Abonnement::countExpired(),
+            ];
+        }
+
         Response::success('Dashboard', [
             'sales' => $this->formatMoney($totalSales),
             'expenses' => $this->formatMoney($totalExpenses),
             'net' => $this->formatMoney($totalSales - $totalExpenses),
             'count' => count($todaySales),
             'recent' => array_slice(array_reverse($todaySales), 0, 10),
+            'stats' => $stats,
         ]);
     }
 

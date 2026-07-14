@@ -6,7 +6,7 @@ class HistoryController extends Controller
 {
     public function index(): void
     {
-        $user = $this->requireAuth();
+        $user = $this->requireActiveSubscription();
         $isDev = ($user['role_user'] ?? '') === 'developpeur';
 
         $filter = $_GET['filter'] ?? 'today';
@@ -58,7 +58,7 @@ class HistoryController extends Controller
 
     public function delete(): void
     {
-        $user = $this->requireAuth();
+        $user = $this->requireActiveSubscription();
         $type = $this->input('type', '');
         $id = $this->input('id', '');
 

@@ -6,7 +6,7 @@ class ReportController extends Controller
 {
     public function index(): void
     {
-        $user = $this->requireAuth();
+        $user = $this->requireActiveSubscription();
         $isDev = ($user['role_user'] ?? '') === 'developpeur';
 
         if ($isDev) {
