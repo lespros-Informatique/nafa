@@ -7,6 +7,8 @@
     --text: #1A1A1A;
     --text-light: #6B7280;
     --danger: #DC2626;
+    --danger-light: #FEE2E2;
+    --danger-dark: #B91C1C;
     --shadow: rgba(0, 0, 0, 0.06);
 }
 
@@ -67,6 +69,24 @@ html, body {
     font-size: 14px;
     color: var(--text-light);
     margin-top: 4px;
+}
+
+.header-user {
+    font-size: 13px;
+    color: var(--text);
+    margin-top: 6px;
+    font-weight: 500;
+}
+
+.header-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.header-row h2 {
+    margin: 0;
 }
 
 /* Buttons */
@@ -411,7 +431,28 @@ html, body {
 }
 
 .list-item-amount.positive { color: var(--primary); }
-.list-item-amount.negative { color: var(--primary-dark); }
+.list-item-amount.negative { color: var(--danger-dark); }
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.badge-actif,
+.badge-role {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+}
+
+.badge-inactif {
+    background: var(--danger-light);
+    color: var(--danger-dark);
+}
 
 .list-item-delete {
     background: none;
@@ -463,6 +504,30 @@ html, body {
     width: 100% !important;
     height: 220px !important;
 }
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text-light);
+}
+
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chart-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+}
+
+.chart-legend-dot.sales { background: var(--primary); }
+.chart-legend-dot.expenses { background: var(--danger); }
 
 /* Cash */
 .cash-summary {
@@ -654,6 +719,85 @@ html, body {
     text-align: center;
 }
 
+.logout-top {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--white);
+    border: 1.5px solid #E5E7EB;
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 150;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.logout-top:active {
+    transform: scale(0.95);
+}
+
+.list-item-arrow {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    padding: 8px;
+    margin-left: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.detail-section {
+    padding: 16px 20px;
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.detail-section:last-child {
+    border-bottom: none;
+}
+
+.detail-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.detail-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+.detail-item strong {
+    font-weight: 600;
+    color: var(--text);
+    text-align: right;
+    max-width: 60%;
+    word-break: break-word;
+}
+
+.detail-transactions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
 .toast.show {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
@@ -722,7 +866,7 @@ html, body {
     justify-content: space-between;
     padding: 20px 20px 12px;
     background: var(--white);
-    border-bottom: 1px solid #E5E7EB);
+    border-bottom: 1px solid #E5E7EB;
 }
 
 .modal-header h3 {
@@ -740,4 +884,59 @@ html, body {
     align-items: center;
     justify-content: center;
     padding: 4px;
+}
+
+.confirm-sheet {
+    padding: 24px 20px 32px;
+    text-align: center;
+}
+
+.confirm-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.confirm-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #FEF2F2;
+    color: var(--danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.confirm-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.confirm-message {
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.confirm-actions .btn {
+    flex: 1;
+}
+
+.btn-secondary {
+    background: var(--white);
+    color: var(--text);
+    border: 2px solid #E5E7EB;
+    box-shadow: none;
+}
+
+.btn-secondary:active {
+    background: #F3F4F6;
 }
