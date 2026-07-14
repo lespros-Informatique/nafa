@@ -30,12 +30,13 @@ class Expense
         return $expense ?: null;
     }
 
-    public static function getTodayByShop(string $shopCode): array
+    public static function getTodayByShop(string $shopCode, string $date = null): array
     {
+        $date = $date ?? date('Y-m-d');
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM depenses WHERE boutique_code = :boutique_code AND DATE(date_depense_depense) = CURDATE()'
+            'SELECT * FROM depenses WHERE boutique_code = :boutique_code AND DATE(date_depense_depense) = :date'
         );
-        $stmt->execute(['boutique_code' => $shopCode]);
+        $stmt->execute(['boutique_code' => $shopCode, 'date' => $date]);
         return $stmt->fetchAll();
     }
 

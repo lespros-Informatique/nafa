@@ -27,8 +27,8 @@ class ExpenseController extends Controller
             'boutique_code' => $shop['code_boutique'],
             'libelle_depense' => $libelle,
             'montant_depense' => $montant,
-            'date_depense_depense' => date('Y-m-d H:i:s'),
-            'created_at_depense' => date('Y-m-d H:i:s'),
+            'date_depense_depense' => $this->input('client_now', date('Y-m-d H:i:s')),
+            'created_at_depense' => $this->input('client_now', date('Y-m-d H:i:s')),
         ]);
 
         Response::success('Dépense enregistrée', ['expense' => $expense]);

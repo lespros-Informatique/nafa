@@ -10,6 +10,7 @@ class HistoryController extends Controller
         $isDev = ($user['role_user'] ?? '') === 'developpeur';
 
         $filter = $_GET['filter'] ?? 'today';
+        $clientDate = $_GET['client_date'] ?? null;
 
         if ($isDev) {
             $sales = Sale::getAll();
@@ -26,7 +27,7 @@ class HistoryController extends Controller
         $items = [];
         foreach ($sales as $sale) {
             $date = new DateTime($sale['created_at_vente']);
-            if ($this->matchFilter($date, $filter)) {
+            if ($this->matchFilter($date, $filter, $clientDate)) {
                 $items[] = [
                     'type' => 'vente',
                     'id' => $sale['code_vente'],
@@ -39,7 +40,7 @@ class HistoryController extends Controller
         }
         foreach ($expenses as $expense) {
             $date = new DateTime($expense['date_depense_depense']);
-            if ($this->matchFilter($date, $filter)) {
+            if ($this->matchFilter($date, $filter, $clientDate)) {
                 $items[] = [
                     'type' => 'depense',
                     'id' => $expense['code_depense'],
@@ -51,7 +52,7 @@ class HistoryController extends Controller
             }
         }
 
-        usort($items, fn($a, $b) => strtotime($b['meta']) - strtotime($a['meta']));
+        usort($items, function ($a, $b) { return strtotime($b['meta']) - strtotime($a['meta']); });
 
         Response::success('Historique', ['items' => $items]);
     }
@@ -73,9 +74,9 @@ class HistoryController extends Controller
         Response::success('Opération supprimée');
     }
 
-    private function matchFilter(DateTime $date, string $filter): bool
+    private function matchFilter(DateTime $date, string $filter, $clientDate = null): bool
     {
-        $now = new DateTime();
+        $now = $clientDate ? new DateTime($clientDate) : new DateTime();
         if ($filter === 'today') {
             return $date->format('Y-m-d') === $now->format('Y-m-d');
         } elseif ($filter === 'week') {

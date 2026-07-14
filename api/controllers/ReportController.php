@@ -25,7 +25,8 @@ class ReportController extends Controller
         $totalExpenses = array_sum(array_column($expenses, 'montant_depense'));
 
         $period = $_GET['period'] ?? 'day';
-        $chartData = $this->buildChartData($sales, $expenses, $period);
+        $clientDate = $_GET['client_date'] ?? null;
+        $chartData = $this->buildChartData($sales, $expenses, $period, $clientDate);
 
         Response::success('Rapports', [
             'sales' => $this->formatMoney($totalSales),
@@ -35,26 +36,26 @@ class ReportController extends Controller
         ]);
     }
 
-    private function buildChartData(array $sales, array $expenses, string $period): array
+    private function buildChartData(array $sales, array $expenses, string $period, $clientDate = null): array
     {
         $labels = [];
         $dataV = [];
         $dataE = [];
 
+        $now = $clientDate ? new DateTime($clientDate) : new DateTime();
+
         if ($period === 'day') {
             $days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
             for ($i = 6; $i >= 0; $i--) {
-                $d = new DateTime();
-                $d->modify("-$i days");
+                $d = (clone $now)->modify("-$i days");
                 $labels[] = $days[(int)$d->format('w')];
                 $dayStr = $d->format('Y-m-d');
-                $dataV[] = array_sum(array_column(array_filter($sales, fn($s) => str_starts_with($s['created_at_vente'], $dayStr)), 'montant_vente'));
-                $dataE[] = array_sum(array_column(array_filter($expenses, fn($e) => str_starts_with($e['created_at_depense'], $dayStr)), 'montant_depense'));
+                $dataV[] = array_sum(array_column(array_filter($sales, function ($s) use ($dayStr) { return strpos($s['created_at_vente'], $dayStr) === 0; }), 'montant_vente'));
+                $dataE[] = array_sum(array_column(array_filter($expenses, function ($e) use ($dayStr) { return strpos($e['date_depense_depense'], $dayStr) === 0; }), 'montant_depense'));
             }
         } elseif ($period === 'week') {
             for ($i = 3; $i >= 0; $i--) {
-                $d = new DateTime();
-                $d->modify("-$i weeks");
+                $d = (clone $now)->modify("-$i weeks");
                 $labels[] = 'S' . (4 - $i);
                 $weekStart = (clone $d)->modify('monday this week')->format('Y-m-d');
                 $weekEnd = (clone $d)->modify('sunday this week')->format('Y-m-d');
@@ -63,19 +64,18 @@ class ReportController extends Controller
                     return $d >= $weekStart && $d <= $weekEnd;
                 }), 'montant_vente'));
                 $dataE[] = array_sum(array_column(array_filter($expenses, function($e) use ($weekStart, $weekEnd) {
-                    $d = substr($e['created_at_depense'], 0, 10);
+                    $d = substr($e['date_depense_depense'], 0, 10);
                     return $d >= $weekStart && $d <= $weekEnd;
                 }), 'montant_depense'));
             }
         } else {
             $months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
             for ($i = 5; $i >= 0; $i--) {
-                $d = new DateTime();
-                $d->modify("-$i months");
+                $d = (clone $now)->modify("-$i months");
                 $labels[] = $months[(int)$d->format('n') - 1];
                 $month = $d->format('Y-m');
-                $dataV[] = array_sum(array_column(array_filter($sales, fn($s) => str_starts_with($s['created_at_vente'], $month)), 'montant_vente'));
-                $dataE[] = array_sum(array_column(array_filter($expenses, fn($e) => str_starts_with($e['created_at_depense'], $month)), 'montant_depense'));
+                $dataV[] = array_sum(array_column(array_filter($sales, function ($s) use ($month) { return strpos($s['created_at_vente'], $month) === 0; }), 'montant_vente'));
+                $dataE[] = array_sum(array_column(array_filter($expenses, function ($e) use ($month) { return strpos($e['date_depense_depense'], $month) === 0; }), 'montant_depense'));
             }
         }
 

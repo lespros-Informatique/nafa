@@ -331,7 +331,7 @@ const app = {
         if (recentList && !isDev) this.showSkeleton(recentList, 'list');
 
         try {
-            const data = await this.api('/dashboard');
+            const data = await this.api(`/dashboard?client_date=${this.getClientDate()}`);
             if (metricsGrid) {
                 metricsGrid.innerHTML = `
                     <div class="metric-card"><span class="metric-label">Ventes du jour</span><span class="metric-value">${data.data.sales}</span></div>
@@ -396,7 +396,7 @@ const app = {
         try {
             await this.api('/sales', {
                 method: 'POST',
-                body: JSON.stringify({ montant: amount }),
+                body: JSON.stringify({ montant: amount, client_now: new Date().toISOString() }),
             });
             document.getElementById('sale-amount').value = '';
             this.toast('Vente enregistrée', 'success')
@@ -418,7 +418,7 @@ const app = {
         try {
             await this.api('/expenses', {
                 method: 'POST',
-                body: JSON.stringify({ libelle: label, montant: amount }),
+                body: JSON.stringify({ libelle: label, montant: amount, client_now: new Date().toISOString() }),
             });
             document.getElementById('expense-label').value = '';
             document.getElementById('expense-amount').value = '';
@@ -883,7 +883,7 @@ const app = {
         if (!list) return;
         this.showSkeleton(list, 'list');
         try {
-            const data = await this.api(`/history?filter=${this.historyFilter}`);
+            const data = await this.api(`/history?filter=${this.historyFilter}&client_date=${this.getClientDate()}`);
             const items = data.data.items;
             if (items.length === 0) {
                 list.innerHTML = '<div class="empty-state">Aucune opération</div>';
@@ -954,7 +954,7 @@ const app = {
         if (reportExpenses) reportExpenses.textContent = '';
         if (reportNet) reportNet.textContent = '';
         try {
-            const data = await this.api(`/reports?period=${this.reportPeriod}`);
+            const data = await this.api(`/reports?period=${this.reportPeriod}&client_date=${this.getClientDate()}`);
             if (reportSales) reportSales.textContent = data.data.sales;
             if (reportExpenses) reportExpenses.textContent = data.data.expenses;
             if (reportNet) reportNet.textContent = data.data.net;
@@ -1071,6 +1071,14 @@ const app = {
         const year = date.getFullYear();
         const hours = date.getHours();
         return `${day}, ${d} ${month.charAt(0).toUpperCase() + month.slice(1)} ${year} à ${hours}h`;
+    },
+
+    getClientDate() {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     },
 
     escapeHtml(str) {

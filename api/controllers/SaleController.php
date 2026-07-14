@@ -22,7 +22,7 @@ class SaleController extends Controller
             'boutique_code' => $shop['code_boutique'],
             'montant_vente' => $montant,
             'mode_paiement_vente' => 'especes',
-            'created_at_vente' => date('Y-m-d H:i:s'),
+            'created_at_vente' => $this->input('client_now', date('Y-m-d H:i:s')),
         ]);
 
         Response::success('Vente enregistrée', ['sale' => $sale]);

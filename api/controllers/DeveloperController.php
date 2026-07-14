@@ -207,7 +207,7 @@ class DeveloperController extends Controller
                 ];
             }
 
-            usort($transactions, fn($a, $b) => strtotime($b['date']) - strtotime($a['date']));
+            usort($transactions, function ($a, $b) { return strtotime($b['date']) - strtotime($a['date']); });
         }
 
         Response::success('Détail utilisateur', [
@@ -266,7 +266,7 @@ class DeveloperController extends Controller
                 'date' => $expense['date_depense_depense'],
             ];
         }
-        usort($transactions, fn($a, $b) => strtotime($b['date']) - strtotime($a['date']));
+        usort($transactions, function ($a, $b) { return strtotime($b['date']) - strtotime($a['date']); });
 
         $totalSales = array_sum(array_column($sales, 'montant_vente'));
         $totalExpenses = array_sum(array_column($expenses, 'montant_depense'));
