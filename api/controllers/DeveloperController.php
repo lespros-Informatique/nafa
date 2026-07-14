@@ -17,10 +17,46 @@ class DeveloperController extends Controller
     {
         $this->requireDeveloper();
 
-        $stmt = Database::getConnection()->query('SELECT id_user, code_user, role_user, nom_user, telephone_user, statut_user, created_at_user FROM users ORDER BY created_at_user DESC');
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $limit = min(100, max(1, (int)($_GET['limit'] ?? 20)));
+        $search = trim($_GET['search'] ?? '');
+
+        $where = '';
+        $params = [];
+        if ($search !== '') {
+            $where = 'WHERE nom_user LIKE :search1 OR telephone_user LIKE :search2 OR code_user LIKE :search3';
+            $params[':search1'] = '%' . $search . '%';
+            $params[':search2'] = '%' . $search . '%';
+            $params[':search3'] = '%' . $search . '%';
+        }
+
+        $countSql = 'SELECT COUNT(*) FROM users ' . $where;
+        $countStmt = Database::getConnection()->prepare($countSql);
+        foreach ($params as $k => $v) {
+            $countStmt->bindValue($k, $v);
+        }
+        $countStmt->execute();
+        $total = (int)$countStmt->fetchColumn();
+
+        $limitInt = (int)$limit;
+        $offsetInt = (int)(($page - 1) * $limit);
+        $sql = 'SELECT id_user, code_user, role_user, nom_user, telephone_user, statut_user, created_at_user FROM users ' . $where . ' ORDER BY created_at_user DESC LIMIT ' . $limitInt . ' OFFSET ' . $offsetInt;
+        $stmt = Database::getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->execute();
         $users = $stmt->fetchAll();
 
-        Response::success('Liste des utilisateurs', ['users' => $users]);
+        Response::success('Liste des utilisateurs', [
+            'users' => $users,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $total,
+                'has_more' => $page * $limit < $total,
+            ],
+        ]);
     }
 
     public function createUser(): void
@@ -181,6 +217,7 @@ class DeveloperController extends Controller
         $sales = [];
         $expenses = [];
         $transactions = [];
+        $pagination = ['page' => 1, 'limit' => 20, 'total' => 0, 'has_more' => false];
 
         if ($shop) {
             $sales = Sale::getAllByShop($shop['code_boutique']);
@@ -208,12 +245,25 @@ class DeveloperController extends Controller
             }
 
             usort($transactions, function ($a, $b) { return strtotime($b['date']) - strtotime($a['date']); });
+
+            $txPage = max(1, (int)($_GET['tx_page'] ?? 1));
+            $txLimit = min(100, max(1, (int)($_GET['tx_limit'] ?? 20)));
+            $total = count($transactions);
+            $offset = ($txPage - 1) * $txLimit;
+            $transactions = array_slice($transactions, $offset, $txLimit);
+            $pagination = [
+                'page' => $txPage,
+                'limit' => $txLimit,
+                'total' => $total,
+                'has_more' => ($txPage * $txLimit) < $total,
+            ];
         }
 
         Response::success('Détail utilisateur', [
             'user' => $user,
             'shop' => $shop,
             'transactions' => $transactions,
+            'pagination' => $pagination,
         ]);
     }
 
@@ -221,10 +271,46 @@ class DeveloperController extends Controller
     {
         $this->requireDeveloper();
 
-        $stmt = Database::getConnection()->query('SELECT id, code_boutique, user_code, libelle_boutique, devise_boutique, statut_boutique, created_at_boutique FROM boutiques ORDER BY created_at_boutique DESC');
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $limit = min(100, max(1, (int)($_GET['limit'] ?? 20)));
+        $search = trim($_GET['search'] ?? '');
+
+        $where = '';
+        $params = [];
+        if ($search !== '') {
+            $where = 'WHERE libelle_boutique LIKE :search1 OR code_boutique LIKE :search2 OR devise_boutique LIKE :search3';
+            $params[':search1'] = '%' . $search . '%';
+            $params[':search2'] = '%' . $search . '%';
+            $params[':search3'] = '%' . $search . '%';
+        }
+
+        $countSql = 'SELECT COUNT(*) FROM boutiques ' . $where;
+        $countStmt = Database::getConnection()->prepare($countSql);
+        foreach ($params as $k => $v) {
+            $countStmt->bindValue($k, $v);
+        }
+        $countStmt->execute();
+        $total = (int)$countStmt->fetchColumn();
+
+        $limitInt = (int)$limit;
+        $offsetInt = (int)(($page - 1) * $limit);
+        $sql = 'SELECT id, code_boutique, user_code, libelle_boutique, devise_boutique, statut_boutique, created_at_boutique FROM boutiques ' . $where . ' ORDER BY created_at_boutique DESC LIMIT ' . $limitInt . ' OFFSET ' . $offsetInt;
+        $stmt = Database::getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->execute();
         $shops = $stmt->fetchAll();
 
-        Response::success('Liste des boutiques', ['shops' => $shops]);
+        Response::success('Liste des boutiques', [
+            'shops' => $shops,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $total,
+                'has_more' => $page * $limit < $total,
+            ],
+        ]);
     }
 
     public function shopDetail(): void
@@ -268,6 +354,18 @@ class DeveloperController extends Controller
         }
         usort($transactions, function ($a, $b) { return strtotime($b['date']) - strtotime($a['date']); });
 
+        $txPage = max(1, (int)($_GET['tx_page'] ?? 1));
+        $txLimit = min(100, max(1, (int)($_GET['tx_limit'] ?? 20)));
+        $total = count($transactions);
+        $offset = ($txPage - 1) * $txLimit;
+        $transactions = array_slice($transactions, $offset, $txLimit);
+        $pagination = [
+            'page' => $txPage,
+            'limit' => $txLimit,
+            'total' => $total,
+            'has_more' => ($txPage * $txLimit) < $total,
+        ];
+
         $totalSales = array_sum(array_column($sales, 'montant_vente'));
         $totalExpenses = array_sum(array_column($expenses, 'montant_depense'));
 
@@ -279,6 +377,7 @@ class DeveloperController extends Controller
                 'expenses' => $this->formatMoney($totalExpenses),
                 'net' => $this->formatMoney($totalSales - $totalExpenses),
             ],
+            'pagination' => $pagination,
         ]);
     }
 

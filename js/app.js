@@ -11,6 +11,22 @@ const app = {
     reportPeriod: 'day',
     pendingDelete: null,
     subscriptionMode: 'select',
+    devUserPage: 1,
+    devShopPage: 1,
+    devUserLimit: 20,
+    devShopLimit: 20,
+    devUserSearch: '',
+    devShopSearch: '',
+    devUserHasMore: false,
+    devShopHasMore: false,
+    currentShopCode: null,
+    currentUserCode: null,
+    shopTxPage: 1,
+    shopTxLimit: 15,
+    shopTxHasMore: false,
+    userTxPage: 1,
+    userTxLimit: 15,
+    userTxHasMore: false,
     contact: {
         phone: '+225 05 66 01 55 16',
         whatsapp: 'https://wa.me/2250566015516',
@@ -130,8 +146,20 @@ const app = {
         if (page === 'dashboard') this.renderDashboard();
         if (page === 'history') this.renderHistory();
         if (page === 'reports') this.renderReports();
-        if (page === 'dev-list') this.renderDevUsers();
-        if (page === 'dev-shops') this.renderDevShops();
+        if (page === 'dev-list') {
+            this.devUserPage = 1;
+            this.devUserSearch = '';
+            const userSearch = document.getElementById('dev-user-search');
+            if (userSearch) userSearch.value = '';
+            this.renderDevUsers();
+        }
+        if (page === 'dev-shops') {
+            this.devShopPage = 1;
+            this.devShopSearch = '';
+            const shopSearch = document.getElementById('dev-shop-search');
+            if (shopSearch) shopSearch.value = '';
+            this.renderDevShops();
+        }
         if (page === 'dev-forfaits') this.renderDevForfaits();
         if (page === 'dev-abonnements') this.renderDevAbonnements();
         if (page === 'subscription') this.renderSubscription();
@@ -651,18 +679,23 @@ const app = {
         }
     },
 
-    async renderDevShops() {
+    async renderDevShops(append = false) {
         const list = document.getElementById('dev-shop-list');
         if (!list) return;
-        this.showSkeleton(list, 'list');
+        if (!append) {
+            this.showSkeleton(list, 'list');
+            this.devShopPage = 1;
+        }
         try {
-            const data = await this.api('/dev/shops');
+            const params = new URLSearchParams({
+                page: this.devShopPage,
+                limit: this.devShopLimit,
+            });
+            if (this.devShopSearch) params.set('search', this.devShopSearch);
+            const data = await this.api(`/dev/shops?${params.toString()}`);
             const shops = data.data.shops;
-            if (!shops.length) {
-                list.innerHTML = '<div class="empty-state">Aucune boutique</div>';
-                return;
-            }
-            list.innerHTML = shops.map(s => {
+            const pagination = data.data.pagination || {};
+            const html = shops.map(s => {
                 const statusClass = s.statut_boutique === 'actif' ? 'badge-actif' : 'badge-inactif';
                 return `
                 <div class="list-item">
@@ -677,22 +710,58 @@ const app = {
                 </div>
             `;
             }).join('');
+            if (append) {
+                list.insertAdjacentHTML('beforeend', html);
+            } else {
+                list.innerHTML = html || '<div class="empty-state">Aucune boutique</div>';
+            }
+            this.devShopHasMore = pagination.has_more || false;
+            const btn = document.getElementById('dev-shop-load-more');
+            if (btn) btn.style.display = this.devShopHasMore ? 'flex' : 'none';
         } catch (err) {
+            if (!append) {
+                list.innerHTML = '<div class="empty-state">Erreur</div>';
+            }
             this.toast(err.message, 'error');
         }
     },
 
+    onDevShopSearch(value) {
+        clearTimeout(this._shopSearchTimer);
+        this._shopSearchTimer = setTimeout(() => {
+            this.devShopSearch = value;
+            this.devShopPage = 1;
+            this.renderDevShops();
+        }, 300);
+    },
+
+    loadMoreDevShops() {
+        this.devShopPage++;
+        this.renderDevShops(true);
+    },
+
     async openShopDetail(shopCode) {
+        this.currentShopCode = shopCode;
+        this.shopTxPage = 1;
+        this.shopTxHasMore = false;
+
         const modal = document.getElementById('user-detail-modal');
         const sheet = document.getElementById('user-detail-sheet');
         sheet.innerHTML = '<div class="skeleton skeleton-list"><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div></div>';
         modal.classList.add('open');
 
         try {
-            const data = await this.api(`/dev/shop-detail?code=${encodeURIComponent(shopCode)}`);
+            const params = new URLSearchParams({
+                code: shopCode,
+                tx_page: 1,
+                tx_limit: this.shopTxLimit,
+            });
+            const data = await this.api(`/dev/shop-detail?${params.toString()}`);
             const shop = data.data.shop;
             const transactions = data.data.transactions || [];
             const totals = data.data.totals || {};
+            const pagination = data.data.pagination || {};
+            this.shopTxHasMore = pagination.has_more || false;
 
             let forfaitOptions = '';
             try {
@@ -702,9 +771,33 @@ const app = {
                 ).join('');
             } catch (e) { /* ignore */ }
 
+            const txHtml = transactions.map(tx => {
+                const isSale = tx.type === 'vente';
+                const amountClass = isSale ? 'positive' : 'negative';
+                const sign = isSale ? '+' : '-';
+                const title = tx.title || 'Vente';
+                const meta = tx.mode || '-';
+                return `
+                    <div class="list-item">
+                        <div class="list-item-info">
+                            <div class="list-item-title">${this.escapeHtml(title)}</div>
+                            <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(tx.date))} • ${this.escapeHtml(meta)}</div>
+                        </div>
+                        <span class="list-item-amount ${amountClass}">${sign}${this.formatMoney(tx.amount)}</span>
+                    </div>
+                `;
+            }).join('');
+
             let html = `
-                        <div class="detail-section">
-                            <h4 class="detail-title">Totaux</h4>
+                <div class="modal-header">
+                    <h3>Détail boutique</h3>
+                    <button class="modal-close" onclick="app.closeUserDetail()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="detail-section">
+                        <h4 class="detail-title">Totaux</h4>
                         <div class="detail-grid">
                             <div class="detail-item"><span>Ventes</span><strong>${totals.sales || '0 F'}</strong></div>
                             <div class="detail-item"><span>Dépenses</span><strong>${totals.expenses || '0 F'}</strong></div>
@@ -720,50 +813,90 @@ const app = {
                     </div>
                     <div class="detail-section">
                         <h4 class="detail-title">Transactions</h4>
+                        <div id="shop-detail-transactions" class="detail-transactions-scroll">
+                            ${txHtml || '<div class="empty-state">Aucune transaction</div>'}
+                        </div>
+                        <button class="btn-load-more" id="shop-detail-load-more" style="display:${this.shopTxHasMore ? 'flex' : 'none'}; margin: 12px 20px 8px;" onclick="app.loadMoreShopTransactions()">Charger plus</button>
+                    </div>
+                </div>
             `;
-
-            if (!transactions.length) {
-                html += '<div class="empty-state">Aucune transaction</div>';
-            } else {
-                html += '<div class="detail-transactions">';
-                for (const tx of transactions) {
-                    const isSale = tx.type === 'vente';
-                    const amountClass = isSale ? 'positive' : 'negative';
-                    const sign = isSale ? '+' : '-';
-                    const title = tx.title || 'Vente';
-                    const meta = tx.mode || '-';
-                    html += `
-                        <div class="list-item">
-                        <div class="list-item-info">
-                            <div class="list-item-title">${this.escapeHtml(title)}</div>
-                            <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(tx.date))} • ${this.escapeHtml(meta)}</div>
-                        </div>
-                            <span class="list-item-amount ${amountClass}">${sign}${this.formatMoney(tx.amount)}</span>
-                        </div>
-                    `;
-                }
-                html += '</div>';
-            }
-
-            html += '</div></div>';
             sheet.innerHTML = html;
         } catch (err) {
             sheet.innerHTML = `<div class="empty-state">${this.escapeHtml(err.message)}</div>`;
         }
     },
 
-    async renderDevUsers() {
+    async loadMoreShopTransactions() {
+        if (!this.currentShopCode) return;
+        this.shopTxPage++;
+        const btn = document.getElementById('shop-detail-load-more');
+        if (btn) {
+            btn.textContent = 'Chargement...';
+            btn.disabled = true;
+        }
+        try {
+            const params = new URLSearchParams({
+                code: this.currentShopCode,
+                tx_page: this.shopTxPage,
+                tx_limit: this.shopTxLimit,
+            });
+            const data = await this.api(`/dev/shop-detail?${params.toString()}`);
+            const transactions = data.data.transactions || [];
+            const pagination = data.data.pagination || {};
+            this.shopTxHasMore = pagination.has_more || false;
+
+            const container = document.getElementById('shop-detail-transactions');
+            if (container && transactions.length) {
+                const txHtml = transactions.map(tx => {
+                    const isSale = tx.type === 'vente';
+                    const amountClass = isSale ? 'positive' : 'negative';
+                    const sign = isSale ? '+' : '-';
+                    const title = tx.title || 'Vente';
+                    const meta = tx.mode || '-';
+                    return `
+                        <div class="list-item">
+                            <div class="list-item-info">
+                                <div class="list-item-title">${this.escapeHtml(title)}</div>
+                                <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(tx.date))} • ${this.escapeHtml(meta)}</div>
+                            </div>
+                            <span class="list-item-amount ${amountClass}">${sign}${this.formatMoney(tx.amount)}</span>
+                        </div>
+                    `;
+                }).join('');
+                container.insertAdjacentHTML('beforeend', txHtml);
+            }
+
+            if (btn) {
+                btn.textContent = 'Charger plus';
+                btn.disabled = false;
+                btn.style.display = this.shopTxHasMore ? 'flex' : 'none';
+            }
+        } catch (err) {
+            this.toast(err.message, 'error');
+            if (btn) {
+                btn.textContent = 'Charger plus';
+                btn.disabled = false;
+            }
+        }
+    },
+
+    async renderDevUsers(append = false) {
         const list = document.getElementById('dev-user-list');
         if (!list) return;
-        this.showSkeleton(list, 'list');
+        if (!append) {
+            this.showSkeleton(list, 'list');
+            this.devUserPage = 1;
+        }
         try {
-            const data = await this.api('/dev/users');
+            const params = new URLSearchParams({
+                page: this.devUserPage,
+                limit: this.devUserLimit,
+            });
+            if (this.devUserSearch) params.set('search', this.devUserSearch);
+            const data = await this.api(`/dev/users?${params.toString()}`);
             const users = data.data.users;
-            if (!users.length) {
-                list.innerHTML = '<div class="empty-state">Aucun utilisateur</div>';
-                return;
-            }
-            list.innerHTML = users.map(u => `
+            const pagination = data.data.pagination || {};
+            const html = users.map(u => `
                 <div class="list-item">
                     <div class="list-item-info">
                         <div class="list-item-title">${this.escapeHtml(u.nom_user)}</div>
@@ -775,22 +908,75 @@ const app = {
                     </button>
                 </div>
             `).join('');
+            if (append) {
+                list.insertAdjacentHTML('beforeend', html);
+            } else {
+                list.innerHTML = html || '<div class="empty-state">Aucun utilisateur</div>';
+            }
+            this.devUserHasMore = pagination.has_more || false;
+            const btn = document.getElementById('dev-user-load-more');
+            if (btn) btn.style.display = this.devUserHasMore ? 'flex' : 'none';
         } catch (err) {
+            if (!append) {
+                list.innerHTML = '<div class="empty-state">Erreur</div>';
+            }
             this.toast(err.message, 'error');
         }
     },
 
+    onDevUserSearch(value) {
+        clearTimeout(this._userSearchTimer);
+        this._userSearchTimer = setTimeout(() => {
+            this.devUserSearch = value;
+            this.devUserPage = 1;
+            this.renderDevUsers();
+        }, 300);
+    },
+
+    loadMoreDevUsers() {
+        this.devUserPage++;
+        this.renderDevUsers(true);
+    },
+
     async openUserDetail(userCode) {
+        this.currentUserCode = userCode;
+        this.userTxPage = 1;
+        this.userTxHasMore = false;
+
         const modal = document.getElementById('user-detail-modal');
         const sheet = document.getElementById('user-detail-sheet');
         sheet.innerHTML = '<div class="skeleton skeleton-list"><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div></div>';
         modal.classList.add('open');
 
         try {
-            const data = await this.api(`/dev/user-detail?code=${encodeURIComponent(userCode)}`);
+            const params = new URLSearchParams({
+                code: userCode,
+                tx_page: 1,
+                tx_limit: this.userTxLimit,
+            });
+            const data = await this.api(`/dev/user-detail?${params.toString()}`);
             const user = data.data.user;
             const shop = data.data.shop;
             const transactions = data.data.transactions || [];
+            const pagination = data.data.pagination || {};
+            this.userTxHasMore = pagination.has_more || false;
+
+            const txHtml = transactions.map(tx => {
+                const isSale = tx.type === 'vente';
+                const amountClass = isSale ? 'positive' : 'negative';
+                const sign = isSale ? '+' : '-';
+                const title = tx.title || 'Vente';
+                const meta = tx.mode || '-';
+                return `
+                    <div class="list-item">
+                        <div class="list-item-info">
+                            <div class="list-item-title">${this.escapeHtml(title)}</div>
+                            <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(tx.date))} • ${this.escapeHtml(meta)}</div>
+                        </div>
+                        <span class="list-item-amount ${amountClass}">${sign}${this.formatMoney(tx.amount)}</span>
+                    </div>
+                `;
+            }).join('');
 
             let html = `
                 <div class="modal-header">
@@ -836,35 +1022,71 @@ const app = {
             html += `
                 <div class="detail-section">
                     <h4 class="detail-title">Transactions</h4>
+                    <div id="user-detail-transactions" class="detail-transactions-scroll">
+                        ${txHtml || '<div class="empty-state">Aucune transaction</div>'}
+                    </div>
+                    <button class="btn-load-more" id="user-detail-load-more" style="display:${this.userTxHasMore ? 'flex' : 'none'}; margin: 12px 20px 8px;" onclick="app.loadMoreUserTransactions()">Charger plus</button>
+                </div>
             `;
-
-            if (!transactions.length) {
-                html += '<div class="empty-state">Aucune transaction</div>';
-            } else {
-                html += '<div class="detail-transactions">';
-                for (const tx of transactions) {
-                    const isSale = tx.type === 'vente';
-                    const amountClass = isSale ? 'positive' : 'negative';
-                    const sign = isSale ? '+' : '-';
-                    const title = tx.title || 'Vente';
-                    const meta = tx.mode || '-';
-                    html += `
-                        <div class="list-item">
-                        <div class="list-item-info">
-                            <div class="list-item-title">${this.escapeHtml(title)}</div>
-                            <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(tx.date))} • ${this.escapeHtml(meta)}</div>
-                        </div>
-                            <span class="list-item-amount ${amountClass}">${sign}${this.formatMoney(tx.amount)}</span>
-                        </div>
-                    `;
-                }
-                html += '</div>';
-            }
 
             html += '</div></div>';
             sheet.innerHTML = html;
         } catch (err) {
             sheet.innerHTML = `<div class="empty-state">${this.escapeHtml(err.message)}</div>`;
+        }
+    },
+
+    async loadMoreUserTransactions() {
+        if (!this.currentUserCode) return;
+        this.userTxPage++;
+        const btn = document.getElementById('user-detail-load-more');
+        if (btn) {
+            btn.textContent = 'Chargement...';
+            btn.disabled = true;
+        }
+        try {
+            const params = new URLSearchParams({
+                code: this.currentUserCode,
+                tx_page: this.userTxPage,
+                tx_limit: this.userTxLimit,
+            });
+            const data = await this.api(`/dev/user-detail?${params.toString()}`);
+            const transactions = data.data.transactions || [];
+            const pagination = data.data.pagination || {};
+            this.userTxHasMore = pagination.has_more || false;
+
+            const container = document.getElementById('user-detail-transactions');
+            if (container && transactions.length) {
+                const txHtml = transactions.map(tx => {
+                    const isSale = tx.type === 'vente';
+                    const amountClass = isSale ? 'positive' : 'negative';
+                    const sign = isSale ? '+' : '-';
+                    const title = tx.title || 'Vente';
+                    const meta = tx.mode || '-';
+                    return `
+                        <div class="list-item">
+                            <div class="list-item-info">
+                                <div class="list-item-title">${this.escapeHtml(title)}</div>
+                                <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(tx.date))} • ${this.escapeHtml(meta)}</div>
+                            </div>
+                            <span class="list-item-amount ${amountClass}">${sign}${this.formatMoney(tx.amount)}</span>
+                        </div>
+                    `;
+                }).join('');
+                container.insertAdjacentHTML('beforeend', txHtml);
+            }
+
+            if (btn) {
+                btn.textContent = 'Charger plus';
+                btn.disabled = false;
+                btn.style.display = this.userTxHasMore ? 'flex' : 'none';
+            }
+        } catch (err) {
+            this.toast(err.message, 'error');
+            if (btn) {
+                btn.textContent = 'Charger plus';
+                btn.disabled = false;
+            }
         }
     },
 

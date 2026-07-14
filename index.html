@@ -257,7 +257,11 @@
                     <button class="btn btn-primary" onclick="app.openCreateUserModal()">Nouveau</button>
                 </div>
             </div>
+            <div class="dev-search-bar">
+                <input type="text" class="dev-search-input" id="dev-user-search" placeholder="Rechercher un utilisateur..." oninput="app.onDevUserSearch(this.value)">
+            </div>
             <div class="list-container" id="dev-user-list"></div>
+            <button class="btn-load-more" id="dev-user-load-more" style="display:none;" onclick="app.loadMoreDevUsers()">Charger plus</button>
             <div class="bottom-spacer"></div>
         </div>
 
@@ -267,7 +271,11 @@
                 <h2>Boutiques</h2>
                 <p class="header-subtitle">Toutes les boutiques</p>
             </div>
+            <div class="dev-search-bar">
+                <input type="text" class="dev-search-input" id="dev-shop-search" placeholder="Rechercher une boutique..." oninput="app.onDevShopSearch(this.value)">
+            </div>
             <div class="list-container" id="dev-shop-list"></div>
+            <button class="btn-load-more" id="dev-shop-load-more" style="display:none;" onclick="app.loadMoreDevShops()">Charger plus</button>
             <div class="bottom-spacer"></div>
         </div>
 
