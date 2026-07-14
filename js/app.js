@@ -30,6 +30,40 @@ const app = {
         this._toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
     },
 
+    setButtonLoading(btn, loading) {
+        if (!btn) return;
+        if (loading) {
+            btn.classList.add('btn-loading');
+            btn.dataset.originalText = btn.textContent;
+            btn.textContent = 'Chargement...';
+        } else {
+            btn.classList.remove('btn-loading');
+            if (btn.dataset.originalText) {
+                btn.textContent = btn.dataset.originalText;
+            }
+        }
+    },
+
+    showSkeleton(container, type = 'list') {
+        if (type === 'dashboard') {
+            container.innerHTML = `
+                <div class="metrics-grid">
+                    <div class="skeleton-card"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line h-24 w-80"></div></div>
+                    <div class="skeleton-card"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line h-24 w-80"></div></div>
+                    <div class="skeleton-card"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line h-24 w-80"></div></div>
+                </div>
+            `;
+        } else if (type === 'list') {
+            container.innerHTML = `
+                <div class="skeleton-list">
+                    <div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div>
+                    <div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div>
+                    <div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div>
+                </div>
+            `;
+        }
+    },
+
     init() {
         this.setupEventListeners();
         const saved = localStorage.getItem('nafa_session');
@@ -100,37 +134,56 @@ const app = {
     },
 
     async api(url, options = {}) {
-        const token = this.getAuthToken();
-        const headers = {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        };
-        const response = await fetch(`${API_BASE}${url}`, {
-            ...options,
-            headers: { ...headers, ...options.headers },
-            credentials: 'same-origin',
-        });
-        const text = await response.text();
-        console.log('API response:', response.status, text);
-        let data;
+        const loader = this._showLoader();
         try {
-            data = JSON.parse(text);
-        } catch (e) {
-            data = { success: false, message: 'Réponse invalide du serveur', data: [] };
-        }
-        if (!data.success) {
-            const err = new Error(data.message || 'Erreur API');
-            err.code = data.data?.code ?? null;
-            if (err.code === 'SUBSCRIPTION_REQUIRED') {
-                this.subscriptionMode = 'select';
-                this.navigate('subscription');
-            } else if (err.code === 'SUBSCRIPTION_EXPIRED') {
-                this.subscriptionMode = 'expired';
-                this.navigate('subscription');
+            const token = this.getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            };
+            const response = await fetch(`${API_BASE}${url}`, {
+                ...options,
+                headers: { ...headers, ...options.headers },
+                credentials: 'same-origin',
+            });
+            const text = await response.text();
+            console.log('API response:', response.status, text);
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                data = { success: false, message: 'Réponse invalide du serveur', data: [] };
             }
-            throw err;
+            if (!data.success) {
+                const err = new Error(data.message || 'Erreur API');
+                err.code = data.data?.code ?? null;
+                if (err.code === 'SUBSCRIPTION_REQUIRED') {
+                    this.subscriptionMode = 'select';
+                    this.navigate('subscription');
+                } else if (err.code === 'SUBSCRIPTION_EXPIRED') {
+                    this.subscriptionMode = 'expired';
+                    this.navigate('subscription');
+                }
+                throw err;
+            }
+            return data;
+        } finally {
+            this._hideLoader(loader);
         }
-        return data;
+    },
+
+    _showLoader() {
+        const overlay = document.createElement('div');
+        overlay.className = 'loader-overlay';
+        overlay.innerHTML = '<div class="loader-spinner"></div>';
+        document.body.appendChild(overlay);
+        return overlay;
+    },
+
+    _hideLoader(overlay) {
+        if (overlay && overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+        }
     },
 
     getAuthToken() {
@@ -206,6 +259,8 @@ const app = {
         e.preventDefault();
         const phone = document.getElementById('phone').value.trim();
         if (!phone) return;
+        const btn = e.target.querySelector('button[type="submit"]');
+        this.setButtonLoading(btn, true);
 
         try {
             const data = await this.api('/auth/login', {
@@ -219,6 +274,8 @@ const app = {
             this.toast('Connexion réussie', 'success')
         } catch (err) {
             this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
         }
     },
 
@@ -230,6 +287,8 @@ const app = {
     },
 
     async logout() {
+        const logoutBtn = document.getElementById('logout-top');
+        this.setButtonLoading(logoutBtn, true);
         try {
             await this.api('/auth/logout', { method: 'POST' });
         } catch (e) {
@@ -238,39 +297,51 @@ const app = {
             this.currentUser = null;
             this.currentShop = null;
             localStorage.removeItem('nafa_session');
-            const logoutBtn = document.getElementById('logout-top');
             if (logoutBtn) logoutBtn.style.display = 'none';
             this.navigate('login');
             this.toast('Déconnexion réussie', 'success')
+            this.setButtonLoading(logoutBtn, false);
         }
     },
 
     async renderDashboard() {
         const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
         if (!isDev && !this.currentShop) return;
+        const metricsGrid = document.querySelector('.metrics-grid');
+        const recentList = document.getElementById('recent-list');
+        if (metricsGrid) this.showSkeleton(metricsGrid, 'dashboard');
+        if (recentList && !isDev) this.showSkeleton(recentList, 'list');
+
         try {
             const data = await this.api('/dashboard');
-            document.getElementById('dash-sales').textContent = data.data.sales;
-            document.getElementById('dash-expenses').textContent = data.data.expenses;
-            document.getElementById('dash-net').textContent = data.data.net;
-            document.getElementById('dash-count').textContent = data.data.count + ' vente' + (data.data.count > 1 ? 's' : '');
+            if (metricsGrid) {
+                metricsGrid.innerHTML = `
+                    <div class="metric-card"><span class="metric-label">Ventes du jour</span><span class="metric-value">${data.data.sales}</span></div>
+                    <div class="metric-card metric-expenses"><span class="metric-label">Dépenses du jour</span><span class="metric-value">${data.data.expenses}</span></div>
+                    <div class="metric-card"><span class="metric-label">Net du jour</span><span class="metric-value">${data.data.net}</span></div>
+                    <div class="metric-card"><span class="metric-label">Ventes</span><span class="metric-value">${data.data.count} vente${data.data.count > 1 ? 's' : ''}</span></div>
+                `;
+            }
             const nameEl = document.getElementById('dash-user-name');
             if (nameEl) nameEl.textContent = this.currentUser ? this.currentUser.nom_user : '';
 
-            const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
             const devSection = document.getElementById('dashboard-dev');
-            const recentSection = document.getElementById('dashboard-recent');
+            const dashboardRecent = document.getElementById('dashboard-recent');
 
             if (isDev) {
                 const s = data.data.stats || {};
-                document.getElementById('dev-boutiques').textContent = s.boutiques ?? 0;
-                document.getElementById('dev-vendeurs').textContent = s.vendeurs ?? 0;
-                document.getElementById('dev-expires').textContent = s.abonnements_expires ?? 0;
-                if (devSection) devSection.style.display = '';
-                if (recentSection) recentSection.style.display = 'none';
+                if (devSection) {
+                    devSection.style.display = '';
+                    devSection.querySelector('.metrics-grid').innerHTML = `
+                        <div class="metric-card"><span class="metric-label">Boutiques</span><span class="metric-value">${s.boutiques ?? 0}</span></div>
+                        <div class="metric-card"><span class="metric-label">Vendeurs</span><span class="metric-value">${s.vendeurs ?? 0}</span></div>
+                        <div class="metric-card metric-expenses metric-card-full"><span class="metric-label">Abonnements expirés</span><span class="metric-value">${s.abonnements_expires ?? 0}</span></div>
+                    `;
+                }
+                if (dashboardRecent) dashboardRecent.style.display = 'none';
             } else {
                 if (devSection) devSection.style.display = 'none';
-                if (recentSection) recentSection.style.display = '';
+                if (dashboardRecent) dashboardRecent.style.display = '';
                 this.renderRecentSales(data.data.recent);
             }
         } catch (err) {
@@ -280,6 +351,8 @@ const app = {
 
     renderRecentSales(sales = []) {
         const list = document.getElementById('recent-list');
+        if (!list) return;
+        this.showSkeleton(list, 'list');
         if (sales.length === 0) {
             list.innerHTML = '<div class="empty-state">Aucune vente récente</div>';
             return;
@@ -299,6 +372,8 @@ const app = {
         e.preventDefault();
         const amount = parseFloat(document.getElementById('sale-amount').value);
         if (!amount) return;
+        const btn = e.target.querySelector('button[type="submit"]');
+        this.setButtonLoading(btn, true);
 
         try {
             await this.api('/sales', {
@@ -309,6 +384,8 @@ const app = {
             this.toast('Vente enregistrée', 'success')
         } catch (err) {
             this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
         }
     },
 
@@ -317,6 +394,8 @@ const app = {
         const label = document.getElementById('expense-label').value.trim();
         const amount = parseFloat(document.getElementById('expense-amount').value);
         if (!label || !amount) return;
+        const btn = e.target.querySelector('button[type="submit"]');
+        this.setButtonLoading(btn, true);
 
         try {
             await this.api('/expenses', {
@@ -328,6 +407,8 @@ const app = {
             this.toast('Dépense enregistrée', 'success')
         } catch (err) {
             this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
         }
     },
 
@@ -336,6 +417,8 @@ const app = {
         const phone = document.getElementById('dev-user-phone').value.trim();
         const name = document.getElementById('dev-user-name').value.trim();
         const role = document.getElementById('dev-user-role').value;
+        const btn = e.target.querySelector('button[type="submit"]');
+        this.setButtonLoading(btn, true);
 
         try {
             const data = await this.api('/dev/users', {
@@ -350,6 +433,8 @@ const app = {
             this.toast('Utilisateur créé', 'success')
         } catch (err) {
             this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
         }
     },
 
@@ -367,6 +452,8 @@ const app = {
         const label = document.getElementById('dev-shop-label').value.trim();
         const currency = document.getElementById('dev-shop-currency').value.trim();
         const forfaitCode = document.getElementById('dev-shop-forfait').value.trim();
+        const btn = e.target.querySelector('button[type="submit"]');
+        this.setButtonLoading(btn, true);
 
         try {
             await this.api('/dev/shops', {
@@ -380,6 +467,8 @@ const app = {
             this.renderDevUsers();
         } catch (err) {
             this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
         }
     },
 
@@ -423,6 +512,8 @@ const app = {
         const duree = parseInt(document.getElementById('dev-forfait-duree').value, 10);
         const description = document.getElementById('dev-forfait-description').value.trim();
         if (!libelle || isNaN(prix) || isNaN(duree)) return;
+        const btn = e.target.querySelector('button[type="submit"]');
+        this.setButtonLoading(btn, true);
 
         try {
             await this.api('/dev/forfaits', {
@@ -438,11 +529,15 @@ const app = {
             this.renderDevForfaits();
         } catch (err) {
             this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
         }
     },
 
     async renderDevForfaits() {
         const list = document.getElementById('dev-forfait-list');
+        if (!list) return;
+        this.showSkeleton(list, 'list');
         try {
             const data = await this.api('/dev/forfaits');
             const forfaits = data.data.forfaits;
@@ -470,6 +565,8 @@ const app = {
 
     async renderDevAbonnements() {
         const list = document.getElementById('dev-abonnement-list');
+        if (!list) return;
+        this.showSkeleton(list, 'list');
         try {
             const data = await this.api('/dev/abonnements');
             const abonnements = data.data.abonnements;
@@ -503,6 +600,8 @@ const app = {
     },
 
     async setAbonnementStatut(code, statut) {
+        const btn = document.querySelector(`button[onclick*="'${code}'"]`);
+        this.setButtonLoading(btn, true);
         try {
             await this.api('/dev/abonnement/statut', {
                 method: 'POST',
@@ -511,11 +610,15 @@ const app = {
             this.toast('Statut mis à jour', 'success')
         } catch (err) {
             this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
             this.renderDevAbonnements();
         }
     },
 
     async reabonnement(boutiqueCode, forfaitCode) {
+        const btn = document.querySelector(`button[onclick*="'${boutiqueCode}'"]`);
+        this.setButtonLoading(btn, true);
         try {
             await this.api('/dev/abonnements', {
                 method: 'POST',
@@ -525,11 +628,15 @@ const app = {
             this.openShopDetail(boutiqueCode);
         } catch (err) {
             this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
         }
     },
 
     async renderDevShops() {
         const list = document.getElementById('dev-shop-list');
+        if (!list) return;
+        this.showSkeleton(list, 'list');
         try {
             const data = await this.api('/dev/shops');
             const shops = data.data.shops;
@@ -560,7 +667,7 @@ const app = {
     async openShopDetail(shopCode) {
         const modal = document.getElementById('user-detail-modal');
         const sheet = document.getElementById('user-detail-sheet');
-        sheet.innerHTML = '<div class="empty-state">Chargement...</div>';
+        sheet.innerHTML = '<div class="skeleton skeleton-list"><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div></div>';
         modal.classList.add('open');
 
         try {
@@ -629,6 +736,8 @@ const app = {
 
     async renderDevUsers() {
         const list = document.getElementById('dev-user-list');
+        if (!list) return;
+        this.showSkeleton(list, 'list');
         try {
             const data = await this.api('/dev/users');
             const users = data.data.users;
@@ -656,7 +765,7 @@ const app = {
     async openUserDetail(userCode) {
         const modal = document.getElementById('user-detail-modal');
         const sheet = document.getElementById('user-detail-sheet');
-        sheet.innerHTML = '<div class="empty-state">Chargement...</div>';
+        sheet.innerHTML = '<div class="skeleton skeleton-list"><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div></div>';
         modal.classList.add('open');
 
         try {
@@ -753,6 +862,8 @@ const app = {
 
     async renderHistory() {
         const list = document.getElementById('history-list');
+        if (!list) return;
+        this.showSkeleton(list, 'list');
         try {
             const data = await this.api(`/history?filter=${this.historyFilter}`);
             const items = data.data.items;
@@ -768,7 +879,7 @@ const app = {
                     </div>
                     <span class="list-item-amount ${item.type === 'vente' ? 'positive' : 'negative'}">${item.type === 'vente' ? '+' : '-'}${this.formatMoney(item.amount)}</span>
                     <button class="list-item-delete" onclick="app.deleteItem('${item.type}', '${item.id}')">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 1 1-2 2H7a2 2 0 1 1-2-2V4m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     </button>
                 </div>
             `).join('');
@@ -794,6 +905,8 @@ const app = {
     async confirmDelete() {
         if (!this.pendingDelete) return;
         const { type, id } = this.pendingDelete;
+        const btn = document.querySelector('#confirm-modal .btn-danger');
+        this.setButtonLoading(btn, true);
         this.closeConfirm();
         try {
             await this.api('/history/delete', {
@@ -804,6 +917,8 @@ const app = {
             this.toast('Opération supprimée', 'success')
         } catch (err) {
             this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
         }
     },
 
@@ -814,11 +929,17 @@ const app = {
     },
 
     async renderReports() {
+        const reportSales = document.getElementById('report-sales');
+        const reportExpenses = document.getElementById('report-expenses');
+        const reportNet = document.getElementById('report-net');
+        if (reportSales) reportSales.textContent = '';
+        if (reportExpenses) reportExpenses.textContent = '';
+        if (reportNet) reportNet.textContent = '';
         try {
             const data = await this.api(`/reports?period=${this.reportPeriod}`);
-            document.getElementById('report-sales').textContent = data.data.sales;
-            document.getElementById('report-expenses').textContent = data.data.expenses;
-            document.getElementById('report-net').textContent = data.data.net;
+            if (reportSales) reportSales.textContent = data.data.sales;
+            if (reportExpenses) reportExpenses.textContent = data.data.expenses;
+            if (reportNet) reportNet.textContent = data.data.net;
             this.drawChart(data.data.chart);
         } catch (err) {
             this.toast(err.message, 'error');
@@ -895,6 +1016,7 @@ const app = {
             container.innerHTML = '';
             return;
         }
+        this.showSkeleton(container, 'list');
         try {
             const data = await this.api(`/search?q=${encodeURIComponent(query)}`);
             const results = data.data.results;
