@@ -18,10 +18,14 @@ const app = {
         orange: 'Orange Money',
     },
 
-    toast(msg) {
+    toast(msg, type = '') {
         const el = document.getElementById('toast');
-        el.textContent = msg;
-        el.classList.add('show');
+        const isError = type === 'error';
+        const icon = isError
+            ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>'
+            : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
+        el.className = 'toast show toast-' + type;
+        el.innerHTML = icon + this.escapeHtml(msg);
         clearTimeout(this._toastTimer);
         this._toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
     },
@@ -181,7 +185,7 @@ const app = {
                 </div>
             `).join('');
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -191,10 +195,10 @@ const app = {
                 method: 'POST',
                 body: JSON.stringify({ forfait_code: forfaitCode }),
             });
-            this.toast('Abonnement activé');
+            this.toast('Abonnement activé', 'success')
             this.navigate('dashboard');
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -212,9 +216,9 @@ const app = {
             this.currentShop = data.data.shop || null;
             this.saveSession();
             this.navigate('dashboard');
-            this.toast('Connexion réussie');
+            this.toast('Connexion réussie', 'success')
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -237,7 +241,7 @@ const app = {
             const logoutBtn = document.getElementById('logout-top');
             if (logoutBtn) logoutBtn.style.display = 'none';
             this.navigate('login');
-            this.toast('Déconnexion réussie');
+            this.toast('Déconnexion réussie', 'success')
         }
     },
 
@@ -270,7 +274,7 @@ const app = {
                 this.renderRecentSales(data.data.recent);
             }
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -302,9 +306,9 @@ const app = {
                 body: JSON.stringify({ montant: amount }),
             });
             document.getElementById('sale-amount').value = '';
-            this.toast('Vente enregistrée');
+            this.toast('Vente enregistrée', 'success')
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -321,9 +325,9 @@ const app = {
             });
             document.getElementById('expense-label').value = '';
             document.getElementById('expense-amount').value = '';
-            this.toast('Dépense enregistrée');
+            this.toast('Dépense enregistrée', 'success')
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -343,9 +347,9 @@ const app = {
             document.getElementById('dev-user-name').value = '';
             this.closeCreateUserModal();
             this.openCreateShopModal(userCode);
-            this.toast('Utilisateur créé');
+            this.toast('Utilisateur créé', 'success')
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -372,10 +376,10 @@ const app = {
             document.getElementById('dev-shop-user-code').value = '';
             document.getElementById('dev-shop-label').value = '';
             this.closeCreateShopModal();
-            this.toast('Boutique créée');
+            this.toast('Boutique créée', 'success')
             this.renderDevUsers();
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -396,7 +400,7 @@ const app = {
                 `<option value="${this.escapeHtml(f.code_forfait)}" ${f.code_forfait === selectedCode ? 'selected' : ''}>${this.escapeHtml(f.libelle_forfait)} (${this.formatMoney(parseFloat(f.prix_forfait))})</option>`
             ).join('');
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -430,10 +434,10 @@ const app = {
             document.getElementById('dev-forfait-duree').value = '';
             document.getElementById('dev-forfait-description').value = '';
             this.closeCreateForfaitModal();
-            this.toast('Forfait créé');
+            this.toast('Forfait créé', 'success')
             this.renderDevForfaits();
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -460,7 +464,7 @@ const app = {
             `;
             }).join('');
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -494,7 +498,7 @@ const app = {
             `;
             }).join('');
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -504,9 +508,9 @@ const app = {
                 method: 'POST',
                 body: JSON.stringify({ code, statut }),
             });
-            this.toast('Statut mis à jour');
+            this.toast('Statut mis à jour', 'success')
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
             this.renderDevAbonnements();
         }
     },
@@ -517,10 +521,10 @@ const app = {
                 method: 'POST',
                 body: JSON.stringify({ boutique_code: boutiqueCode, forfait_code: forfaitCode }),
             });
-            this.toast('Abonnement renouvelé');
+            this.toast('Abonnement renouvelé', 'success')
             this.openShopDetail(boutiqueCode);
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -549,7 +553,7 @@ const app = {
             `;
             }).join('');
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -645,7 +649,7 @@ const app = {
                 </div>
             `).join('');
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -769,7 +773,7 @@ const app = {
                 </div>
             `).join('');
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -797,9 +801,9 @@ const app = {
                 body: JSON.stringify({ type, id }),
             });
             this.renderHistory();
-            this.toast('Opération supprimée');
+            this.toast('Opération supprimée', 'success')
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
@@ -817,7 +821,7 @@ const app = {
             document.getElementById('report-net').textContent = data.data.net;
             this.drawChart(data.data.chart);
         } catch (err) {
-            this.toast(err.message);
+            this.toast(err.message, 'error');
         }
     },
 
