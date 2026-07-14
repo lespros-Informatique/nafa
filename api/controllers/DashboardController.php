@@ -48,6 +48,6 @@ class DashboardController extends Controller
 
     private function formatMoney(float $amount): string
     {
-        return number_format($amount, 0, ',', ' ') . ' FCFA';
+        return number_format($amount, 0, ',', ' ') . ' F';
     }
 }

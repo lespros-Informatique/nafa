@@ -41,7 +41,7 @@ class Shop
             'code_boutique' => $codeBoutique,
             'user_code' => $userCode,
             'libelle_boutique' => 'Ma boutique',
-            'devise_boutique' => 'FCFA',
+            'devise_boutique' => 'F',
             'statut_boutique' => 'actif',
             'created_at_boutique' => date('Y-m-d H:i:s'),
         ]);

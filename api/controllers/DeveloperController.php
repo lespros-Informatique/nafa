@@ -65,7 +65,7 @@ class DeveloperController extends Controller
 
         $userCode = trim($this->input('user_code', ''));
         $label = trim($this->input('label', $this->input('libelle_boutique', '')));
-        $currency = trim($this->input('currency', 'FCFA'));
+        $currency = trim($this->input('currency', 'F'));
         $forfaitCode = trim($this->input('forfait_code', ''));
 
         if (!$userCode) {
@@ -353,6 +353,6 @@ class DeveloperController extends Controller
 
     private function formatMoney(float $amount): string
     {
-        return number_format($amount, 0, ',', ' ') . ' FCFA';
+        return number_format($amount, 0, ',', ' ') . ' F';
     }
 }

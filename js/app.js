@@ -706,9 +706,9 @@ const app = {
                         <div class="detail-section">
                             <h4 class="detail-title">Totaux</h4>
                         <div class="detail-grid">
-                            <div class="detail-item"><span>Ventes</span><strong>${totals.sales || '0 FCFA'}</strong></div>
-                            <div class="detail-item"><span>Dépenses</span><strong>${totals.expenses || '0 FCFA'}</strong></div>
-                            <div class="detail-item"><span>Net</span><strong>${totals.net || '0 FCFA'}</strong></div>
+                            <div class="detail-item"><span>Ventes</span><strong>${totals.sales || '0 F'}</strong></div>
+                            <div class="detail-item"><span>Dépenses</span><strong>${totals.expenses || '0 F'}</strong></div>
+                            <div class="detail-item"><span>Net</span><strong>${totals.net || '0 F'}</strong></div>
                         </div>
                     </div>
                     <div class="detail-section">
@@ -1057,7 +1057,7 @@ const app = {
     },
 
     formatMoney(amount) {
-        return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
+        return new Intl.NumberFormat('fr-FR').format(amount) + ' F';
     },
 
     formatFrenchDate(dateStr) {
