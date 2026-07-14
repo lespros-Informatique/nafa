@@ -57,6 +57,13 @@ const app = {
         const target = document.getElementById('page-' + page);
         if (target) target.classList.add('active');
 
+        if (page === 'login') {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+            window.scrollTo({ top: 0, behavior: 'instant' });
+        }
+
         const loggedIn = page !== 'login' && page !== 'subscription';
         document.getElementById('bottom-nav').style.display = loggedIn ? 'flex' : 'none';
         document.getElementById('fab-container').style.display = (loggedIn && page === 'dashboard' && this.currentUser?.role_user !== 'developpeur') ? 'flex' : 'none';
