@@ -837,6 +837,11 @@ html, body {
     gap: 8px;
 }
 
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
 /* Search Trigger */
 .btn-search-trigger {
     display: inline-flex;
