@@ -8,6 +8,7 @@ const app = {
     currentUser: null,
     currentShop: null,
     historyFilter: 'today',
+    historyType: 'vente',
     reportPeriod: 'day',
     pendingDelete: null,
     subscriptionMode: 'select',
@@ -1119,33 +1120,40 @@ const app = {
 
     setHistoryFilter(filter) {
         this.historyFilter = filter;
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
+        document.querySelectorAll('.filter-btn').forEach(b => { if (b.dataset.filter) b.classList.toggle('active', b.dataset.filter === filter); });
+        this.renderHistory();
+    },
+
+    setHistoryType(type) {
+        this.historyType = type;
+        document.querySelectorAll('#history-type-bar .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
         this.renderHistory();
     },
 
     async renderHistory() {
         const list = document.getElementById('history-list');
         if (!list) return;
+        document.querySelectorAll('#history-type-bar .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.type === this.historyType));
         this.showSkeleton(list, 'list');
         try {
             const data = await this.api(`/history?filter=${this.historyFilter}&client_date=${this.getClientDate()}`);
-            const items = data.data.items;
-            if (items.length === 0) {
-                list.innerHTML = '<div class="empty-state">Aucune opération</div>';
-                return;
-            }
-            list.innerHTML = items.map(item => `
-                <div class="list-item">
-                    <div class="list-item-info">
-                        <div class="list-item-title">${this.escapeHtml(item.title)}</div>
-                        <div class="list-item-meta">${this.escapeHtml(item.meta)} ${item.mode !== '-' ? '• ' + this.escapeHtml(item.mode) : ''}</div>
+            const items = (data.data.items || []).filter(i => i.type === this.historyType);
+            const emptyText = this.historyType === 'vente' ? 'Aucune vente' : 'Aucune dépense';
+
+            list.innerHTML = items.length
+                ? items.map(item => `
+                    <div class="list-item">
+                        <div class="list-item-info">
+                            <div class="list-item-title">${this.escapeHtml(item.title)}</div>
+                            <div class="list-item-meta">${this.escapeHtml(item.meta)} ${item.mode !== '-' ? '• ' + this.escapeHtml(item.mode) : ''}</div>
+                        </div>
+                        <span class="list-item-amount ${item.type === 'vente' ? 'positive' : 'negative'}">${item.type === 'vente' ? '+' : '-'}${this.formatMoney(item.amount)}</span>
+                        <button class="list-item-delete" onclick="app.deleteItem('${item.type}', '${item.id}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 1 1-2 2H7a2 2 0 1 1-2-2V4m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
                     </div>
-                    <span class="list-item-amount ${item.type === 'vente' ? 'positive' : 'negative'}">${item.type === 'vente' ? '+' : '-'}${this.formatMoney(item.amount)}</span>
-                    <button class="list-item-delete" onclick="app.deleteItem('${item.type}', '${item.id}')">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 1 1-2 2H7a2 2 0 1 1-2-2V4m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                    </button>
-                </div>
-            `).join('');
+                `).join('')
+                : `<div class="empty-state">${this.escapeHtml(emptyText)}</div>`;
         } catch (err) {
             this.toast(err.message, 'error');
         }

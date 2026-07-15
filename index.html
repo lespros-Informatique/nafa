@@ -198,6 +198,10 @@
                 <button class="filter-btn" onclick="app.setHistoryFilter('week')" data-filter="week">Semaine</button>
                 <button class="filter-btn" onclick="app.setHistoryFilter('month')" data-filter="month">Mois</button>
             </div>
+            <div class="filter-bar" id="history-type-bar">
+                <button class="filter-btn active" onclick="app.setHistoryType('vente')" data-type="vente">Ventes</button>
+                <button class="filter-btn" onclick="app.setHistoryType('depense')" data-type="depense">Dépenses</button>
+            </div>
             <div class="list-container" id="history-list"></div>
             <div class="bottom-spacer"></div>
         </div>
