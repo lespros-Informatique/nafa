@@ -15,6 +15,7 @@ class HistoryController extends Controller
         if ($isDev) {
             $sales = Sale::getAll();
             $expenses = Expense::getAll();
+            $purchases = Purchase::getAll();
         } else {
             $shop = Shop::findByUserCode($user['code_user']);
             if (!$shop) {
@@ -22,6 +23,7 @@ class HistoryController extends Controller
             }
             $sales = Sale::getAllByShop($shop['code_boutique']);
             $expenses = Expense::getAllByShop($shop['code_boutique']);
+            $purchases = Purchase::getByShop($shop['code_boutique']);
         }
 
         $items = [];
@@ -51,6 +53,19 @@ class HistoryController extends Controller
                 ];
             }
         }
+        foreach ($purchases as $purchase) {
+            $date = new DateTime($purchase['date_achat']);
+            if ($this->matchFilter($date, $filter, $clientDate)) {
+                $items[] = [
+                    'type' => 'achat',
+                    'id' => $purchase['code_achat'],
+                    'title' => 'Achat',
+                    'meta' => $date->format('d/m/Y H:i'),
+                    'amount' => (float) $purchase['montant_achat'],
+                    'mode' => $purchase['produit_code'],
+                ];
+            }
+        }
 
         usort($items, function ($a, $b) { return strtotime($b['meta']) - strtotime($a['meta']); });
 
@@ -67,6 +82,8 @@ class HistoryController extends Controller
             Sale::delete($id);
         } elseif ($type === 'depense') {
             Expense::delete($id);
+        } elseif ($type === 'achat') {
+            Purchase::delete($id);
         } else {
             Response::error('Type invalide', [], 400);
         }

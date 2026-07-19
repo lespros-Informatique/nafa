@@ -280,6 +280,9 @@ html, body {
 .metric-expenses .metric-value { color: var(--danger); }
 .metric-net .metric-value { color: var(--text); }
 .metric-count .metric-value { color: var(--text); }
+.metric-purchases .metric-value { color: #D97706; }
+.metric-products .metric-value { color: #2563EB; }
+.metric-stock .metric-value { color: #7C3AED; }
 
 /* Split */
 .section {

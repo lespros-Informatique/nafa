@@ -106,14 +106,31 @@
                     <span class="metric-label">Dépenses du jour</span>
                     <span class="metric-value" id="dash-expenses">0 F</span>
                 </div>
+                <div class="metric-card metric-purchases">
+                    <span class="metric-label">Achats du jour</span>
+                    <span class="metric-value" id="dash-purchases">0 F</span>
+                </div>
                 <div class="metric-card metric-net">
                     <span class="metric-label">Net du jour</span>
                     <span class="metric-value" id="dash-net">0 F</span>
                 </div>
-                <div class="metric-card metric-count">
-                    <span class="metric-label">Ventes</span>
-                    <span class="metric-value" id="dash-count">0</span>
+                <div class="metric-card metric-products">
+                    <span class="metric-label">Produits</span>
+                    <span class="metric-value" id="dash-products">0</span>
                 </div>
+                <div class="metric-card metric-stock">
+                    <span class="metric-label">Valeur stock</span>
+                    <span class="metric-value" id="dash-stock-value">0 F</span>
+                </div>
+                <div class="metric-card metric-expenses metric-card-full">
+                    <span class="metric-label">Ruptures</span>
+                    <span class="metric-value" id="dash-out-of-stock">0</span>
+                </div>
+            </div>
+
+            <div class="section" id="dashboard-top-products" style="display:none;">
+                <h3 class="section-title">Produits les plus vendus</h3>
+                <div class="list-container" id="top-products-list"></div>
             </div>
 
             <div class="section dev-only" id="dashboard-dev" style="display:none;">
@@ -159,8 +176,22 @@
             </div>
             <form class="form-page" onsubmit="app.handleSale(event)">
                 <div class="input-group">
-                    <label for="sale-amount">Montant</label>
-                    <input type="number" id="sale-amount" placeholder="0" required inputmode="decimal" step="1" min="0">
+                    <label for="sale-product">Produit</label>
+                    <select id="sale-product" required>
+                        <option value="">Sélectionner un produit</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="sale-quantite">Quantité</label>
+                    <input type="number" id="sale-quantite" placeholder="0" required inputmode="decimal" step="1" min="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="sale-prix">Prix unitaire</label>
+                    <input type="number" id="sale-prix" placeholder="0" required inputmode="decimal" step="1" min="0">
+                </div>
+                <div class="input-group">
+                    <label>Montant</label>
+                    <div class="input-group" id="sale-montant-display" style="padding: 12px 16px; background: var(--white); border: 2px solid #E5E7EB; border-radius: 14px; font-weight: 600; color: var(--text);">0 F</div>
                 </div>
                 <button type="submit" class="btn btn-success btn-full">Enregistrer</button>
             </form>
@@ -187,6 +218,122 @@
             </form>
         </div>
 
+        <!-- NEW PRODUCT PAGE -->
+        <div id="page-product" class="page">
+            <div class="header">
+                <button class="btn-back" onclick="app.navigate('products')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </button>
+                <h2>Nouveau produit</h2>
+            </div>
+            <form class="form-page" onsubmit="app.handleProduct(event)">
+                <div class="input-group">
+                    <label for="product-label">Libellé</label>
+                    <input type="text" id="product-label" placeholder="Ex: Savon" required>
+                </div>
+                <div class="input-group">
+                    <label for="product-unit">Unité</label>
+                    <input type="text" id="product-unit" placeholder="Ex: pièce, kg, litre" required>
+                </div>
+                <div class="input-group">
+                    <label for="product-prix-achat">Prix d'achat</label>
+                    <input type="number" id="product-prix-achat" placeholder="0" inputmode="decimal" step="1" min="0">
+                </div>
+                <div class="input-group">
+                    <label for="product-prix-vente">Prix de vente</label>
+                    <input type="number" id="product-prix-vente" placeholder="0" inputmode="decimal" step="1" min="0">
+                </div>
+                <div class="input-group">
+                    <label for="product-stock">Stock initial</label>
+                    <input type="number" id="product-stock" placeholder="0" inputmode="decimal" step="1" min="0">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Enregistrer</button>
+            </form>
+        </div>
+
+        <!-- PRODUCTS LIST PAGE -->
+        <div id="page-products" class="page">
+            <div class="header">
+                <div class="header-row">
+                    <div>
+                        <h2>Produits</h2>
+                        <p class="header-subtitle">Tous vos produits</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="app.navigate('product')">Nouveau</button>
+                </div>
+            </div>
+            <div class="dev-search-bar">
+                <input type="text" class="dev-search-input" id="product-search" placeholder="Rechercher un produit..." oninput="app.onProductSearch(this.value)">
+            </div>
+            <div class="list-container" id="product-list"></div>
+            <button class="btn-load-more" id="product-load-more" style="display:none;" onclick="app.loadMoreProducts()">Charger plus</button>
+            <div class="bottom-spacer"></div>
+        </div>
+
+        <!-- NEW PURCHASE PAGE -->
+        <div id="page-purchase" class="page">
+            <div class="header">
+                <button class="btn-back" onclick="app.navigate('purchases')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </button>
+                <h2>Nouvel achat</h2>
+            </div>
+            <form class="form-page" onsubmit="app.handlePurchase(event)">
+                <div class="input-group">
+                    <label for="purchase-product">Produit</label>
+                    <select id="purchase-product" required>
+                        <option value="">Sélectionner un produit</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="purchase-quantite">Quantité</label>
+                    <input type="number" id="purchase-quantite" placeholder="0" required inputmode="decimal" step="1" min="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="purchase-prix">Prix unitaire</label>
+                    <input type="number" id="purchase-prix" placeholder="0" required inputmode="decimal" step="1" min="0">
+                </div>
+                <div class="input-group">
+                    <label>Montant</label>
+                    <div class="input-group" id="purchase-montant-display" style="padding: 12px 16px; background: var(--white); border: 2px solid #E5E7EB; border-radius: 14px; font-weight: 600; color: var(--text);">0 F</div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Enregistrer</button>
+            </form>
+        </div>
+
+        <!-- PURCHASES LIST PAGE -->
+        <div id="page-purchases" class="page">
+            <div class="header">
+                <div class="header-row">
+                    <div>
+                        <h2>Achats</h2>
+                        <p class="header-subtitle">Tous vos achats</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="app.navigate('purchase')">Nouveau</button>
+                </div>
+            </div>
+            <div class="dev-search-bar">
+                <input type="text" class="dev-search-input" id="purchase-search" placeholder="Rechercher un achat..." oninput="app.onPurchaseSearch(this.value)">
+            </div>
+            <div class="list-container" id="purchase-list"></div>
+            <button class="btn-load-more" id="purchase-load-more" style="display:none;" onclick="app.loadMorePurchases()">Charger plus</button>
+            <div class="bottom-spacer"></div>
+        </div>
+
+        <!-- STOCK PAGE -->
+        <div id="page-stock" class="page">
+            <div class="header">
+                <h2>Stock</h2>
+                <p class="header-subtitle">État des stocks</p>
+            </div>
+            <div class="dev-search-bar">
+                <input type="text" class="dev-search-input" id="stock-search" placeholder="Rechercher un produit..." oninput="app.onStockSearch(this.value)">
+            </div>
+            <div class="list-container" id="stock-list"></div>
+            <button class="btn-load-more" id="stock-load-more" style="display:none;" onclick="app.loadMoreStock()">Charger plus</button>
+            <div class="bottom-spacer"></div>
+        </div>
+
         <!-- HISTORY PAGE -->
         <div id="page-history" class="page">
             <div class="header">
@@ -201,6 +348,7 @@
             <div class="filter-bar" id="history-type-bar">
                 <button class="filter-btn active" onclick="app.setHistoryType('vente')" data-type="vente">Ventes</button>
                 <button class="filter-btn" onclick="app.setHistoryType('depense')" data-type="depense">Dépenses</button>
+                <button class="filter-btn" onclick="app.setHistoryType('achat')" data-type="achat">Achats</button>
             </div>
             <div class="list-container" id="history-list"></div>
             <div class="bottom-spacer"></div>
@@ -351,6 +499,12 @@
                 <button class="fab-menu-item" onclick="app.navigate('expense')">
                     <span class="fab-menu-dot" style="background:#166534"></span>Dépense
                 </button>
+                <button class="fab-menu-item" onclick="app.navigate('product')">
+                    <span class="fab-menu-dot" style="background:#2563EB"></span>Produit
+                </button>
+                <button class="fab-menu-item" onclick="app.navigate('purchase')">
+                    <span class="fab-menu-dot" style="background:#D97706"></span>Achat
+                </button>
             </div>
         </div>
 
@@ -447,6 +601,18 @@
             <button class="nav-item" onclick="app.navigate('history')" data-page="history">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 <span>Historique</span>
+            </button>
+            <button class="nav-item" onclick="app.navigate('products')" data-page="products">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                <span>Produits</span>
+            </button>
+            <button class="nav-item" onclick="app.navigate('purchases')" data-page="purchases">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"></path></svg>
+                <span>Achats</span>
+            </button>
+            <button class="nav-item" onclick="app.navigate('stock')" data-page="stock">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"></path></svg>
+                <span>Stock</span>
             </button>
             <button class="nav-item" onclick="app.navigate('reports')" data-page="reports">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>

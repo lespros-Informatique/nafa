@@ -17,10 +17,12 @@ class SearchController extends Controller
             Response::success('Résultats de recherche', ['results' => []]);
         }
 
-        $results = Sale::search($shop['code_boutique'], $query);
-        $formatted = array_map(function ($sale) {
+        $results = [];
+
+        $sales = Sale::search($shop['code_boutique'], $query);
+        foreach ($sales as $sale) {
             $date = new DateTime($sale['created_at_vente']);
-            return [
+            $results[] = [
                 'type' => 'vente',
                 'id' => $sale['code_vente'],
                 'title' => 'Vente',
@@ -28,8 +30,50 @@ class SearchController extends Controller
                 'amount' => (float) $sale['montant_vente'],
                 'mode' => $sale['mode_paiement_vente'],
             ];
-        }, $results);
+        }
 
-        Response::success('Résultats de recherche', ['results' => $formatted]);
+        $expenses = Expense::getAllByShop($shop['code_boutique']);
+        foreach ($expenses as $expense) {
+            if (stripos($expense['libelle_depense'], $query) !== false || stripos($expense['code_depense'], $query) !== false) {
+                $date = new DateTime($expense['date_depense_depense']);
+                $results[] = [
+                    'type' => 'depense',
+                    'id' => $expense['code_depense'],
+                    'title' => $expense['libelle_depense'],
+                    'meta' => $date->format('d/m/Y H:i'),
+                    'amount' => (float) $expense['montant_depense'],
+                    'mode' => '-',
+                ];
+            }
+        }
+
+        $purchases = Purchase::search($shop['code_boutique'], $query);
+        foreach ($purchases as $purchase) {
+            $date = new DateTime($purchase['date_achat']);
+            $results[] = [
+                'type' => 'achat',
+                'id' => $purchase['code_achat'],
+                'title' => 'Achat',
+                'meta' => $date->format('d/m/Y H:i'),
+                'amount' => (float) $purchase['montant_achat'],
+                'mode' => $purchase['produit_code'],
+            ];
+        }
+
+        $products = Product::search($shop['code_boutique'], $query);
+        foreach ($products as $product) {
+            $results[] = [
+                'type' => 'produit',
+                'id' => $product['code_produit'],
+                'title' => $product['libelle_produit'],
+                'meta' => $product['unite_produit'],
+                'amount' => (float) $product['prix_vente_produit'],
+                'mode' => 'Stock: ' . $product['stock_initial_produit'],
+            ];
+        }
+
+        usort($results, function ($a, $b) { return strtotime($b['meta']) - strtotime($a['meta']); });
+
+        Response::success('Résultats de recherche', ['results' => $results]);
     }
 }

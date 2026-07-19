@@ -28,6 +28,20 @@ const app = {
     userTxPage: 1,
     userTxLimit: 15,
     userTxHasMore: false,
+    productPage: 1,
+    productLimit: 20,
+    productHasMore: false,
+    productSearch: '',
+    purchasePage: 1,
+    purchaseLimit: 20,
+    purchaseHasMore: false,
+    purchaseSearch: '',
+    stockPage: 1,
+    stockLimit: 20,
+    stockHasMore: false,
+    stockSearch: '',
+    pendingProductDelete: null,
+    pendingPurchaseDelete: null,
     contact: {
         phone: '+225 05 66 01 55 16',
         whatsapp: 'https://wa.me/2250566015516',
@@ -107,6 +121,32 @@ const app = {
                 item.classList.add('active');
             });
         });
+
+        const qtyInput = document.getElementById('purchase-quantite');
+        const prixInput = document.getElementById('purchase-prix');
+        const montantDisplay = document.getElementById('purchase-montant-display');
+        if (qtyInput && prixInput && montantDisplay) {
+            const updateMontant = () => {
+                const qty = parseFloat(qtyInput.value) || 0;
+                const prix = parseFloat(prixInput.value) || 0;
+                montantDisplay.textContent = this.formatMoney(qty * prix);
+            };
+            qtyInput.addEventListener('input', updateMontant);
+            prixInput.addEventListener('input', updateMontant);
+        }
+
+        const saleQtyInput = document.getElementById('sale-quantite');
+        const salePrixInput = document.getElementById('sale-prix');
+        const saleMontantDisplay = document.getElementById('sale-montant-display');
+        if (saleQtyInput && salePrixInput && saleMontantDisplay) {
+            const updateSaleMontant = () => {
+                const qty = parseFloat(saleQtyInput.value) || 0;
+                const prix = parseFloat(salePrixInput.value) || 0;
+                saleMontantDisplay.textContent = this.formatMoney(qty * prix);
+            };
+            saleQtyInput.addEventListener('input', updateSaleMontant);
+            salePrixInput.addEventListener('input', updateSaleMontant);
+        }
     },
 
     navigate(page) {
@@ -164,6 +204,12 @@ const app = {
         if (page === 'dev-forfaits') this.renderDevForfaits();
         if (page === 'dev-abonnements') this.renderDevAbonnements();
         if (page === 'subscription') this.renderSubscription();
+        if (page === 'products') this.renderProducts();
+        if (page === 'purchases') this.renderPurchases();
+        if (page === 'stock') this.renderStock();
+        if (page === 'product') this.loadProductOptions();
+        if (page === 'purchase') this.loadPurchaseOptions();
+        if (page === 'sale') this.loadSaleOptions();
     },
 
     async api(url, options = {}) {
@@ -388,8 +434,11 @@ const app = {
                 metricsGrid.innerHTML = `
                     <div class="metric-card"><span class="metric-label">Ventes du jour</span><span class="metric-value">${data.data.sales}</span></div>
                     <div class="metric-card metric-expenses"><span class="metric-label">Dépenses du jour</span><span class="metric-value">${data.data.expenses}</span></div>
+                    <div class="metric-card"><span class="metric-label">Achats du jour</span><span class="metric-value">${data.data.purchases || '0 F'}</span></div>
                     <div class="metric-card"><span class="metric-label">Net du jour</span><span class="metric-value">${data.data.net}</span></div>
-                    <div class="metric-card"><span class="metric-label">Ventes</span><span class="metric-value">${data.data.count} vente${data.data.count > 1 ? 's' : ''}</span></div>
+                    <div class="metric-card"><span class="metric-label">Produits</span><span class="metric-value">${data.data.product_count ?? 0}</span></div>
+                    <div class="metric-card"><span class="metric-label">Valeur stock</span><span class="metric-value">${data.data.stock_value || '0 F'}</span></div>
+                    <div class="metric-card metric-expenses metric-card-full"><span class="metric-label">Ruptures</span><span class="metric-value">${data.data.out_of_stock ?? 0}</span></div>
                 `;
             }
             const nameEl = document.getElementById('dash-user-name');
@@ -397,6 +446,8 @@ const app = {
 
             const devSection = document.getElementById('dashboard-dev');
             const dashboardRecent = document.getElementById('dashboard-recent');
+            const topProductsSection = document.getElementById('dashboard-top-products');
+            const topProductsList = document.getElementById('top-products-list');
 
             if (isDev) {
                 const s = data.data.stats || {};
@@ -409,10 +460,28 @@ const app = {
                     `;
                 }
                 if (dashboardRecent) dashboardRecent.style.display = 'none';
+                if (topProductsSection) topProductsSection.style.display = 'none';
             } else {
                 if (devSection) devSection.style.display = 'none';
                 if (dashboardRecent) dashboardRecent.style.display = '';
                 this.renderRecentSales(data.data.recent);
+
+                const topProducts = data.data.top_products || [];
+                if (topProductsSection && topProductsList) {
+                    if (topProducts.length > 0) {
+                        topProductsSection.style.display = '';
+                        topProductsList.innerHTML = topProducts.map(p => `
+                            <div class="list-item">
+                                <div class="list-item-info">
+                                    <div class="list-item-title">${this.escapeHtml(p.produit_code)}</div>
+                                    <div class="list-item-meta">${this.escapeHtml(p.total_vendu)} vendus • ${this.formatMoney(p.total_montant)}</div>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        topProductsSection.style.display = 'none';
+                    }
+                }
             }
         } catch (err) {
             this.toast(err.message, 'error');
@@ -440,17 +509,23 @@ const app = {
 
     async handleSale(e) {
         e.preventDefault();
-        const amount = parseFloat(document.getElementById('sale-amount').value);
-        if (!amount) return;
+        const produitCode = document.getElementById('sale-product').value;
+        const quantite = parseFloat(document.getElementById('sale-quantite').value);
+        const prixUnitaire = parseFloat(document.getElementById('sale-prix').value);
+        if (!produitCode || !quantite || isNaN(prixUnitaire)) return;
+        const montant = quantite * prixUnitaire;
         const btn = e.target.querySelector('button[type="submit"]');
         this.setButtonLoading(btn, true);
 
         try {
             await this.api('/sales', {
                 method: 'POST',
-                body: JSON.stringify({ montant: amount, client_now: new Date().toISOString() }),
+                body: JSON.stringify({ montant, produits: [{ produit_code: produitCode, quantite, prix_unitaire: prixUnitaire }], client_now: new Date().toISOString() }),
             });
-            document.getElementById('sale-amount').value = '';
+            document.getElementById('sale-product').value = '';
+            document.getElementById('sale-quantite').value = '';
+            document.getElementById('sale-prix').value = '';
+            document.getElementById('sale-montant-display').textContent = '0 F';
             this.toast('Vente enregistrée', 'success')
         } catch (err) {
             this.toast(err.message, 'error');
@@ -1138,7 +1213,7 @@ const app = {
         try {
             const data = await this.api(`/history?filter=${this.historyFilter}&client_date=${this.getClientDate()}`);
             const items = (data.data.items || []).filter(i => i.type === this.historyType);
-            const emptyText = this.historyType === 'vente' ? 'Aucune vente' : 'Aucune dépense';
+            const emptyText = this.historyType === 'vente' ? 'Aucune vente' : this.historyType === 'depense' ? 'Aucune dépense' : 'Aucun achat';
 
             list.innerHTML = items.length
                 ? items.map(item => `
@@ -1174,6 +1249,14 @@ const app = {
     },
 
     async confirmDelete() {
+        if (this.pendingProductDelete) {
+            await this.confirmProductDelete();
+            return;
+        }
+        if (this.pendingPurchaseDelete) {
+            await this.confirmPurchaseDelete();
+            return;
+        }
         if (!this.pendingDelete) return;
         const { type, id } = this.pendingDelete;
         const btn = document.querySelector('#confirm-modal .btn-danger');
@@ -1301,7 +1384,7 @@ const app = {
                         <div class="list-item-title">${this.escapeHtml(item.title)}</div>
                         <div class="list-item-meta">${this.escapeHtml(item.meta)} ${item.mode !== '-' ? '• ' + this.escapeHtml(item.mode) : ''}</div>
                     </div>
-                    <span class="list-item-amount positive">+${this.formatMoney(item.amount)}</span>
+                    <span class="list-item-amount ${item.type === 'vente' || item.type === 'achat' ? 'positive' : item.type === 'depense' ? 'negative' : ''}">${item.type === 'vente' || item.type === 'achat' ? '+' : item.type === 'depense' ? '-' : ''}${this.formatMoney(item.amount)}</span>
                 </div>
             `).join('');
         } catch (err) {
@@ -1343,6 +1426,336 @@ const app = {
 
     loadMockData() {
         // no-op, backend handles data
+    },
+
+    async handleProduct(e) {
+        e.preventDefault();
+        const libelle = document.getElementById('product-label').value.trim();
+        const unite = document.getElementById('product-unit').value.trim();
+        const prixAchat = parseFloat(document.getElementById('product-prix-achat').value) || 0;
+        const prixVente = parseFloat(document.getElementById('product-prix-vente').value) || 0;
+        const stockInitial = parseFloat(document.getElementById('product-stock').value) || 0;
+        if (!libelle || !unite) return;
+        const btn = e.target.querySelector('button[type="submit"]');
+        this.setButtonLoading(btn, true);
+
+        try {
+            await this.api('/products', {
+                method: 'POST',
+                body: JSON.stringify({ libelle, unite, prix_achat: prixAchat, prix_vente: prixVente, stock_initial: stockInitial }),
+            });
+            document.getElementById('product-label').value = '';
+            document.getElementById('product-unit').value = '';
+            document.getElementById('product-prix-achat').value = '';
+            document.getElementById('product-prix-vente').value = '';
+            document.getElementById('product-stock').value = '';
+            this.toast('Produit enregistré', 'success')
+            this.navigate('products');
+        } catch (err) {
+            this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
+        }
+    },
+
+    async loadProductOptions() {
+        // placeholder if needed
+    },
+
+    async renderProducts(append = false) {
+        const list = document.getElementById('product-list');
+        if (!list) return;
+        if (!append) {
+            this.showSkeleton(list, 'list');
+            this.productPage = 1;
+        }
+        try {
+            const params = new URLSearchParams({
+                page: this.productPage,
+                limit: this.productLimit,
+            });
+            if (this.productSearch) params.set('search', this.productSearch);
+            const data = await this.api(`/products?${params.toString()}`);
+            const products = data.data.products;
+            const pagination = data.data.pagination || {};
+            const html = products.map(p => `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${this.escapeHtml(p.libelle_produit)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(p.code_produit)} • ${this.escapeHtml(p.unite_produit)}</div>
+                    </div>
+                    <div class="list-item-actions">
+                        <span class="badge ${p.statut_produit === 'actif' ? 'badge-actif' : 'badge-inactif'}">${this.escapeHtml(p.statut_produit)}</span>
+                        <button class="list-item-arrow" onclick="app.toggleProductStatut('${this.escapeHtml(p.code_produit)}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                        <button class="list-item-delete" onclick="app.deleteProduct('${this.escapeHtml(p.code_produit)}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 1 1-2 2H7a2 2 0 1 1-2-2V4m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            if (append) {
+                list.insertAdjacentHTML('beforeend', html);
+            } else {
+                list.innerHTML = html || '<div class="empty-state">Aucun produit</div>';
+            }
+            this.productHasMore = pagination.has_more || false;
+            const btn = document.getElementById('product-load-more');
+            if (btn) btn.style.display = this.productHasMore ? 'flex' : 'none';
+        } catch (err) {
+            if (!append) list.innerHTML = '<div class="empty-state">Erreur</div>';
+            this.toast(err.message, 'error');
+        }
+    },
+
+    onProductSearch(value) {
+        clearTimeout(this._productSearchTimer);
+        this._productSearchTimer = setTimeout(() => {
+            this.productSearch = value;
+            this.productPage = 1;
+            this.renderProducts();
+        }, 300);
+    },
+
+    loadMoreProducts() {
+        this.productPage++;
+        this.renderProducts(true);
+    },
+
+    async toggleProductStatut(code) {
+        try {
+            await this.api('/products/toggle', {
+                method: 'POST',
+                body: JSON.stringify({ code }),
+            });
+            this.toast('Statut mis à jour', 'success')
+            this.renderProducts();
+        } catch (err) {
+            this.toast(err.message, 'error');
+        }
+    },
+
+    async deleteProduct(code) {
+        this.pendingProductDelete = code;
+        this.openConfirm();
+    },
+
+    async confirmProductDelete() {
+        if (!this.pendingProductDelete) return;
+        const code = this.pendingProductDelete;
+        const btn = document.querySelector('#confirm-modal .btn-danger');
+        this.setButtonLoading(btn, true);
+        this.closeConfirm();
+        try {
+            await this.api('/products/delete', {
+                method: 'POST',
+                body: JSON.stringify({ code }),
+            });
+            this.toast('Produit supprimé', 'success')
+            this.renderProducts();
+        } catch (err) {
+            this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
+            this.pendingProductDelete = null;
+        }
+    },
+
+    async handlePurchase(e) {
+        e.preventDefault();
+        const produitCode = document.getElementById('purchase-product').value;
+        const quantite = parseFloat(document.getElementById('purchase-quantite').value);
+        const prixUnitaire = parseFloat(document.getElementById('purchase-prix').value);
+        if (!produitCode || !quantite || isNaN(prixUnitaire)) return;
+        const btn = e.target.querySelector('button[type="submit"]');
+        this.setButtonLoading(btn, true);
+
+        try {
+            await this.api('/purchases', {
+                method: 'POST',
+                body: JSON.stringify({ produit_code: produitCode, quantite, prix_unitaire: prixUnitaire, client_now: new Date().toISOString() }),
+            });
+            document.getElementById('purchase-product').value = '';
+            document.getElementById('purchase-quantite').value = '';
+            document.getElementById('purchase-prix').value = '';
+            document.getElementById('purchase-montant-display').textContent = '0 F';
+            this.toast('Achat enregistré', 'success')
+            this.navigate('purchases');
+        } catch (err) {
+            this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
+        }
+    },
+
+    async loadPurchaseOptions() {
+        const select = document.getElementById('purchase-product');
+        if (!select) return;
+        try {
+            const data = await this.api('/products');
+            const products = data.data.products || [];
+            select.innerHTML = '<option value="">Sélectionner un produit</option>' +
+                products.map(p => `<option value="${this.escapeHtml(p.code_produit)}">${this.escapeHtml(p.libelle_produit)} (${this.escapeHtml(p.unite_produit)})</option>`).join('');
+        } catch (err) {
+            this.toast(err.message, 'error');
+        }
+    },
+
+    async loadSaleOptions() {
+        const select = document.getElementById('sale-product');
+        if (!select) return;
+        try {
+            const data = await this.api('/products');
+            const products = data.data.products || [];
+            select.innerHTML = '<option value="">Sélectionner un produit</option>' +
+                products.map(p => `<option value="${this.escapeHtml(p.code_produit)}">${this.escapeHtml(p.libelle_produit)} (${this.escapeHtml(p.unite_produit)})</option>`).join('');
+        } catch (err) {
+            this.toast(err.message, 'error');
+        }
+    },
+
+    async renderPurchases(append = false) {
+        const list = document.getElementById('purchase-list');
+        if (!list) return;
+        if (!append) {
+            this.showSkeleton(list, 'list');
+            this.purchasePage = 1;
+        }
+        try {
+            const params = new URLSearchParams({
+                page: this.purchasePage,
+                limit: this.purchaseLimit,
+            });
+            if (this.purchaseSearch) params.set('search', this.purchaseSearch);
+            const data = await this.api(`/purchases?${params.toString()}`);
+            const purchases = data.data.purchases;
+            const pagination = data.data.pagination || {};
+            const html = purchases.map(p => `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">Achat</div>
+                        <div class="list-item-meta">${this.escapeHtml(p.produit_code)} • ${this.escapeHtml(this.formatFrenchDate(p.date_achat))}</div>
+                    </div>
+                    <div class="list-item-actions">
+                        <span class="list-item-amount negative">-${this.formatMoney(p.montant_achat)}</span>
+                        <button class="list-item-delete" onclick="app.deletePurchase('${this.escapeHtml(p.code_achat)}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 1 1-2 2H7a2 2 0 1 1-2-2V4m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            if (append) {
+                list.insertAdjacentHTML('beforeend', html);
+            } else {
+                list.innerHTML = html || '<div class="empty-state">Aucun achat</div>';
+            }
+            this.purchaseHasMore = pagination.has_more || false;
+            const btn = document.getElementById('purchase-load-more');
+            if (btn) btn.style.display = this.purchaseHasMore ? 'flex' : 'none';
+        } catch (err) {
+            if (!append) list.innerHTML = '<div class="empty-state">Erreur</div>';
+            this.toast(err.message, 'error');
+        }
+    },
+
+    onPurchaseSearch(value) {
+        clearTimeout(this._purchaseSearchTimer);
+        this._purchaseSearchTimer = setTimeout(() => {
+            this.purchaseSearch = value;
+            this.purchasePage = 1;
+            this.renderPurchases();
+        }, 300);
+    },
+
+    loadMorePurchases() {
+        this.purchasePage++;
+        this.renderPurchases(true);
+    },
+
+    async deletePurchase(code) {
+        this.pendingPurchaseDelete = code;
+        this.openConfirm();
+    },
+
+    async confirmPurchaseDelete() {
+        if (!this.pendingPurchaseDelete) return;
+        const code = this.pendingPurchaseDelete;
+        const btn = document.querySelector('#confirm-modal .btn-danger');
+        this.setButtonLoading(btn, true);
+        this.closeConfirm();
+        try {
+            await this.api('/purchases/delete', {
+                method: 'POST',
+                body: JSON.stringify({ code }),
+            });
+            this.toast('Achat supprimé', 'success')
+            this.renderPurchases();
+        } catch (err) {
+            this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
+            this.pendingPurchaseDelete = null;
+        }
+    },
+
+    async renderStock(append = false) {
+        const list = document.getElementById('stock-list');
+        if (!list) return;
+        if (!append) {
+            this.showSkeleton(list, 'list');
+            this.stockPage = 1;
+        }
+        try {
+            const params = new URLSearchParams({
+                page: this.stockPage,
+                limit: this.stockLimit,
+            });
+            if (this.stockSearch) params.set('search', this.stockSearch);
+            const data = await this.api(`/stock?${params.toString()}`);
+            const stocks = data.data.stocks;
+            const pagination = data.data.pagination || {};
+            const html = stocks.map(s => {
+                const statusClass = parseFloat(s.stock_disponible) > 0 ? 'badge-actif' : 'badge-inactif';
+                return `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${this.escapeHtml(s.libelle_produit)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(s.code_produit)} • ${this.escapeHtml(s.unite_produit)}</div>
+                    </div>
+                    <div class="list-item-actions">
+                        <span class="badge ${statusClass}">${this.formatMoney(s.stock_disponible)}</span>
+                        <span class="list-item-amount">${this.formatMoney(s.prix_vente_produit)}</span>
+                    </div>
+                </div>
+            `;
+            }).join('');
+            if (append) {
+                list.insertAdjacentHTML('beforeend', html);
+            } else {
+                list.innerHTML = html || '<div class="empty-state">Aucun stock</div>';
+            }
+            this.stockHasMore = pagination.has_more || false;
+            const btn = document.getElementById('stock-load-more');
+            if (btn) btn.style.display = this.stockHasMore ? 'flex' : 'none';
+        } catch (err) {
+            if (!append) list.innerHTML = '<div class="empty-state">Erreur</div>';
+            this.toast(err.message, 'error');
+        }
+    },
+
+    onStockSearch(value) {
+        clearTimeout(this._stockSearchTimer);
+        this._stockSearchTimer = setTimeout(() => {
+            this.stockSearch = value;
+            this.stockPage = 1;
+            this.renderStock();
+        }, 300);
+    },
+
+    loadMoreStock() {
+        this.stockPage++;
+        this.renderStock(true);
     },
 };
 
