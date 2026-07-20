@@ -351,6 +351,18 @@
                 <button class="filter-btn active" onclick="app.setSalesListPeriod('today')" data-period="today">Aujourd'hui</button>
                 <button class="filter-btn" onclick="app.setSalesListPeriod('week')" data-period="week">Semaine</button>
                 <button class="filter-btn" onclick="app.setSalesListPeriod('month')" data-period="month">Mois</button>
+                <button class="filter-btn" onclick="app.setSalesListPeriod('year')" data-period="year">Année</button>
+                <button class="filter-btn" onclick="app.setSalesListPeriod('custom')" data-period="custom">Perso</button>
+            </div>
+            <div class="custom-date-range" id="sl-custom-range" style="display:none;">
+                <div class="input-group">
+                    <label for="sl-date-start">Du</label>
+                    <input type="date" id="sl-date-start" onchange="app.onSalesListCustomDate()">
+                </div>
+                <div class="input-group">
+                    <label for="sl-date-end">Au</label>
+                    <input type="date" id="sl-date-end" onchange="app.onSalesListCustomDate()">
+                </div>
             </div>
             <div class="dev-search-bar">
                 <input type="text" class="dev-search-input" id="sales-list-search" placeholder="Rechercher une vente..." oninput="app.onSalesListSearch(this.value)">

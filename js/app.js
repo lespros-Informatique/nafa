@@ -43,6 +43,12 @@ const app = {
     stockSearch: '',
     salesListPeriod: 'today',
     salesListSearch: '',
+    salesListDateStart: '',
+    salesListDateEnd: '',
+    purchasesListPeriod: 'today',
+    purchasesListSearch: '',
+    purchasesListDateStart: '',
+    purchasesListDateEnd: '',
     clientPage: 1,
     clientLimit: 20,
     clientHasMore: false,
@@ -2530,6 +2536,24 @@ const app = {
     setSalesListPeriod(period) {
         this.salesListPeriod = period;
         document.querySelectorAll('#sl-filter-bar .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.period === period));
+        const range = document.getElementById('sl-custom-range');
+        if (range) range.style.display = period === 'custom' ? '' : 'none';
+        if (period === 'custom') {
+            const start = document.getElementById('sl-date-start');
+            const end = document.getElementById('sl-date-end');
+            if (start && !start.value) start.value = this.getClientDate();
+            if (end && !end.value) end.value = this.getClientDate();
+            this.salesListDateStart = start ? start.value : '';
+            this.salesListDateEnd = end ? end.value : '';
+        }
+        this.renderSalesList();
+    },
+
+    onSalesListCustomDate() {
+        const start = document.getElementById('sl-date-start');
+        const end = document.getElementById('sl-date-end');
+        this.salesListDateStart = start ? start.value : '';
+        this.salesListDateEnd = end ? end.value : '';
         this.renderSalesList();
     },
 
@@ -2547,7 +2571,12 @@ const app = {
         this.showSkeleton(content, 'list');
         try {
             const period = this.salesListPeriod || 'today';
-            const data = await this.api(`/sales/list?period=${period}`);
+            const params = new URLSearchParams({ period });
+            if (period === 'custom') {
+                params.set('date_start', this.salesListDateStart || this.getClientDate());
+                params.set('date_end', this.salesListDateEnd || this.getClientDate());
+            }
+            const data = await this.api(`/sales/list?${params.toString()}`);
             const sales = data.data.sales || [];
             const stats = data.data.stats || {};
 
@@ -2581,6 +2610,89 @@ const app = {
                     </div>
                     <span class="list-item-amount positive">+${this.formatMoney(s.montant_vente)}</span>
                     <button class="list-item-arrow" onclick="app.openSaleDetail('${this.escapeHtml(s.code_vente)}')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
+            `).join('');
+        } catch (err) {
+            content.innerHTML = `<div class="empty-state">${this.escapeHtml(err.message)}</div>`;
+        }
+    },
+
+    setPurchasesListPeriod(period) {
+        this.purchasesListPeriod = period;
+        document.querySelectorAll('#pl-filter-bar .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.period === period));
+        const range = document.getElementById('pl-custom-range');
+        if (range) range.style.display = period === 'custom' ? '' : 'none';
+        if (period === 'custom') {
+            const start = document.getElementById('pl-date-start');
+            const end = document.getElementById('pl-date-end');
+            if (start && !start.value) start.value = this.getClientDate();
+            if (end && !end.value) end.value = this.getClientDate();
+            this.purchasesListDateStart = start ? start.value : '';
+            this.purchasesListDateEnd = end ? end.value : '';
+        }
+        this.renderPurchasesList();
+    },
+
+    onPurchasesListCustomDate() {
+        const start = document.getElementById('pl-date-start');
+        const end = document.getElementById('pl-date-end');
+        this.purchasesListDateStart = start ? start.value : '';
+        this.purchasesListDateEnd = end ? end.value : '';
+        this.renderPurchasesList();
+    },
+
+    onPurchasesListSearch(value) {
+        clearTimeout(this._purchasesListSearchTimer);
+        this._purchasesListSearchTimer = setTimeout(() => {
+            this.purchasesListSearch = value;
+            this.renderPurchasesList();
+        }, 300);
+    },
+
+    async renderPurchasesList() {
+        const content = document.getElementById('purchases-list-content');
+        if (!content) return;
+        this.showSkeleton(content, 'list');
+        try {
+            const period = this.purchasesListPeriod || 'today';
+            const params = new URLSearchParams({ period });
+            if (period === 'custom') {
+                params.set('date_start', this.purchasesListDateStart || this.getClientDate());
+                params.set('date_end', this.purchasesListDateEnd || this.getClientDate());
+            }
+            const data = await this.api(`/purchases/list?${params.toString()}`);
+            const purchases = data.data.purchases || [];
+            const stats = data.data.stats || {};
+
+            const countEl = document.getElementById('pl-count');
+            const totalEl = document.getElementById('pl-total');
+            if (countEl) countEl.textContent = stats.count ?? 0;
+            if (totalEl) totalEl.textContent = this.formatMoney(stats.total_montant || 0);
+
+            const q = (this.purchasesListSearch || '').toLowerCase().trim();
+            const filtered = q
+                ? purchases.filter(p =>
+                    (p.code_achat || '').toLowerCase().includes(q) ||
+                    (p.produit_code || '').toLowerCase().includes(q) ||
+                    (p.fournisseur_code || '').toLowerCase().includes(q) ||
+                    (this.formatMoney(p.montant_achat) || '').includes(q))
+                : purchases;
+
+            if (!filtered.length) {
+                content.innerHTML = '<div class="empty-state">Aucun achat</div>';
+                return;
+            }
+
+            content.innerHTML = filtered.map(p => `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${this.escapeHtml(p.code_achat)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(p.date_achat))} • ${this.escapeHtml(p.produit_code || '-')}</div>
+                    </div>
+                    <span class="list-item-amount negative">-${this.formatMoney(p.montant_achat)}</span>
+                    <button class="list-item-arrow" onclick="app.openPurchaseDetail('${this.escapeHtml(p.code_achat)}')">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     </button>
                 </div>
