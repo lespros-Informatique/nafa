@@ -510,6 +510,8 @@ const app = {
             const nameEl = document.getElementById('dash-user-name');
             if (nameEl) nameEl.textContent = this.currentUser ? this.currentUser.nom_user : '';
 
+            this.updateSidebarBadges(data.data);
+
             const devSection = document.getElementById('dashboard-dev');
             const dashboardRecent = document.getElementById('dashboard-recent');
             const topProductsSection = document.getElementById('dashboard-top-products');
@@ -552,6 +554,24 @@ const app = {
         } catch (err) {
             this.toast(err.message, 'error');
         }
+    },
+
+    updateSidebarBadges(data) {
+        const badges = {
+            sale: (data.sales_count || 0),
+            purchases: (data.purchases_count || 0),
+            expense: (data.expenses_count || 0),
+        };
+        Object.entries(badges).forEach(([page, count]) => {
+            const badge = document.querySelector(`.sidebar-badge[data-badge-page="${page}"]`);
+            if (!badge) return;
+            if (count > 0) {
+                badge.textContent = '+' + count;
+                badge.style.display = '';
+            } else {
+                badge.style.display = 'none';
+            }
+        });
     },
 
     renderRecentSales(sales = []) {
