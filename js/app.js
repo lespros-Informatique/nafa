@@ -1452,7 +1452,9 @@ const app = {
     },
 
     formatMoney(amount) {
-        return new Intl.NumberFormat('fr-FR').format(amount) + ' F';
+        const num = parseFloat(amount);
+        if (isNaN(num)) return '0 F';
+        return new Intl.NumberFormat('fr-FR').format(num) + ' F';
     },
 
     formatFrenchDate(dateStr) {

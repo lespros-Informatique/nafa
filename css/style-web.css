@@ -5,9 +5,8 @@
    Zéro changement de couleur, zéro changement backend
    ============================================================ */
 
-/* Sur mobile : cacher sidebar + top-navbar + main-wrapper */
+/* Sur mobile : cacher sidebar + top-navbar */
 .sidebar,
-#main-wrapper,
 #top-navbar {
     display: none;
 }
@@ -81,7 +80,6 @@
         z-index: 200;
         box-shadow: 2px 0 12px rgba(0, 0, 0, 0.06);
         transition: width 0.25s ease;
-        overflow: hidden;
     }
 
     .sidebar.collapsed {
@@ -406,6 +404,7 @@
         grid-template-columns: repeat(3, 1fr);
         padding: 20px 24px;
         gap: 16px;
+        margin-top: 56px;
     }
 
     /* Section padding adapté */
@@ -442,6 +441,7 @@
         grid-template-columns: repeat(4, 1fr);
         gap: 20px;
         padding: 24px 28px;
+        margin-top: 56px;
     }
 
     .metric-card-full {
@@ -493,6 +493,7 @@
         grid-template-columns: repeat(4, 1fr);
         gap: 24px;
         padding: 28px 36px;
+        margin-top: 56px;
     }
 
     .section {
