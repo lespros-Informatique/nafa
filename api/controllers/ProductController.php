@@ -141,6 +141,18 @@ class ProductController extends Controller
             Response::error('Produit introuvable', [], 404);
         }
 
-        Response::success('Produit', ['product' => $product]);
+        $stockDisponible = 0;
+        try {
+            $stmt = Database::getConnection()->prepare('SELECT stock_disponible FROM vue_stock_produits WHERE code_produit = :code LIMIT 1');
+            $stmt->execute(['code' => $code]);
+            $stockDisponible = (float) ($stmt->fetchColumn() ?: 0);
+        } catch (\Exception $e) {
+            $stockDisponible = (float) ($product['stock_initial_produit'] ?? 0);
+        }
+
+        Response::success('Produit', [
+            'product' => $product,
+            'stock_disponible' => $stockDisponible,
+        ]);
     }
 }

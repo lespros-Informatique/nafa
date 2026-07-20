@@ -1372,6 +1372,7 @@ const app = {
         try {
             const data = await this.api(`/products/detail?code=${encodeURIComponent(code)}`);
             const p = data.data.product;
+            const stockDispo = parseFloat(data.data.stock_disponible) || 0;
             const html = `
                 <div class="detail-section">
                     <div class="detail-item"><span>Libellé</span><strong>${this.escapeHtml(p.libelle_produit)}</strong></div>
@@ -1381,7 +1382,9 @@ const app = {
                 <div class="detail-section">
                     <div class="detail-item"><span>Prix d'achat</span><strong>${this.formatMoney(p.prix_achat_produit)}</strong></div>
                     <div class="detail-item"><span>Prix de vente</span><strong>${this.formatMoney(p.prix_vente_produit)}</strong></div>
-                    <div class="detail-item"><span>Stock initial</span><strong>${this.formatMoney(p.stock_initial_produit)}</strong></div>
+                    <div class="detail-item"><span>Stock initial</span><strong>${this.formatNumber(p.stock_initial_produit)} ${this.escapeHtml(p.unite_produit || '')}</strong></div>
+                    <div class="detail-item"><span>Stock disponible</span><strong>${this.formatNumber(stockDispo)} ${this.escapeHtml(p.unite_produit || '')}</strong></div>
+                    <div class="detail-item"><span>Seuil d'alerte</span><strong>${this.formatNumber(p.stock_minimum_produit)} ${this.escapeHtml(p.unite_produit || '')}</strong></div>
                 </div>
                 <div class="detail-section">
                     <div class="detail-item"><span>Statut</span><strong><span class="badge ${p.statut_produit === 'actif' ? 'badge-actif' : 'badge-inactif'}">${this.escapeHtml(p.statut_produit)}</span></strong></div>
