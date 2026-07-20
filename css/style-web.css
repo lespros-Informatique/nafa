@@ -473,6 +473,17 @@
         max-width: 640px;
         padding: 28px;
         margin-top: 20px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 20px;
+    }
+
+    .form-page .input-group {
+        margin-bottom: 20px;
+    }
+
+    .form-page .btn-full {
+        grid-column: 1 / -1;
     }
 
     /* Tableau / listes plus lisibles */
@@ -518,5 +529,16 @@
     .form-page {
         max-width: 700px;
         margin-top: 20px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 20px;
+    }
+
+    .form-page .input-group {
+        margin-bottom: 20px;
+    }
+
+    .form-page .btn-full {
+        grid-column: 1 / -1;
     }
 }
