@@ -189,7 +189,6 @@ const app = {
         if (!isPublicPage && this.currentUser) {
             localStorage.setItem('nafa_last_page', page);
         }
-
         // Mobile nav
         const bottomNav = document.getElementById('bottom-nav');
         if (bottomNav) bottomNav.style.display = loggedIn ? 'flex' : 'none';
@@ -1614,6 +1613,12 @@ const app = {
         return new Intl.NumberFormat('fr-FR').format(num) + ' F';
     },
 
+    formatNumber(amount) {
+        const num = parseFloat(amount);
+        if (isNaN(num)) return '0';
+        return new Intl.NumberFormat('fr-FR').format(num);
+    },
+
     formatFrenchDate(dateStr) {
         const date = new Date(dateStr);
         if (isNaN(date.getTime())) return dateStr;
@@ -2071,16 +2076,33 @@ const app = {
             const stocks = data.data.stocks;
             const pagination = data.data.pagination || {};
             const html = stocks.map(s => {
-                const statusClass = parseFloat(s.stock_disponible) > 0 ? 'badge-actif' : 'badge-inactif';
+                const stockDispo = parseFloat(s.stock_disponible) || 0;
+                const prixAchat = parseFloat(s.prix_achat_produit) || 0;
+                const prixVente = parseFloat(s.prix_vente_produit) || 0;
+                const stockMin = parseFloat(s.stock_minimum_produit) || 0;
+                const valeurStock = stockDispo * prixAchat;
+                const enRupture = stockDispo <= 0;
+                const sousSeuil = !enRupture && stockMin > 0 && stockDispo <= stockMin;
+                let statusClass = 'badge-actif';
+                let statusLabel = 'En stock';
+                if (enRupture) {
+                    statusClass = 'badge-inactif';
+                    statusLabel = 'Rupture';
+                } else if (sousSeuil) {
+                    statusClass = 'badge-warning';
+                    statusLabel = 'Stock bas';
+                }
                 return `
                 <div class="list-item">
                     <div class="list-item-info">
                         <div class="list-item-title">${this.escapeHtml(s.libelle_produit)}</div>
-                        <div class="list-item-meta">${this.escapeHtml(s.code_produit)} • ${this.escapeHtml(s.unite_produit)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(s.code_produit)} • ${this.escapeHtml(s.unite_produit || '')}</div>
+                        <div class="list-item-meta">Achat ${this.formatMoney(prixAchat)} • Vente ${this.formatMoney(prixVente)}</div>
+                        <div class="list-item-meta">Valeur stock : ${this.formatMoney(valeurStock)}</div>
                     </div>
                     <div class="list-item-actions">
-                        <span class="badge ${statusClass}">${this.formatMoney(s.stock_disponible)}</span>
-                        <span class="list-item-amount">${this.formatMoney(s.prix_vente_produit)}</span>
+                        <span class="badge ${statusClass}">${statusLabel}</span>
+                        <span class="list-item-amount">${this.formatNumber(stockDispo)} ${this.escapeHtml(s.unite_produit || '')}</span>
                     </div>
                 </div>
             `;

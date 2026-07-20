@@ -483,6 +483,11 @@ html, body {
     color: var(--danger-dark);
 }
 
+.badge-warning {
+    background: #FEF3C7;
+    color: #B45309;
+}
+
 .badge-en_attente {
     background: #FEF3C7;
     color: #B45309;

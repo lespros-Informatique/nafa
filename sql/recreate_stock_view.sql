@@ -8,6 +8,9 @@ SELECT
     p.libelle_produit AS libelle_produit,
     p.unite_produit AS unite_produit,
     p.stock_initial_produit AS stock_initial_produit,
+    p.stock_minimum_produit AS stock_minimum_produit,
+    p.prix_achat_produit AS prix_achat_produit,
+    p.prix_vente_produit AS prix_vente_produit,
     COALESCE(a.total_achats, 0) AS total_achats,
     COALESCE(v.total_ventes, 0) AS total_ventes,
     GREATEST(((p.stock_initial_produit + COALESCE(a.total_achats, 0)) - COALESCE(v.total_ventes, 0)), 0) AS stock_disponible
