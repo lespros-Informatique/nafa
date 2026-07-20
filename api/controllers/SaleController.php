@@ -145,4 +145,57 @@ class SaleController extends Controller
             'client_nom' => $clientNom,
         ]);
     }
+
+    public function list(): void
+    {
+        $user = $this->requireActiveSubscription();
+        $shop = Shop::findByUserCode($user['code_user']);
+        if (!$shop) {
+            Response::error('Boutique introuvable', [], 404);
+        }
+
+        $period = trim($_GET['period'] ?? 'today');
+        if ($period === 'week') {
+            $dateEnd = date('Y-m-d');
+            $dateStart = date('Y-m-d', strtotime('-6 days'));
+        } elseif ($period === 'month') {
+            $dateStart = date('Y-m-01');
+            $dateEnd = date('Y-m-t');
+        } else {
+            $dateStart = date('Y-m-d');
+            $dateEnd = date('Y-m-d');
+        }
+
+        $isDev = ($user['role_user'] ?? '') === 'developpeur';
+        if ($isDev) {
+            $sales = Sale::getAll();
+        } else {
+            $sales = Sale::getByShopPeriod($shop['code_boutique'], $dateStart, $dateEnd);
+        }
+
+        $totalMontant = 0;
+        $totalPaye = 0;
+        $totalRestant = 0;
+        $nbCredit = 0;
+        foreach ($sales as $s) {
+            $totalMontant += (float) ($s['montant_vente'] ?? 0);
+            $totalPaye += (float) ($s['montant_paye_vente'] ?? 0);
+            $totalRestant += (float) ($s['reste_a_payer_vente'] ?? 0);
+            if (($s['statut_paiement_vente'] ?? '') === 'credit') {
+                $nbCredit++;
+            }
+        }
+
+        Response::success('Ventes', [
+            'period' => $period,
+            'sales' => $sales,
+            'stats' => [
+                'count' => count($sales),
+                'total_montant' => $totalMontant,
+                'total_paye' => $totalPaye,
+                'total_restant' => $totalRestant,
+                'nb_credit' => $nbCredit,
+            ],
+        ]);
+    }
 }

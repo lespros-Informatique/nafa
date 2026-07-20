@@ -52,6 +52,20 @@ class Sale
         return $stmt->fetchAll();
     }
 
+    public static function getByShopPeriod(string $shopCode, string $dateStart, string $dateEnd): array
+    {
+        $stmt = Database::getConnection()->prepare(
+            'SELECT * FROM ventes
+             WHERE boutique_code = :boutique_code
+               AND statut_vente != "supprime"
+               AND DATE(created_at_vente) >= :date_start
+               AND DATE(created_at_vente) <= :date_end
+             ORDER BY created_at_vente DESC'
+        );
+        $stmt->execute(['boutique_code' => $shopCode, 'date_start' => $dateStart, 'date_end' => $dateEnd]);
+        return $stmt->fetchAll();
+    }
+
     public static function getTodayByShop(string $shopCode, string $date = null): array
     {
         $date = $date ?? date('Y-m-d');

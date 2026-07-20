@@ -74,21 +74,25 @@ html, body {
 }
 
 .header-action-btn {
-    background: none;
-    border: none;
-    color: var(--primary);
-    padding: 8px;
+    background: var(--primary-light);
+    border: 1px solid var(--primary);
+    color: var(--primary-dark);
+    padding: 8px 12px;
     margin-left: auto;
     margin-bottom: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
     border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
 }
 
 .header-action-btn:active {
-    background: var(--primary-light);
+    background: var(--primary);
+    color: #fff;
 }
 
 .header-subtitle {

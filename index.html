@@ -283,8 +283,7 @@
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                 </button>
                 <h2>Nouvelle vente</h2>
-                <button type="button" class="header-action-btn" onclick="app.openSaleList()" title="Liste des ventes">
-                    
+                <button type="button" class="header-action-btn" onclick="app.navigate('sales-list')" title="Liste des ventes">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                     Liste Ventes
                 </button>
@@ -332,6 +331,32 @@
                 </div>
                 <button type="submit" class="btn btn-success btn-full">Enregistrer</button>
             </form>
+        </div>
+
+        <!-- SALES LIST PAGE -->
+        <div id="page-sales-list" class="page">
+            <div class="header">
+                <button class="btn-back" onclick="app.navigate('sale')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12" 19 5 12 12 5"></polyline></svg>
+                </button>
+                <h2>Liste des ventes</h2>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card"><span class="metric-label">Ventes</span><span class="metric-value" id="sl-count">0</span></div>
+                <div class="metric-card metric-sales"><span class="metric-label">Montant</span><span class="metric-value" id="sl-total">0 F</span></div>
+                <div class="metric-card metric-expenses"><span class="metric-label">Payé</span><span class="metric-value" id="sl-paye">0 F</span></div>
+                <div class="metric-card metric-stock metric-card-full"><span class="metric-label">Reste à payer</span><span class="metric-value" id="sl-restant">0 F</span></div>
+            </div>
+            <div class="filter-bar" id="sl-filter-bar">
+                <button class="filter-btn active" onclick="app.setSalesListPeriod('today')" data-period="today">Aujourd'hui</button>
+                <button class="filter-btn" onclick="app.setSalesListPeriod('week')" data-period="week">Semaine</button>
+                <button class="filter-btn" onclick="app.setSalesListPeriod('month')" data-period="month">Mois</button>
+            </div>
+            <div class="dev-search-bar">
+                <input type="text" class="dev-search-input" id="sales-list-search" placeholder="Rechercher une vente..." oninput="app.onSalesListSearch(this.value)">
+            </div>
+            <div class="list-container" id="sales-list-content"></div>
+            <div class="bottom-spacer"></div>
         </div>
 
         <!-- NEW EXPENSE PAGE -->
@@ -698,21 +723,6 @@
                 </div>
                 <div class="modal-body">
                     <div id="sale-detail-content"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- SALE LIST MODAL -->
-        <div id="sale-list-modal" class="modal-overlay" onclick="if(event.target===this)app.closeSaleList()">
-            <div class="modal-sheet">
-                <div class="modal-header">
-                    <h3>Liste des ventes</h3>
-                    <button class="modal-close" onclick="app.closeSaleList()">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="list-container" id="sale-list-content"></div>
                 </div>
             </div>
         </div>

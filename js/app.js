@@ -41,6 +41,8 @@ const app = {
     stockLimit: 20,
     stockHasMore: false,
     stockSearch: '',
+    salesListPeriod: 'today',
+    salesListSearch: '',
     clientPage: 1,
     clientLimit: 20,
     clientHasMore: false,
@@ -122,7 +124,7 @@ const app = {
             const downloadBtn = document.getElementById('download-top');
             if (downloadBtn) downloadBtn.style.display = isDev ? 'flex' : 'none';
             const lastPage = localStorage.getItem('nafa_last_page');
-            const validPages = ['dashboard', 'history', 'products', 'purchases', 'stock', 'clients', 'suppliers', 'reports', 'dev-shops', 'dev-list', 'dev-forfaits', 'dev-abonnements'];
+            const validPages = ['dashboard', 'history', 'products', 'purchases', 'stock', 'clients', 'suppliers', 'reports', 'sales-list', 'dev-shops', 'dev-list', 'dev-forfaits', 'dev-abonnements'];
             const targetPage = validPages.includes(lastPage) ? lastPage : 'dashboard';
             this.navigate(targetPage);
         } else {
@@ -224,6 +226,7 @@ const app = {
             'sale': 'Nouvelle vente',
             'expense': 'Nouvelle d\u00e9pense',
             'stock': 'Stock',
+            'sales-list': 'Liste des ventes',
             'clients': 'Clients',
             'suppliers': 'Fournisseurs',
             'reports': 'Rapports',
@@ -281,6 +284,7 @@ const app = {
         if (page === 'product') this.loadProductOptions();
         if (page === 'purchase') this.loadPurchaseOptions();
         if (page === 'sale') this.loadSaleOptions();
+        if (page === 'sales-list') this.renderSalesList();
     },
 
     toggleSidebar() {
@@ -2521,36 +2525,60 @@ const app = {
         document.getElementById('sale-detail-modal').classList.remove('open');
     },
 
-    openSaleList() {
-        const modal = document.getElementById('sale-list-modal');
-        const content = document.getElementById('sale-list-content');
-        this.showSkeleton(content, 'list');
-        modal.classList.add('open');
-        this.renderSaleList();
+    setSalesListPeriod(period) {
+        this.salesListPeriod = period;
+        document.querySelectorAll('#sl-filter-bar .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.period === period));
+        this.renderSalesList();
     },
 
-    closeSaleList() {
-        document.getElementById('sale-list-modal').classList.remove('open');
+    onSalesListSearch(value) {
+        clearTimeout(this._salesListSearchTimer);
+        this._salesListSearchTimer = setTimeout(() => {
+            this.salesListSearch = value;
+            this.renderSalesList();
+        }, 300);
     },
 
-    async renderSaleList() {
-        const content = document.getElementById('sale-list-content');
+    async renderSalesList() {
+        const content = document.getElementById('sales-list-content');
         if (!content) return;
+        this.showSkeleton(content, 'list');
         try {
-            const data = await this.api(`/history?filter=today&client_date=${this.getClientDate()}`);
-            const items = (data.data.items || []).filter(i => i.type === 'vente');
-            if (!items.length) {
-                content.innerHTML = '<div class="empty-state">Aucune vente aujourd\'hui</div>';
+            const period = this.salesListPeriod || 'today';
+            const data = await this.api(`/sales/list?period=${period}`);
+            const sales = data.data.sales || [];
+            const stats = data.data.stats || {};
+
+            const countEl = document.getElementById('sl-count');
+            const totalEl = document.getElementById('sl-total');
+            const payeEl = document.getElementById('sl-paye');
+            const restantEl = document.getElementById('sl-restant');
+            if (countEl) countEl.textContent = stats.count ?? 0;
+            if (totalEl) totalEl.textContent = this.formatMoney(stats.total_montant || 0);
+            if (payeEl) payeEl.textContent = this.formatMoney(stats.total_paye || 0);
+            if (restantEl) restantEl.textContent = this.formatMoney(stats.total_restant || 0);
+
+            const q = (this.salesListSearch || '').toLowerCase().trim();
+            const filtered = q
+                ? sales.filter(s =>
+                    (s.code_vente || '').toLowerCase().includes(q) ||
+                    (s.statut_paiement_vente || '').toLowerCase().includes(q) ||
+                    (this.formatMoney(s.montant_vente) || '').includes(q))
+                : sales;
+
+            if (!filtered.length) {
+                content.innerHTML = '<div class="empty-state">Aucune vente</div>';
                 return;
             }
-            content.innerHTML = items.map(item => `
+
+            content.innerHTML = filtered.map(s => `
                 <div class="list-item">
                     <div class="list-item-info">
-                        <div class="list-item-title">${this.escapeHtml(item.title)}</div>
-                        <div class="list-item-meta">${this.escapeHtml(item.meta)} ${item.mode !== '-' ? '• ' + this.escapeHtml(item.mode) : ''}</div>
+                        <div class="list-item-title">${this.escapeHtml(s.code_vente)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(s.created_at_vente))} • ${this.escapeHtml(s.statut_paiement_vente || '-')}</div>
                     </div>
-                    <span class="list-item-amount positive">+${this.formatMoney(item.amount)}</span>
-                    <button class="list-item-arrow" onclick="app.closeSaleList(); app.openSaleDetail('${this.escapeHtml(item.id)}')">
+                    <span class="list-item-amount positive">+${this.formatMoney(s.montant_vente)}</span>
+                    <button class="list-item-arrow" onclick="app.openSaleDetail('${this.escapeHtml(s.code_vente)}')">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     </button>
                 </div>
