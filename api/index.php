@@ -24,6 +24,11 @@ require_once __DIR__ . '/controllers/ProductController.php';
 require_once __DIR__ . '/controllers/PurchaseController.php';
 require_once __DIR__ . '/controllers/StockController.php';
 require_once __DIR__ . '/controllers/SaleLineController.php';
+require_once __DIR__ . '/controllers/ClientController.php';
+require_once __DIR__ . '/models/Client.php';
+require_once __DIR__ . '/models/Client.php';
+require_once __DIR__ . '/models/Supplier.php';
+require_once __DIR__ . '/controllers/SupplierController.php';
 
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -55,6 +60,12 @@ $routes = [
         '/api/products' => [ProductController::class, 'store'],
         '/api/products/toggle' => [ProductController::class, 'toggleStatut'],
         '/api/products/delete' => [ProductController::class, 'delete'],
+        '/api/clients' => [ClientController::class, 'store'],
+        '/api/clients/toggle' => [ClientController::class, 'toggleStatut'],
+        '/api/clients/delete' => [ClientController::class, 'delete'],
+        '/api/fournisseurs' => [SupplierController::class, 'store'],
+        '/api/fournisseurs/toggle' => [SupplierController::class, 'toggleStatut'],
+        '/api/fournisseurs/delete' => [SupplierController::class, 'delete'],
         '/api/purchases' => [PurchaseController::class, 'store'],
         '/api/purchases/delete' => [PurchaseController::class, 'delete'],
         '/api/purchases/update' => [PurchaseController::class, 'update'],
@@ -77,6 +88,10 @@ $routes = [
         '/api/dev/abonnements' => [DeveloperController::class, 'listAbonnements'],
         '/api/products' => [ProductController::class, 'index'],
         '/api/products/detail' => [ProductController::class, 'show'],
+        '/api/clients' => [ClientController::class, 'index'],
+        '/api/clients/detail' => [ClientController::class, 'show'],
+        '/api/fournisseurs' => [SupplierController::class, 'index'],
+        '/api/fournisseurs/detail' => [SupplierController::class, 'show'],
         '/api/purchases' => [PurchaseController::class, 'index'],
         '/api/stock' => [StockController::class, 'index'],
         '/api/sale-lines' => [SaleLineController::class, 'index'],

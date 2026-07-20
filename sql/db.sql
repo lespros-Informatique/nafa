@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : dim. 19 juil. 2026 à 21:15
+-- Généré le : lun. 20 juil. 2026 à 01:44
 -- Version du serveur : 9.1.0
 -- Version de PHP : 8.3.14
 
@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS `achats` (
   `id_achat` int NOT NULL AUTO_INCREMENT,
   `code_achat` varchar(20) NOT NULL,
   `boutique_code` varchar(20) NOT NULL,
+  `fournisseur_code` varchar(20) DEFAULT NULL,
   `produit_code` varchar(20) NOT NULL,
   `quantite_achat` decimal(12,2) NOT NULL,
   `prix_unitaire_achat` decimal(12,2) NOT NULL,
@@ -76,7 +77,8 @@ CREATE TABLE IF NOT EXISTS `achats` (
   PRIMARY KEY (`id_achat`),
   UNIQUE KEY `code_achat` (`code_achat`),
   KEY `boutique_code` (`boutique_code`),
-  KEY `produit_code` (`produit_code`)
+  KEY `produit_code` (`produit_code`),
+  KEY `fk_achats_fournisseurs` (`fournisseur_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -119,6 +121,28 @@ INSERT INTO `boutiques` (`id`, `code_boutique`, `user_code`, `libelle_boutique`,
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `clients`
+--
+
+DROP TABLE IF EXISTS `clients`;
+CREATE TABLE IF NOT EXISTS `clients` (
+  `id_client` int NOT NULL AUTO_INCREMENT,
+  `code_client` varchar(20) NOT NULL,
+  `boutique_code` varchar(20) NOT NULL,
+  `nom_client` varchar(150) NOT NULL,
+  `telephone_client` varchar(20) DEFAULT NULL,
+  `adresse_client` varchar(255) DEFAULT NULL,
+  `statut_client` enum('actif','inactif') DEFAULT 'actif',
+  `created_at_client` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at_client` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id_client`),
+  UNIQUE KEY `code_client` (`code_client`),
+  KEY `fk_clients_boutiques` (`boutique_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `depenses`
 --
 
@@ -135,18 +159,7 @@ CREATE TABLE IF NOT EXISTS `depenses` (
   PRIMARY KEY (`id_depense`),
   UNIQUE KEY `code_depense` (`code_depense`),
   KEY `fk_depenses_boutiques` (`boutique_code`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Déchargement des données de la table `depenses`
---
-
-INSERT INTO `depenses` (`id_depense`, `code_depense`, `boutique_code`, `libelle_depense`, `montant_depense`, `date_depense_depense`, `created_at_depense`, `updated_at_depense`) VALUES
-(1, 'EXP001', 'BTE1783964830', 'Fournitures', 500.00, '2026-07-13 17:47:10', '2026-07-13 17:47:10', NULL),
-(2, 'DEP1783979126', 'BTE1783964958', 'electicite', 600.00, '2026-07-13 21:45:26', '2026-07-13 21:45:26', NULL),
-(3, 'DEP1783979143', 'BTE1783964958', 'electicite', 2600.00, '2026-07-13 21:45:43', '2026-07-13 21:45:43', NULL),
-(4, 'DEP1784029132102', 'BTE1783964958', 'Plaquette d\'oeuf', 2000.00, '2026-07-14 11:38:52', '2026-07-14 11:38:52', NULL),
-(5, 'DEP1784108876848', 'BTE1783964958', 'carburant', 500.00, '2026-07-15 09:47:56', '2026-07-15 09:47:56', NULL);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -178,6 +191,28 @@ INSERT INTO `forfaits` (`id_forfait`, `code_forfait`, `libelle_forfait`, `prix_f
 (2, 'FOR002', 'Mensuel', 3000.00, 30, 'Abonnement valable 30 jours.', 'actif', '2026-07-13 22:33:57', NULL),
 (3, 'FOR003', 'Annuel', 30000.00, 365, 'Abonnement valable 12 mois.', 'actif', '2026-07-13 22:33:57', NULL),
 (4, 'FOR1783983138863', 'ANNEE', 20000.00, 400, '', 'actif', '2026-07-13 22:52:18', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `fournisseurs`
+--
+
+DROP TABLE IF EXISTS `fournisseurs`;
+CREATE TABLE IF NOT EXISTS `fournisseurs` (
+  `id_fournisseur` int NOT NULL AUTO_INCREMENT,
+  `code_fournisseur` varchar(20) NOT NULL,
+  `boutique_code` varchar(20) NOT NULL,
+  `nom_fournisseur` varchar(150) NOT NULL,
+  `telephone_fournisseur` varchar(20) DEFAULT NULL,
+  `adresse_fournisseur` varchar(255) DEFAULT NULL,
+  `statut_fournisseur` enum('actif','inactif') DEFAULT 'actif',
+  `created_at_fournisseur` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at_fournisseur` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id_fournisseur`),
+  UNIQUE KEY `code_fournisseur` (`code_fournisseur`),
+  KEY `fk_fournisseurs_boutiques` (`boutique_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -216,13 +251,21 @@ CREATE TABLE IF NOT EXISTS `produits` (
   `prix_achat_produit` decimal(12,2) DEFAULT '0.00',
   `prix_vente_produit` decimal(12,2) DEFAULT '0.00',
   `stock_initial_produit` decimal(12,2) DEFAULT '0.00',
+  `stock_minimum_produit` decimal(12,2) NOT NULL DEFAULT '0.00',
   `statut_produit` enum('actif','inactif') DEFAULT 'actif',
   `created_at_produit` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at_produit` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_produit`),
   UNIQUE KEY `code_produit` (`code_produit`),
   KEY `boutique_code` (`boutique_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `produits`
+--
+
+INSERT INTO `produits` (`id_produit`, `code_produit`, `boutique_code`, `libelle_produit`, `unite_produit`, `prix_achat_produit`, `prix_vente_produit`, `stock_initial_produit`, `stock_minimum_produit`, `statut_produit`, `created_at_produit`, `updated_at_produit`) VALUES
+(1, 'PRD1784511003661', 'BTE1783965223', 'oeuf', 'plaquette', 2000.00, 2500.00, 0.00, 0.00, 'actif', '2026-07-20 01:30:03', NULL);
 
 -- --------------------------------------------------------
 
@@ -271,28 +314,19 @@ CREATE TABLE IF NOT EXISTS `ventes` (
   `id_vente` int NOT NULL AUTO_INCREMENT,
   `code_vente` varchar(20) NOT NULL,
   `boutique_code` varchar(20) NOT NULL,
+  `client_code` varchar(20) DEFAULT NULL,
   `montant_vente` decimal(12,2) NOT NULL,
+  `montant_paye_vente` decimal(12,2) NOT NULL DEFAULT '0.00',
+  `reste_a_payer_vente` decimal(12,2) NOT NULL DEFAULT '0.00',
+  `statut_paiement_vente` enum('comptant','partiel','credit') DEFAULT 'comptant',
   `mode_paiement_vente` enum('especes','wave','orange','mtn','moov','carte','autre') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'especes',
   `created_at_vente` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at_vente` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_vente`),
   UNIQUE KEY `code_vente` (`code_vente`),
-  KEY `fk_ventes_boutiques` (`boutique_code`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Déchargement des données de la table `ventes`
---
-
-INSERT INTO `ventes` (`id_vente`, `code_vente`, `boutique_code`, `montant_vente`, `mode_paiement_vente`, `created_at_vente`, `updated_at_vente`) VALUES
-(1, 'SLT001', 'BTE1783964830', 1500.00, 'especes', '2026-06-13 17:47:10', NULL),
-(3, 'VTE1783967287', 'BTE1783965223', 500.00, 'especes', '2026-07-13 18:28:07', NULL),
-(4, 'VTE1783967294', 'BTE1783965223', 2000.00, 'especes', '2026-07-13 18:28:14', NULL),
-(6, 'VTE1783979019', 'BTE1783964958', 2000.00, 'especes', '2026-07-13 21:43:39', NULL),
-(7, 'VTE1783979024', 'BTE1783964958', 1000.00, 'especes', '2026-07-13 21:43:44', NULL),
-(8, 'VTE1783979033', 'BTE1783964958', 222.00, 'especes', '2026-07-13 21:43:53', NULL),
-(9, 'VTE1783987202649', 'BTE1783964958', 3333.00, 'especes', '2026-07-14 00:00:02', NULL),
-(10, 'VTE1784108670345', 'BTE1783964958', 2000.00, 'especes', '2026-07-15 09:44:31', NULL);
+  KEY `fk_ventes_boutiques` (`boutique_code`),
+  KEY `fk_ventes_clients` (`client_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -334,10 +368,22 @@ ALTER TABLE `abonnements`
   ADD CONSTRAINT `fk_abonnements_forfaits` FOREIGN KEY (`forfait_code`) REFERENCES `forfaits` (`code_forfait`);
 
 --
+-- Contraintes pour la table `achats`
+--
+ALTER TABLE `achats`
+  ADD CONSTRAINT `fk_achats_fournisseurs` FOREIGN KEY (`fournisseur_code`) REFERENCES `fournisseurs` (`code_fournisseur`);
+
+--
 -- Contraintes pour la table `boutiques`
 --
 ALTER TABLE `boutiques`
   ADD CONSTRAINT `fk_boutiques_users` FOREIGN KEY (`user_code`) REFERENCES `users` (`code_user`);
+
+--
+-- Contraintes pour la table `clients`
+--
+ALTER TABLE `clients`
+  ADD CONSTRAINT `fk_clients_boutiques` FOREIGN KEY (`boutique_code`) REFERENCES `boutiques` (`code_boutique`) ON DELETE CASCADE;
 
 --
 -- Contraintes pour la table `depenses`
@@ -346,10 +392,17 @@ ALTER TABLE `depenses`
   ADD CONSTRAINT `fk_depenses_boutiques` FOREIGN KEY (`boutique_code`) REFERENCES `boutiques` (`code_boutique`);
 
 --
+-- Contraintes pour la table `fournisseurs`
+--
+ALTER TABLE `fournisseurs`
+  ADD CONSTRAINT `fk_fournisseurs_boutiques` FOREIGN KEY (`boutique_code`) REFERENCES `boutiques` (`code_boutique`) ON DELETE CASCADE;
+
+--
 -- Contraintes pour la table `ventes`
 --
 ALTER TABLE `ventes`
-  ADD CONSTRAINT `fk_ventes_boutiques` FOREIGN KEY (`boutique_code`) REFERENCES `boutiques` (`code_boutique`);
+  ADD CONSTRAINT `fk_ventes_boutiques` FOREIGN KEY (`boutique_code`) REFERENCES `boutiques` (`code_boutique`),
+  ADD CONSTRAINT `fk_ventes_clients` FOREIGN KEY (`client_code`) REFERENCES `clients` (`code_client`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

@@ -40,8 +40,18 @@ const app = {
     stockLimit: 20,
     stockHasMore: false,
     stockSearch: '',
+    clientPage: 1,
+    clientLimit: 20,
+    clientHasMore: false,
+    clientSearch: '',
+    supplierPage: 1,
+    supplierLimit: 20,
+    supplierHasMore: false,
+    supplierSearch: '',
     pendingProductDelete: null,
     pendingPurchaseDelete: null,
+    pendingClientDelete: null,
+    pendingSupplierDelete: null,
     contact: {
         phone: '+225 05 66 01 55 16',
         whatsapp: 'https://wa.me/2250566015516',
@@ -109,7 +119,7 @@ const app = {
             const downloadBtn = document.getElementById('download-top');
             if (downloadBtn) downloadBtn.style.display = isDev ? 'flex' : 'none';
             const lastPage = localStorage.getItem('nafa_last_page');
-            const validPages = ['dashboard', 'history', 'products', 'purchases', 'stock', 'reports', 'dev-shops', 'dev-list', 'dev-forfaits', 'dev-abonnements'];
+            const validPages = ['dashboard', 'history', 'products', 'purchases', 'stock', 'clients', 'suppliers', 'reports', 'dev-shops', 'dev-list', 'dev-forfaits', 'dev-abonnements'];
             const targetPage = validPages.includes(lastPage) ? lastPage : 'dashboard';
             this.navigate(targetPage);
         } else {
@@ -212,6 +222,8 @@ const app = {
             'sale': 'Nouvelle vente',
             'expense': 'Nouvelle d\u00e9pense',
             'stock': 'Stock',
+            'clients': 'Clients',
+            'suppliers': 'Fournisseurs',
             'reports': 'Rapports',
             'dev-list': 'Utilisateurs',
             'dev-shops': 'Boutiques',
@@ -262,6 +274,8 @@ const app = {
         if (page === 'products') this.renderProducts();
         if (page === 'purchases') this.renderPurchases();
         if (page === 'stock') this.renderStock();
+        if (page === 'clients') this.renderClients();
+        if (page === 'suppliers') this.renderSuppliers();
         if (page === 'product') this.loadProductOptions();
         if (page === 'purchase') this.loadPurchaseOptions();
         if (page === 'sale') this.loadSaleOptions();
@@ -508,6 +522,9 @@ const app = {
                     <div class="metric-card metric-expenses"><span class="metric-label">Dépenses du jour</span><span class="metric-value">${data.data.expenses}</span></div>
                     <div class="metric-card"><span class="metric-label">Achats du jour</span><span class="metric-value">${data.data.purchases || '0 F'}</span></div>
                     <div class="metric-card"><span class="metric-label">Net du jour</span><span class="metric-value">${data.data.net}</span></div>
+                    <div class="metric-card"><span class="metric-label">Clients</span><span class="metric-value">${data.data.client_count ?? 0}</span></div>
+                    <div class="metric-card"><span class="metric-label">Fournisseurs</span><span class="metric-value">${data.data.supplier_count ?? 0}</span></div>
+                    <div class="metric-card metric-expenses metric-card-full"><span class="metric-label">Dettes clients</span><span class="metric-value">${data.data.total_dettes || '0 F'}</span></div>
                     <div class="metric-card"><span class="metric-label">Produits</span><span class="metric-value">${data.data.product_count ?? 0}</span></div>
                     <div class="metric-card"><span class="metric-label">Valeur stock</span><span class="metric-value">${data.data.stock_value || '0 F'}</span></div>
                     <div class="metric-card metric-expenses metric-card-full"><span class="metric-label">Ruptures</span><span class="metric-value">${data.data.out_of_stock ?? 0}</span></div>
@@ -610,9 +627,12 @@ const app = {
 
     async handleSale(e) {
         e.preventDefault();
+        const clientCode = document.getElementById('sale-client').value;
         const produitCode = document.getElementById('sale-product').value;
         const quantite = parseFloat(document.getElementById('sale-quantite').value);
         const prixUnitaire = parseFloat(document.getElementById('sale-prix').value);
+        const montantPaye = parseFloat(document.getElementById('sale-montant-paye').value) || 0;
+        const statutPaiement = document.getElementById('sale-statut-paiement').value;
         if (!produitCode || !quantite || isNaN(prixUnitaire)) return;
         const montant = quantite * prixUnitaire;
         const btn = e.target.querySelector('button[type="submit"]');
@@ -621,12 +641,21 @@ const app = {
         try {
             await this.api('/sales', {
                 method: 'POST',
-                body: JSON.stringify({ montant, produits: [{ produit_code: produitCode, quantite, prix_unitaire: prixUnitaire }], client_now: new Date().toISOString() }),
+                body: JSON.stringify({
+                    client_code: clientCode || null,
+                    montant,
+                    montant_paye: montantPaye,
+                    statut_paiement: statutPaiement,
+                    produits: [{ produit_code: produitCode, quantite, prix_unitaire: prixUnitaire }],
+                    client_now: new Date().toISOString()
+                }),
             });
+            document.getElementById('sale-client').value = '';
             document.getElementById('sale-product').value = '';
             document.getElementById('sale-quantite').value = '';
             document.getElementById('sale-prix').value = '';
             document.getElementById('sale-montant-display').textContent = '0 F';
+            document.getElementById('sale-montant-paye').value = '';
             this.toast('Vente enregistrée', 'success')
             this.refreshBadges();
         } catch (err) {
@@ -1395,6 +1424,14 @@ const app = {
             await this.confirmPurchaseDelete();
             return;
         }
+        if (this.pendingClientDelete) {
+            await this.confirmClientDelete();
+            return;
+        }
+        if (this.pendingSupplierDelete) {
+            await this.confirmSupplierDelete();
+            return;
+        }
         if (!this.pendingDelete) return;
         const { type, id } = this.pendingDelete;
         const btn = document.querySelector('#confirm-modal .btn-danger');
@@ -1702,6 +1739,7 @@ const app = {
 
     async handlePurchase(e) {
         e.preventDefault();
+        const fournisseurCode = document.getElementById('purchase-supplier').value;
         const produitCode = document.getElementById('purchase-product').value;
         const quantite = parseFloat(document.getElementById('purchase-quantite').value);
         const prixUnitaire = parseFloat(document.getElementById('purchase-prix').value);
@@ -1712,8 +1750,9 @@ const app = {
         try {
             await this.api('/purchases', {
                 method: 'POST',
-                body: JSON.stringify({ produit_code: produitCode, quantite, prix_unitaire: prixUnitaire, client_now: new Date().toISOString() }),
+                body: JSON.stringify({ fournisseur_code: fournisseurCode || null, produit_code: produitCode, quantite, prix_unitaire: prixUnitaire, client_now: new Date().toISOString() }),
             });
+            document.getElementById('purchase-supplier').value = '';
             document.getElementById('purchase-product').value = '';
             document.getElementById('purchase-quantite').value = '';
             document.getElementById('purchase-prix').value = '';
@@ -1739,18 +1778,40 @@ const app = {
         } catch (err) {
             this.toast(err.message, 'error');
         }
+        const supplierSelect = document.getElementById('purchase-supplier');
+        if (!supplierSelect) return;
+        try {
+            const data = await this.api('/fournisseurs');
+            const suppliers = data.data.suppliers || [];
+            supplierSelect.innerHTML = '<option value="">Sélectionner un fournisseur (optionnel)</option>' +
+                suppliers.map(s => `<option value="${this.escapeHtml(s.code_fournisseur)}">${this.escapeHtml(s.nom_fournisseur)}</option>`).join('');
+        } catch (err) {
+            this.toast(err.message, 'error');
+        }
     },
 
     async loadSaleOptions() {
-        const select = document.getElementById('sale-product');
-        if (!select) return;
-        try {
-            const data = await this.api('/products');
-            const products = data.data.products || [];
-            select.innerHTML = '<option value="">Sélectionner un produit</option>' +
-                products.map(p => `<option value="${this.escapeHtml(p.code_produit)}">${this.escapeHtml(p.libelle_produit)} (${this.escapeHtml(p.unite_produit)})</option>`).join('');
-        } catch (err) {
-            this.toast(err.message, 'error');
+        const productSelect = document.getElementById('sale-product');
+        if (productSelect) {
+            try {
+                const data = await this.api('/products');
+                const products = data.data.products || [];
+                productSelect.innerHTML = '<option value="">Sélectionner un produit</option>' +
+                    products.map(p => `<option value="${this.escapeHtml(p.code_produit)}">${this.escapeHtml(p.libelle_produit)} (${this.escapeHtml(p.unite_produit)})</option>`).join('');
+            } catch (err) {
+                this.toast(err.message, 'error');
+            }
+        }
+        const clientSelect = document.getElementById('sale-client');
+        if (clientSelect) {
+            try {
+                const data = await this.api('/clients');
+                const clients = data.data.clients || [];
+                clientSelect.innerHTML = '<option value="">Sélectionner un client (optionnel)</option>' +
+                    clients.map(c => `<option value="${this.escapeHtml(c.code_client)}">${this.escapeHtml(c.nom_client)}</option>`).join('');
+            } catch (err) {
+                this.toast(err.message, 'error');
+            }
         }
     },
 
@@ -1895,6 +1956,312 @@ const app = {
     loadMoreStock() {
         this.stockPage++;
         this.renderStock(true);
+    },
+
+    async renderClients(append = false) {
+        const list = document.getElementById('client-list');
+        if (!list) return;
+        if (!append) {
+            this.showSkeleton(list, 'list');
+            this.clientPage = 1;
+        }
+        try {
+            const params = new URLSearchParams({
+                page: this.clientPage,
+                limit: this.clientLimit,
+            });
+            if (this.clientSearch) params.set('search', this.clientSearch);
+            const data = await this.api(`/clients?${params.toString()}`);
+            const clients = data.data.clients;
+            const pagination = data.data.pagination || {};
+            const html = clients.map(c => `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${this.escapeHtml(c.nom_client)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(c.code_client)} • ${this.escapeHtml(c.telephone_client || '-')}</div>
+                    </div>
+                    <div class="list-item-actions">
+                        <span class="badge ${c.statut_client === 'actif' ? 'badge-actif' : 'badge-inactif'}">${this.escapeHtml(c.statut_client)}</span>
+                        <button class="list-item-arrow" onclick="app.openClientDetail('${this.escapeHtml(c.code_client)}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                        <button class="list-item-delete" onclick="app.deleteClient('${this.escapeHtml(c.code_client)}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 1 1-2 2H7a2 2 0 1 1-2-2V4m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            if (append) {
+                list.insertAdjacentHTML('beforeend', html);
+            } else {
+                list.innerHTML = html || '<div class="empty-state">Aucun client</div>';
+            }
+            this.clientHasMore = pagination.has_more || false;
+            const btn = document.getElementById('client-load-more');
+            if (btn) btn.style.display = this.clientHasMore ? 'flex' : 'none';
+        } catch (err) {
+            if (!append) list.innerHTML = '<div class="empty-state">Erreur</div>';
+            this.toast(err.message, 'error');
+        }
+    },
+
+    onClientSearch(value) {
+        clearTimeout(this._clientSearchTimer);
+        this._clientSearchTimer = setTimeout(() => {
+            this.clientSearch = value;
+            this.clientPage = 1;
+            this.renderClients();
+        }, 300);
+    },
+
+    loadMoreClients() {
+        this.clientPage++;
+        this.renderClients(true);
+    },
+
+    openCreateClientModal() {
+        document.getElementById('create-client-modal').classList.add('open');
+    },
+
+    closeCreateClientModal() {
+        document.getElementById('create-client-modal').classList.remove('open');
+    },
+
+    async handleCreateClient(e) {
+        e.preventDefault();
+        const nom = document.getElementById('client-name').value.trim();
+        const telephone = document.getElementById('client-phone').value.trim();
+        const adresse = document.getElementById('client-address').value.trim();
+        if (!nom) return;
+        const btn = e.target.querySelector('button[type="submit"]');
+        this.setButtonLoading(btn, true);
+
+        try {
+            const data = await this.api('/clients', {
+                method: 'POST',
+                body: JSON.stringify({ nom, telephone, adresse }),
+            });
+            document.getElementById('client-name').value = '';
+            document.getElementById('client-phone').value = '';
+            document.getElementById('client-address').value = '';
+            this.closeCreateClientModal();
+            this.toast('Client créé', 'success')
+            this.renderClients();
+        } catch (err) {
+            this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
+        }
+    },
+
+    async openClientDetail(code) {
+        const modal = document.getElementById('client-detail-modal');
+        const content = document.getElementById('client-detail-content');
+        content.innerHTML = '<div class="skeleton skeleton-list"><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div></div>';
+        modal.classList.add('open');
+
+        try {
+            const data = await this.api(`/clients/detail?code=${encodeURIComponent(code)}`);
+            const c = data.data.client;
+            const html = `
+                <div class="detail-section">
+                    <div class="detail-item"><span>Nom</span><strong>${this.escapeHtml(c.nom_client)}</strong></div>
+                    <div class="detail-item"><span>Code</span><strong>${this.escapeHtml(c.code_client)}</strong></div>
+                    <div class="detail-item"><span>Téléphone</span><strong>${this.escapeHtml(c.telephone_client || '-')}</strong></div>
+                    <div class="detail-item"><span>Adresse</span><strong>${this.escapeHtml(c.adresse_client || '-')}</strong></div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-item"><span>Statut</span><strong><span class="badge ${c.statut_client === 'actif' ? 'badge-actif' : 'badge-inactif'}">${this.escapeHtml(c.statut_client)}</span></strong></div>
+                    <div class="detail-item"><span>Créé le</span><strong>${this.escapeHtml(this.formatFrenchDate(c.created_at_client))}</strong></div>
+                </div>
+            `;
+            content.innerHTML = html;
+        } catch (err) {
+            content.innerHTML = `<div class="empty-state">${this.escapeHtml(err.message)}</div>`;
+        }
+    },
+
+    closeClientDetail() {
+        document.getElementById('client-detail-modal').classList.remove('open');
+    },
+
+    async deleteClient(code) {
+        this.pendingClientDelete = code;
+        this.openConfirm();
+    },
+
+    async confirmClientDelete() {
+        if (!this.pendingClientDelete) return;
+        const code = this.pendingClientDelete;
+        const btn = document.querySelector('#confirm-modal .btn-danger');
+        this.setButtonLoading(btn, true);
+        this.closeConfirm();
+        try {
+            await this.api('/clients/delete', {
+                method: 'POST',
+                body: JSON.stringify({ code }),
+            });
+            this.toast('Client supprimé', 'success')
+            this.renderClients();
+        } catch (err) {
+            this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
+            this.pendingClientDelete = null;
+        }
+    },
+
+    async renderSuppliers(append = false) {
+        const list = document.getElementById('supplier-list');
+        if (!list) return;
+        if (!append) {
+            this.showSkeleton(list, 'list');
+            this.supplierPage = 1;
+        }
+        try {
+            const params = new URLSearchParams({
+                page: this.supplierPage,
+                limit: this.supplierLimit,
+            });
+            if (this.supplierSearch) params.set('search', this.supplierSearch);
+            const data = await this.api(`/fournisseurs?${params.toString()}`);
+            const suppliers = data.data.suppliers;
+            const pagination = data.data.pagination || {};
+            const html = suppliers.map(s => `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${this.escapeHtml(s.nom_fournisseur)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(s.code_fournisseur)} • ${this.escapeHtml(s.telephone_fournisseur || '-')}</div>
+                    </div>
+                    <div class="list-item-actions">
+                        <span class="badge ${s.statut_fournisseur === 'actif' ? 'badge-actif' : 'badge-inactif'}">${this.escapeHtml(s.statut_fournisseur)}</span>
+                        <button class="list-item-arrow" onclick="app.openSupplierDetail('${this.escapeHtml(s.code_fournisseur)}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                        <button class="list-item-delete" onclick="app.deleteSupplier('${this.escapeHtml(s.code_fournisseur)}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 1 1-2 2H7a2 2 0 1 1-2-2V4m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            if (append) {
+                list.insertAdjacentHTML('beforeend', html);
+            } else {
+                list.innerHTML = html || '<div class="empty-state">Aucun fournisseur</div>';
+            }
+            this.supplierHasMore = pagination.has_more || false;
+            const btn = document.getElementById('supplier-load-more');
+            if (btn) btn.style.display = this.supplierHasMore ? 'flex' : 'none';
+        } catch (err) {
+            if (!append) list.innerHTML = '<div class="empty-state">Erreur</div>';
+            this.toast(err.message, 'error');
+        }
+    },
+
+    onSupplierSearch(value) {
+        clearTimeout(this._supplierSearchTimer);
+        this._supplierSearchTimer = setTimeout(() => {
+            this.supplierSearch = value;
+            this.supplierPage = 1;
+            this.renderSuppliers();
+        }, 300);
+    },
+
+    loadMoreSuppliers() {
+        this.supplierPage++;
+        this.renderSuppliers(true);
+    },
+
+    openCreateSupplierModal() {
+        document.getElementById('create-supplier-modal').classList.add('open');
+    },
+
+    closeCreateSupplierModal() {
+        document.getElementById('create-supplier-modal').classList.remove('open');
+    },
+
+    async handleCreateSupplier(e) {
+        e.preventDefault();
+        const nom = document.getElementById('supplier-name').value.trim();
+        const telephone = document.getElementById('supplier-phone').value.trim();
+        const adresse = document.getElementById('supplier-address').value.trim();
+        if (!nom) return;
+        const btn = e.target.querySelector('button[type="submit"]');
+        this.setButtonLoading(btn, true);
+
+        try {
+            const data = await this.api('/fournisseurs', {
+                method: 'POST',
+                body: JSON.stringify({ nom, telephone, adresse }),
+            });
+            document.getElementById('supplier-name').value = '';
+            document.getElementById('supplier-phone').value = '';
+            document.getElementById('supplier-address').value = '';
+            this.closeCreateSupplierModal();
+            this.toast('Fournisseur créé', 'success')
+            this.renderSuppliers();
+        } catch (err) {
+            this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
+        }
+    },
+
+    async openSupplierDetail(code) {
+        const modal = document.getElementById('supplier-detail-modal');
+        const content = document.getElementById('supplier-detail-content');
+        content.innerHTML = '<div class="skeleton skeleton-list"><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div></div>';
+        modal.classList.add('open');
+
+        try {
+            const data = await this.api(`/fournisseurs/detail?code=${encodeURIComponent(code)}`);
+            const s = data.data.supplier;
+            const html = `
+                <div class="detail-section">
+                    <div class="detail-item"><span>Nom</span><strong>${this.escapeHtml(s.nom_fournisseur)}</strong></div>
+                    <div class="detail-item"><span>Code</span><strong>${this.escapeHtml(s.code_fournisseur)}</strong></div>
+                    <div class="detail-item"><span>Téléphone</span><strong>${this.escapeHtml(s.telephone_fournisseur || '-')}</strong></div>
+                    <div class="detail-item"><span>Adresse</span><strong>${this.escapeHtml(s.adresse_fournisseur || '-')}</strong></div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-item"><span>Statut</span><strong><span class="badge ${s.statut_fournisseur === 'actif' ? 'badge-actif' : 'badge-inactif'}">${this.escapeHtml(s.statut_fournisseur)}</span></strong></div>
+                    <div class="detail-item"><span>Créé le</span><strong>${this.escapeHtml(this.formatFrenchDate(s.created_at_fournisseur))}</strong></div>
+                </div>
+            `;
+            content.innerHTML = html;
+        } catch (err) {
+            content.innerHTML = `<div class="empty-state">${this.escapeHtml(err.message)}</div>`;
+        }
+    },
+
+    closeSupplierDetail() {
+        document.getElementById('supplier-detail-modal').classList.remove('open');
+    },
+
+    async deleteSupplier(code) {
+        this.pendingSupplierDelete = code;
+        this.openConfirm();
+    },
+
+    async confirmSupplierDelete() {
+        if (!this.pendingSupplierDelete) return;
+        const code = this.pendingSupplierDelete;
+        const btn = document.querySelector('#confirm-modal .btn-danger');
+        this.setButtonLoading(btn, true);
+        this.closeConfirm();
+        try {
+            await this.api('/fournisseurs/delete', {
+                method: 'POST',
+                body: JSON.stringify({ code }),
+            });
+            this.toast('Fournisseur supprimé', 'success')
+            this.renderSuppliers();
+        } catch (err) {
+            this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
+            this.pendingSupplierDelete = null;
+        }
     },
 };
 

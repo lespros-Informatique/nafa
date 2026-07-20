@@ -54,6 +54,19 @@ class DashboardController extends Controller
             }
         }
 
+        $clientCount = 0;
+        $supplierCount = 0;
+        $totalDettes = 0;
+        if (!$isDev && $shop) {
+            $clientCount = Client::countByShop($shop['code_boutique']);
+            $supplierCount = Supplier::countByShop($shop['code_boutique']);
+            $stmt = Database::getConnection()->prepare(
+                'SELECT SUM(reste_a_payer_vente) as total FROM ventes WHERE boutique_code = :boutique_code AND statut_paiement_vente IN ("partiel","credit")'
+            );
+            $stmt->execute(['boutique_code' => $shop['code_boutique']]);
+            $totalDettes = (float)($stmt->fetchColumn() ?: 0);
+        }
+
         $topProducts = [];
         if (!$isDev && $shop) {
             $stmt = Database::getConnection()->prepare(
@@ -81,6 +94,9 @@ class DashboardController extends Controller
             'product_count' => $productCount,
             'out_of_stock' => $outOfStock,
             'stock_value' => $this->formatMoney($stockValue),
+            'client_count' => $clientCount,
+            'supplier_count' => $supplierCount,
+            'total_dettes' => $this->formatMoney($totalDettes),
             'top_products' => $topProducts,
             'recent' => array_slice(array_reverse($todaySales), 0, 10),
             'stats' => $stats,

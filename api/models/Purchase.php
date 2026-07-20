@@ -7,12 +7,13 @@ class Purchase
     public static function create(array $data): array
     {
         $stmt = Database::getConnection()->prepare(
-            'INSERT INTO achats (code_achat, boutique_code, produit_code, quantite_achat, prix_unitaire_achat, montant_achat, date_achat)
-             VALUES (:code_achat, :boutique_code, :produit_code, :quantite_achat, :prix_unitaire_achat, :montant_achat, :date_achat)'
+            'INSERT INTO achats (code_achat, boutique_code, fournisseur_code, produit_code, quantite_achat, prix_unitaire_achat, montant_achat, date_achat)
+             VALUES (:code_achat, :boutique_code, :fournisseur_code, :produit_code, :quantite_achat, :prix_unitaire_achat, :montant_achat, :date_achat)'
         );
         $stmt->execute([
             'code_achat' => $data['code_achat'],
             'boutique_code' => $data['boutique_code'],
+            'fournisseur_code' => $data['fournisseur_code'] ?? null,
             'produit_code' => $data['produit_code'],
             'quantite_achat' => $data['quantite_achat'],
             'prix_unitaire_achat' => $data['prix_unitaire_achat'],
@@ -82,7 +83,7 @@ class Purchase
     {
         $sets = [];
         $params = ['code' => $code];
-        $allowed = ['produit_code', 'quantite_achat', 'prix_unitaire_achat', 'montant_achat', 'date_achat'];
+        $allowed = ['produit_code', 'quantite_achat', 'prix_unitaire_achat', 'montant_achat', 'date_achat', 'fournisseur_code'];
         foreach ($allowed as $field) {
             if (array_key_exists($field, $data)) {
                 $sets[] = "$field = :$field";

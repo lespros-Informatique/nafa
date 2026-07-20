@@ -7,14 +7,18 @@ class Sale
     public static function create(array $data): array
     {
         $stmt = Database::getConnection()->prepare(
-            'INSERT INTO ventes (code_vente, boutique_code, montant_vente, mode_paiement_vente, created_at_vente)
-             VALUES (:code_vente, :boutique_code, :montant_vente, :mode_paiement_vente, :created_at_vente)'
+            'INSERT INTO ventes (code_vente, boutique_code, client_code, montant_vente, montant_paye_vente, reste_a_payer_vente, statut_paiement_vente, mode_paiement_vente, created_at_vente)
+             VALUES (:code_vente, :boutique_code, :client_code, :montant_vente, :montant_paye_vente, :reste_a_payer_vente, :statut_paiement_vente, :mode_paiement_vente, :created_at_vente)'
         );
         $stmt->execute([
             'code_vente' => $data['code_vente'],
             'boutique_code' => $data['boutique_code'],
+            'client_code' => $data['client_code'] ?? null,
             'montant_vente' => $data['montant_vente'],
-            'mode_paiement_vente' => $data['mode_paiement_vente'],
+            'montant_paye_vente' => $data['montant_paye_vente'] ?? 0,
+            'reste_a_payer_vente' => $data['reste_a_payer_vente'] ?? 0,
+            'statut_paiement_vente' => $data['statut_paiement_vente'] ?? 'comptant',
+            'mode_paiement_vente' => $data['mode_paiement_vente'] ?? 'especes',
             'created_at_vente' => $data['created_at_vente'],
         ]);
         $id = Database::getConnection()->lastInsertId();

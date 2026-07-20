@@ -63,6 +63,7 @@ class PurchaseController extends Controller
         $produitCode = trim($this->input('produit_code', ''));
         $quantite = (float) ($this->input('quantite', 0));
         $prixUnitaire = (float) ($this->input('prix_unitaire', 0));
+        $fournisseurCode = trim($this->input('fournisseur_code', ''));
 
         if (!$produitCode) {
             Response::error('Produit requis');
@@ -85,6 +86,7 @@ class PurchaseController extends Controller
         $purchase = Purchase::create([
             'code_achat' => $code,
             'boutique_code' => $shop['code_boutique'],
+            'fournisseur_code' => $fournisseurCode ?: null,
             'produit_code' => $produitCode,
             'quantite_achat' => $quantite,
             'prix_unitaire_achat' => $prixUnitaire,
