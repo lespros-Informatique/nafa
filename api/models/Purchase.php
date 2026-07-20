@@ -49,6 +49,20 @@ class Purchase
         return $stmt->fetchAll();
     }
 
+    public static function getByShopPeriod(string $shopCode, string $dateStart, string $dateEnd): array
+    {
+        $stmt = Database::getConnection()->prepare(
+            'SELECT * FROM achats
+             WHERE boutique_code = :boutique_code
+               AND statut_achat != "supprime"
+               AND DATE(date_achat) >= :date_start
+               AND DATE(date_achat) <= :date_end
+             ORDER BY date_achat DESC'
+        );
+        $stmt->execute(['boutique_code' => $shopCode, 'date_start' => $dateStart, 'date_end' => $dateEnd]);
+        return $stmt->fetchAll();
+    }
+
     public static function getAll(): array
     {
         $stmt = Database::getConnection()->query('SELECT * FROM achats WHERE statut_achat != "supprime" ORDER BY date_achat DESC');

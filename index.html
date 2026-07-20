@@ -486,6 +486,10 @@
                         <h2>Achats</h2>
                         <p class="header-subtitle">Tous vos achats</p>
                     </div>
+                    <button class="header-action-btn" onclick="app.navigate('purchases-list')" title="Liste des achats">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                        Liste Achats
+                    </button>
                     <button class="btn btn-primary" onclick="app.navigate('purchase')">Nouveau</button>
                 </div>
             </div>
@@ -494,6 +498,42 @@
             </div>
             <div class="list-container" id="purchase-list"></div>
             <button class="btn-load-more" id="purchase-load-more" style="display:none;" onclick="app.loadMorePurchases()">Charger plus</button>
+            <div class="bottom-spacer"></div>
+        </div>
+
+        <!-- PURCHASES LIST PAGE -->
+        <div id="page-purchases-list" class="page">
+            <div class="header">
+                <button class="btn-back" onclick="app.navigate('purchases')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12" 19 5 12 12 5"></polyline></svg>
+                </button>
+                <h2>Liste des achats</h2>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card"><span class="metric-label">Achats</span><span class="metric-value" id="pl-count">0</span></div>
+                <div class="metric-card metric-purchases metric-card-full"><span class="metric-label">Montant total</span><span class="metric-value" id="pl-total">0 F</span></div>
+            </div>
+            <div class="filter-bar" id="pl-filter-bar">
+                <button class="filter-btn active" onclick="app.setPurchasesListPeriod('today')" data-period="today">Aujourd'hui</button>
+                <button class="filter-btn" onclick="app.setPurchasesListPeriod('week')" data-period="week">Semaine</button>
+                <button class="filter-btn" onclick="app.setPurchasesListPeriod('month')" data-period="month">Mois</button>
+                <button class="filter-btn" onclick="app.setPurchasesListPeriod('year')" data-period="year">Année</button>
+                <button class="filter-btn" onclick="app.setPurchasesListPeriod('custom')" data-period="custom">Perso</button>
+            </div>
+            <div class="custom-date-range" id="pl-custom-range" style="display:none;">
+                <div class="input-group">
+                    <label for="pl-date-start">Du</label>
+                    <input type="date" id="pl-date-start" onchange="app.onPurchasesListCustomDate()">
+                </div>
+                <div class="input-group">
+                    <label for="pl-date-end">Au</label>
+                    <input type="date" id="pl-date-end" onchange="app.onPurchasesListCustomDate()">
+                </div>
+            </div>
+            <div class="dev-search-bar">
+                <input type="text" class="dev-search-input" id="purchases-list-search" placeholder="Rechercher un achat..." oninput="app.onPurchasesListSearch(this.value)">
+            </div>
+            <div class="list-container" id="purchases-list-content"></div>
             <div class="bottom-spacer"></div>
         </div>
 

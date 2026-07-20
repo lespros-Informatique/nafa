@@ -124,7 +124,7 @@ const app = {
             const downloadBtn = document.getElementById('download-top');
             if (downloadBtn) downloadBtn.style.display = isDev ? 'flex' : 'none';
             const lastPage = localStorage.getItem('nafa_last_page');
-            const validPages = ['dashboard', 'history', 'products', 'purchases', 'stock', 'clients', 'suppliers', 'reports', 'sales-list', 'dev-shops', 'dev-list', 'dev-forfaits', 'dev-abonnements'];
+            const validPages = ['dashboard', 'history', 'products', 'purchases', 'purchases-list', 'stock', 'clients', 'suppliers', 'reports', 'sales-list', 'dev-shops', 'dev-list', 'dev-forfaits', 'dev-abonnements'];
             const targetPage = validPages.includes(lastPage) ? lastPage : 'dashboard';
             this.navigate(targetPage);
         } else {
@@ -226,6 +226,7 @@ const app = {
             'sale': 'Nouvelle vente',
             'expense': 'Nouvelle d\u00e9pense',
             'stock': 'Stock',
+            'purchases-list': 'Liste des achats',
             'sales-list': 'Liste des ventes',
             'clients': 'Clients',
             'suppliers': 'Fournisseurs',
@@ -285,6 +286,7 @@ const app = {
         if (page === 'purchase') this.loadPurchaseOptions();
         if (page === 'sale') this.loadSaleOptions();
         if (page === 'sales-list') this.renderSalesList();
+        if (page === 'purchases-list') this.renderPurchasesList();
     },
 
     toggleSidebar() {

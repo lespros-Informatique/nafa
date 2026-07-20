@@ -74,4 +74,27 @@ abstract class Controller
 
         return $user;
     }
+
+    protected function periodRange(string $period, string $dateStartInput = '', string $dateEndInput = ''): array
+    {
+        $period = strtolower(trim($period));
+        if ($period === 'custom') {
+            $start = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateStartInput) ? $dateStartInput : date('Y-m-d');
+            $end = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateEndInput) ? $dateEndInput : date('Y-m-d');
+            if ($start > $end) {
+                [$start, $end] = [$end, $start];
+            }
+            return [$start, $end, 'custom'];
+        }
+        if ($period === 'week') {
+            return [date('Y-m-d', strtotime('-6 days')), date('Y-m-d'), 'week'];
+        }
+        if ($period === 'month') {
+            return [date('Y-m-01'), date('Y-m-t'), 'month'];
+        }
+        if ($period === 'year') {
+            return [date('Y-01-01'), date('Y-12-31'), 'year'];
+        }
+        return [date('Y-m-d'), date('Y-m-d'), 'today'];
+    }
 }

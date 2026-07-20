@@ -94,6 +94,7 @@ $routes = [
         '/api/fournisseurs/detail' => [SupplierController::class, 'show'],
         '/api/purchases' => [PurchaseController::class, 'index'],
         '/api/purchases/detail' => [PurchaseController::class, 'detail'],
+        '/api/purchases/list' => [PurchaseController::class, 'list'],
         '/api/stock' => [StockController::class, 'index'],
         '/api/sales/detail' => [SaleController::class, 'detail'],
         '/api/sales/list' => [SaleController::class, 'list'],

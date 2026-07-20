@@ -155,16 +155,7 @@ class SaleController extends Controller
         }
 
         $period = trim($_GET['period'] ?? 'today');
-        if ($period === 'week') {
-            $dateEnd = date('Y-m-d');
-            $dateStart = date('Y-m-d', strtotime('-6 days'));
-        } elseif ($period === 'month') {
-            $dateStart = date('Y-m-01');
-            $dateEnd = date('Y-m-t');
-        } else {
-            $dateStart = date('Y-m-d');
-            $dateEnd = date('Y-m-d');
-        }
+        [$dateStart, $dateEnd, $period] = $this->periodRange($period, $_GET['date_start'] ?? '', $_GET['date_end'] ?? '');
 
         $isDev = ($user['role_user'] ?? '') === 'developpeur';
         if ($isDev) {
@@ -188,6 +179,8 @@ class SaleController extends Controller
 
         Response::success('Ventes', [
             'period' => $period,
+            'date_start' => $dateStart,
+            'date_end' => $dateEnd,
             'sales' => $sales,
             'stats' => [
                 'count' => count($sales),

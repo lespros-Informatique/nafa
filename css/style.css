@@ -95,6 +95,35 @@ html, body {
     color: #fff;
 }
 
+.custom-date-range {
+    display: flex;
+    gap: 12px;
+    padding: 0 20px 12px;
+}
+
+.custom-date-range .input-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.custom-date-range label {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 6px;
+    display: block;
+}
+
+.custom-date-range input[type="date"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #E5E7EB;
+    border-radius: 12px;
+    font-size: 15px;
+    font-family: inherit;
+    background: var(--white);
+    color: var(--text);
+}
+
 .header-subtitle {
     font-size: 14px;
     color: var(--text-light);

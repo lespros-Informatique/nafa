@@ -200,4 +200,39 @@ class PurchaseController extends Controller
             'fournisseur_nom' => $fournisseurNom,
         ]);
     }
+
+    public function list(): void
+    {
+        $user = $this->requireActiveSubscription();
+        $shop = Shop::findByUserCode($user['code_user']);
+        if (!$shop) {
+            Response::error('Boutique introuvable', [], 404);
+        }
+
+        $period = trim($_GET['period'] ?? 'today');
+        [$dateStart, $dateEnd, $period] = $this->periodRange($period, $_GET['date_start'] ?? '', $_GET['date_end'] ?? '');
+
+        $isDev = ($user['role_user'] ?? '') === 'developpeur';
+        if ($isDev) {
+            $purchases = Purchase::getAll();
+        } else {
+            $purchases = Purchase::getByShopPeriod($shop['code_boutique'], $dateStart, $dateEnd);
+        }
+
+        $totalMontant = 0;
+        foreach ($purchases as $p) {
+            $totalMontant += (float) ($p['montant_achat'] ?? 0);
+        }
+
+        Response::success('Achats', [
+            'period' => $period,
+            'date_start' => $dateStart,
+            'date_end' => $dateEnd,
+            'purchases' => $purchases,
+            'stats' => [
+                'count' => count($purchases),
+                'total_montant' => $totalMontant,
+            ],
+        ]);
+    }
 }
