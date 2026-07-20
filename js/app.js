@@ -2716,6 +2716,9 @@ const app = {
                         <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(s.created_at_vente))} • ${this.escapeHtml(s.statut_paiement_vente || '-')}</div>
                     </div>
                     <span class="list-item-amount positive">+${this.formatMoney(s.montant_vente)}</span>
+                    <button class="list-item-print" onclick="window.open('/nafa/api/sales/pdf?code=${encodeURIComponent(s.code_vente)}', '_blank')" title="Imprimer le reçu">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    </button>
                     <button class="list-item-arrow" onclick="app.openSaleDetail('${this.escapeHtml(s.code_vente)}')">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     </button>
@@ -2799,6 +2802,9 @@ const app = {
                         <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(p.date_achat))} • ${this.escapeHtml(p.produit_code || '-')}</div>
                     </div>
                     <span class="list-item-amount negative">-${this.formatMoney(p.montant_achat)}</span>
+                    <button class="list-item-print" onclick="window.open('/nafa/api/purchases/pdf?code=${encodeURIComponent(p.code_achat)}', '_blank')" title="Imprimer le reçu">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    </button>
                     <button class="list-item-arrow" onclick="app.openPurchaseDetail('${this.escapeHtml(p.code_achat)}')">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     </button>

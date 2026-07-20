@@ -1147,6 +1147,17 @@ html, body {
     align-items: center;
 }
 
+.list-item-print {
+    background: none;
+    border: none;
+    color: var(--primary);
+    padding: 8px;
+    margin-left: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
 .detail-section {
     padding: 16px 20px;
     border-bottom: 1px solid #E5E7EB;

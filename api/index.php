@@ -29,6 +29,9 @@ require_once __DIR__ . '/models/Client.php';
 require_once __DIR__ . '/models/Client.php';
 require_once __DIR__ . '/models/Supplier.php';
 require_once __DIR__ . '/controllers/SupplierController.php';
+require_once __DIR__ . '/controllers/PdfController.php';
+
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -100,6 +103,8 @@ $routes = [
         '/api/stock' => [StockController::class, 'index'],
         '/api/sales/detail' => [SaleController::class, 'detail'],
         '/api/sales/list' => [SaleController::class, 'list'],
+        '/api/sales/pdf' => [PdfController::class, 'sale'],
+        '/api/purchases/pdf' => [PdfController::class, 'purchase'],
         '/api/sale-lines' => [SaleLineController::class, 'index'],
     ],
 ];
