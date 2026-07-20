@@ -73,6 +73,24 @@ html, body {
     color: var(--primary-dark);
 }
 
+.header-action-btn {
+    background: none;
+    border: none;
+    color: var(--primary);
+    padding: 8px;
+    margin-left: auto;
+    margin-bottom: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+}
+
+.header-action-btn:active {
+    background: var(--primary-light);
+}
+
 .header-subtitle {
     font-size: 14px;
     color: var(--text-light);

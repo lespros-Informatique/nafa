@@ -2521,6 +2521,45 @@ const app = {
         document.getElementById('sale-detail-modal').classList.remove('open');
     },
 
+    openSaleList() {
+        const modal = document.getElementById('sale-list-modal');
+        const content = document.getElementById('sale-list-content');
+        this.showSkeleton(content, 'list');
+        modal.classList.add('open');
+        this.renderSaleList();
+    },
+
+    closeSaleList() {
+        document.getElementById('sale-list-modal').classList.remove('open');
+    },
+
+    async renderSaleList() {
+        const content = document.getElementById('sale-list-content');
+        if (!content) return;
+        try {
+            const data = await this.api(`/history?filter=today&client_date=${this.getClientDate()}`);
+            const items = (data.data.items || []).filter(i => i.type === 'vente');
+            if (!items.length) {
+                content.innerHTML = '<div class="empty-state">Aucune vente aujourd\'hui</div>';
+                return;
+            }
+            content.innerHTML = items.map(item => `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${this.escapeHtml(item.title)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(item.meta)} ${item.mode !== '-' ? '• ' + this.escapeHtml(item.mode) : ''}</div>
+                    </div>
+                    <span class="list-item-amount positive">+${this.formatMoney(item.amount)}</span>
+                    <button class="list-item-arrow" onclick="app.closeSaleList(); app.openSaleDetail('${this.escapeHtml(item.id)}')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
+            `).join('');
+        } catch (err) {
+            content.innerHTML = `<div class="empty-state">${this.escapeHtml(err.message)}</div>`;
+        }
+    },
+
     async deleteSupplier(code) {
         this.pendingSupplierDelete = code;
         this.openConfirm();
