@@ -34,6 +34,39 @@ class SaleController extends Controller
             $statutPaiement = 'partiel';
         }
 
+        $produitsValides = [];
+        foreach ($produits as $prod) {
+            $produitCode = trim($prod['produit_code'] ?? '');
+            $quantite = (float) ($prod['quantite'] ?? 0);
+            $prixUnitaire = (float) ($prod['prix_unitaire'] ?? 0);
+            if (!$produitCode || !$quantite || $quantite <= 0) continue;
+            $product = Product::findByCode($produitCode);
+            if (!$product) continue;
+
+            $stockDispo = 0;
+            try {
+                $stmt = Database::getConnection()->prepare('SELECT stock_disponible FROM vue_stock_produits WHERE code_produit = :code LIMIT 1');
+                $stmt->execute(['code' => $produitCode]);
+                $stockDispo = (float) ($stmt->fetchColumn() ?: 0);
+            } catch (\Exception $e) {
+                $stockDispo = (float) ($product['stock_initial_produit'] ?? 0);
+            }
+
+            if ($quantite > $stockDispo) {
+                Response::error('Stock insuffisant pour ' . $product['libelle_produit'] . ' (disponible: ' . (int)$stockDispo . ')');
+            }
+
+            $produitsValides[] = [
+                'produit_code' => $produitCode,
+                'quantite' => $quantite,
+                'prix_unitaire' => $prixUnitaire,
+            ];
+        }
+
+        if (empty($produitsValides)) {
+            Response::error('Aucun produit valide');
+        }
+
         $sale = Sale::create([
             'code_vente' => 'VTE' . time() . mt_rand(100, 999),
             'boutique_code' => $shop['code_boutique'],
@@ -46,20 +79,14 @@ class SaleController extends Controller
             'created_at_vente' => $this->input('client_now', date('Y-m-d H:i:s')),
         ]);
 
-        foreach ($produits as $prod) {
-            $produitCode = trim($prod['produit_code'] ?? '');
-            $quantite = (float) ($prod['quantite'] ?? 0);
-            $prixUnitaire = (float) ($prod['prix_unitaire'] ?? 0);
-            if (!$produitCode || !$quantite || $quantite <= 0) continue;
-            $product = Product::findByCode($produitCode);
-            if (!$product) continue;
-            $montantLigne = $quantite * $prixUnitaire;
+        foreach ($produitsValides as $prod) {
+            $montantLigne = $prod['quantite'] * $prod['prix_unitaire'];
             SaleLine::create([
                 'code_ligne' => 'LIG' . time() . mt_rand(100, 999),
                 'vente_code' => $sale['code_vente'],
-                'produit_code' => $produitCode,
-                'quantite' => $quantite,
-                'prix_unitaire' => $prixUnitaire,
+                'produit_code' => $prod['produit_code'],
+                'quantite' => $prod['quantite'],
+                'prix_unitaire' => $prod['prix_unitaire'],
                 'montant' => $montantLigne,
             ]);
         }

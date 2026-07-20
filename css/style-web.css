@@ -421,6 +421,19 @@
         display: none;
     }
 
+    /* Dashboard header row horizontal on desktop */
+    #page-dashboard .header-row {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+    }
+
+    #page-dashboard .filter-bar {
+        align-self: auto;
+        flex-shrink: 0;
+    }
+
     /* Métriques : 3 colonnes sur tablette */
     .metrics-grid {
         grid-template-columns: repeat(3, 1fr);

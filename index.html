@@ -193,9 +193,18 @@
         <!-- DASHBOARD PAGE -->
         <div id="page-dashboard" class="page">
             <div class="header">
-                <h2 id="dash-greeting">Bonjour</h2>
-                <p class="header-subtitle" id="dash-date"></p>
-                <p class="header-user" id="dash-user-name"></p>
+                <div class="header-row">
+                    <div>
+                        <h2 id="dash-greeting">Bonjour</h2>
+                        <p class="header-subtitle" id="dash-date"></p>
+                        <p class="header-user" id="dash-user-name"></p>
+                    </div>
+                    <div class="filter-bar" id="dash-filter-bar">
+                        <button class="filter-btn active" onclick="app.setDashPeriod('today')" data-period="today">Aujourd'hui</button>
+                        <button class="filter-btn" onclick="app.setDashPeriod('week')" data-period="week">Semaine</button>
+                        <button class="filter-btn" onclick="app.setDashPeriod('month')" data-period="month">Mois</button>
+                    </div>
+                </div>
             </div>
 
             <div class="metrics-grid" >
@@ -216,7 +225,7 @@
                     <span class="metric-value" id="dash-net">0 F</span>
                 </div>
                 <div class="metric-card metric-products">
-                    <span class="metric-label">Produits</span>
+                    <span class="metric-label">Qté en stock</span>
                     <span class="metric-value" id="dash-products">0</span>
                 </div>
                 <div class="metric-card metric-stock">
@@ -278,9 +287,14 @@
             <form class="form-page" onsubmit="app.handleSale(event)">
                 <div class="input-group">
                     <label for="sale-client">Client</label>
-                    <select id="sale-client" onchange="app.onSaleClientChange(this.value)">
-                        <option value="">Sélectionner un client (optionnel)</option>
-                    </select>
+                    <div class="select-with-action">
+                        <select id="sale-client" onchange="app.onSaleClientChange(this.value)">
+                            <option value="">Sélectionner un client (optionnel)</option>
+                        </select>
+                        <button type="button" class="btn-add-sm" onclick="app.openCreateClientModal()" title="Nouveau client">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </button>
+                    </div>
                     <div class="client-info-card" id="sale-client-info" style="display:none;">
                         <div class="client-info-row">
                             <span class="client-info-name" id="sale-client-name"></span>

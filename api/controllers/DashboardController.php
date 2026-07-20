@@ -8,25 +8,40 @@ class DashboardController extends Controller
     {
         $user = $this->requireActiveSubscription();
         $isDev = ($user['role_user'] ?? '') === 'developpeur';
-        $clientDate = $_GET['client_date'] ?? date('Y-m-d');
+        $period = trim($_GET['period'] ?? 'today');
+
+        $dateStart = null;
+        $dateEnd = null;
+        if ($period === 'week') {
+            $dateEnd = date('Y-m-d');
+            $dateStart = date('Y-m-d', strtotime('-6 days'));
+        } elseif ($period === 'month') {
+            $dateStart = date('Y-m-01');
+            $dateEnd = date('Y-m-t');
+        } else {
+            $dateStart = date('Y-m-d');
+            $dateEnd = date('Y-m-d');
+        }
 
         if ($isDev) {
             $todaySales = Sale::getAll();
-            $todaySales = array_values(array_filter($todaySales, function ($s) use ($clientDate) { return substr($s['created_at_vente'], 0, 10) === $clientDate; }));
+            $todaySales = array_values(array_filter($todaySales, function ($s) use ($dateStart, $dateEnd) { $d = substr($s['created_at_vente'], 0, 10); return $d >= $dateStart && $d <= $dateEnd; }));
             $todayExpenses = Expense::getAll();
-            $todayExpenses = array_values(array_filter($todayExpenses, function ($e) use ($clientDate) { return substr($e['date_depense_depense'], 0, 10) === $clientDate; }));
+            $todayExpenses = array_values(array_filter($todayExpenses, function ($e) use ($dateStart, $dateEnd) { $d = substr($e['date_depense_depense'], 0, 10); return $d >= $dateStart && $d <= $dateEnd; }));
             $todayPurchases = Purchase::getAll();
-            $todayPurchases = array_values(array_filter($todayPurchases, function ($p) use ($clientDate) { return substr($p['date_achat'], 0, 10) === $clientDate; }));
+            $todayPurchases = array_values(array_filter($todayPurchases, function ($p) use ($dateStart, $dateEnd) { $d = substr($p['date_achat'], 0, 10); return $d >= $dateStart && $d <= $dateEnd; }));
             $allProducts = Product::getAll();
         } else {
             $shop = Shop::findByUserCode($user['code_user']);
             if (!$shop) {
                 Response::error('Boutique introuvable', [], 404);
             }
-            $todaySales = Sale::getTodayByShop($shop['code_boutique'], $clientDate);
-            $todayExpenses = Expense::getTodayByShop($shop['code_boutique'], $clientDate);
+            $todaySales = Sale::getAllByShop($shop['code_boutique']);
+            $todaySales = array_values(array_filter($todaySales, function ($s) use ($dateStart, $dateEnd) { $d = substr($s['created_at_vente'], 0, 10); return $d >= $dateStart && $d <= $dateEnd; }));
+            $todayExpenses = Expense::getAllByShop($shop['code_boutique']);
+            $todayExpenses = array_values(array_filter($todayExpenses, function ($e) use ($dateStart, $dateEnd) { $d = substr($e['date_depense_depense'], 0, 10); return $d >= $dateStart && $d <= $dateEnd; }));
             $todayPurchases = Purchase::getByShop($shop['code_boutique']);
-            $todayPurchases = array_values(array_filter($todayPurchases, function ($p) use ($clientDate) { return substr($p['date_achat'], 0, 10) === $clientDate; }));
+            $todayPurchases = array_values(array_filter($todayPurchases, function ($p) use ($dateStart, $dateEnd) { $d = substr($p['date_achat'], 0, 10); return $d >= $dateStart && $d <= $dateEnd; }));
             $allProducts = Product::getByShop($shop['code_boutique']);
         }
 
@@ -46,8 +61,30 @@ class DashboardController extends Controller
         $productCount = count($allProducts);
         $outOfStock = 0;
         $stockValue = 0;
+        $totalStockQte = 0;
+
+        $stockMap = [];
+        try {
+            $shopFilter = $isDev ? '' : ' WHERE boutique_code = :boutique_code';
+            $sql = 'SELECT code_produit, stock_disponible FROM vue_stock_produits' . $shopFilter;
+            $stmt = Database::getConnection()->prepare($sql);
+            if (!$isDev && $shop) {
+                $stmt->execute(['boutique_code' => $shop['code_boutique']]);
+            } else {
+                $stmt->execute();
+            }
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($rows as $row) {
+                $stockMap[$row['code_produit']] = $row['stock_disponible'];
+            }
+        } catch (\Exception $e) {
+            $stockMap = [];
+        }
+
         foreach ($allProducts as $product) {
-            $stock = (float)($product['stock_initial_produit'] ?? 0);
+            $code = $product['code_produit'];
+            $stock = isset($stockMap[$code]) ? (float) $stockMap[$code] : (float)($product['stock_initial_produit'] ?? 0);
+            $totalStockQte += $stock;
             $stockValue += $stock * (float)($product['prix_achat_produit'] ?? 0);
             if ($stock <= 0) {
                 $outOfStock++;
@@ -74,15 +111,23 @@ class DashboardController extends Controller
                  FROM lignes_ventes lv
                  JOIN ventes v ON lv.vente_code = v.code_vente
                  WHERE v.boutique_code = :boutique_code
+                   AND DATE(v.created_at_vente) >= :date_start
+                   AND DATE(v.created_at_vente) <= :date_end
                  GROUP BY lv.produit_code
                  ORDER BY total_vendu DESC
                  LIMIT 5'
             );
-            $stmt->execute(['boutique_code' => $shop['code_boutique']]);
+            $stmt->execute(['boutique_code' => $shop['code_boutique'], 'date_start' => $dateStart, 'date_end' => $dateEnd]);
             $topProducts = $stmt->fetchAll();
         }
 
+        $recentSales = array_slice(array_reverse($todaySales), 0, 10);
+
+        $periodLabel = $period === 'week' ? 'semaine' : ($period === 'month' ? 'mois' : 'jour');
+
         Response::success('Dashboard', [
+            'period' => $period,
+            'period_label' => $periodLabel,
             'sales' => $this->formatMoney($totalSales),
             'expenses' => $this->formatMoney($totalExpenses),
             'purchases' => $this->formatMoney($totalPurchases),
@@ -94,11 +139,12 @@ class DashboardController extends Controller
             'product_count' => $productCount,
             'out_of_stock' => $outOfStock,
             'stock_value' => $this->formatMoney($stockValue),
+            'total_stock_qte' => (int) $totalStockQte,
             'client_count' => $clientCount,
             'supplier_count' => $supplierCount,
             'total_dettes' => $this->formatMoney($totalDettes),
             'top_products' => $topProducts,
-            'recent' => array_slice(array_reverse($todaySales), 0, 10),
+            'recent' => $recentSales,
             'stats' => $stats,
         ]);
     }

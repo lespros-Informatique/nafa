@@ -10,6 +10,7 @@ const app = {
     historyFilter: 'today',
     historyType: 'vente',
     reportPeriod: 'day',
+    dashPeriod: 'today',
     pendingDelete: null,
     subscriptionMode: 'select',
     devUserPage: 1,
@@ -517,17 +518,18 @@ const app = {
         if (recentList && !isDev) this.showSkeleton(recentList, 'list');
 
         try {
-            const data = await this.api(`/dashboard?client_date=${this.getClientDate()}`);
+            const data = await this.api(`/dashboard?period=${this.dashPeriod}`);
             if (metricsGrid) {
+                const periodLabel = (data.data.period_label || 'jour');
                 metricsGrid.innerHTML = `
-                    <div class="metric-card"><span class="metric-label">Ventes du jour</span><span class="metric-value">${data.data.sales}</span></div>
-                    <div class="metric-card metric-expenses"><span class="metric-label">Dépenses du jour</span><span class="metric-value">${data.data.expenses}</span></div>
-                    <div class="metric-card"><span class="metric-label">Achats du jour</span><span class="metric-value">${data.data.purchases || '0 F'}</span></div>
-                    <div class="metric-card"><span class="metric-label">Net du jour</span><span class="metric-value">${data.data.net}</span></div>
+                    <div class="metric-card"><span class="metric-label">Ventes du ${periodLabel}</span><span class="metric-value">${data.data.sales}</span></div>
+                    <div class="metric-card metric-expenses"><span class="metric-label">Dépenses du ${periodLabel}</span><span class="metric-value">${data.data.expenses}</span></div>
+                    <div class="metric-card"><span class="metric-label">Achats du ${periodLabel}</span><span class="metric-value">${data.data.purchases || '0 F'}</span></div>
+                    <div class="metric-card"><span class="metric-label">Net du ${periodLabel}</span><span class="metric-value">${data.data.net}</span></div>
                     <div class="metric-card"><span class="metric-label">Clients</span><span class="metric-value">${data.data.client_count ?? 0}</span></div>
                     <div class="metric-card"><span class="metric-label">Fournisseurs</span><span class="metric-value">${data.data.supplier_count ?? 0}</span></div>
                     <div class="metric-card metric-expenses metric-card-full"><span class="metric-label">Dettes clients</span><span class="metric-value">${data.data.total_dettes || '0 F'}</span></div>
-                    <div class="metric-card"><span class="metric-label">Produits</span><span class="metric-value">${data.data.product_count ?? 0}</span></div>
+                    <div class="metric-card"><span class="metric-label">Qté en stock</span><span class="metric-value">${data.data.total_stock_qte ?? 0}</span></div>
                     <div class="metric-card"><span class="metric-label">Valeur stock</span><span class="metric-value">${data.data.stock_value || '0 F'}</span></div>
                     <div class="metric-card metric-expenses metric-card-full"><span class="metric-label">Ruptures</span><span class="metric-value">${data.data.out_of_stock ?? 0}</span></div>
                 `;
@@ -1393,6 +1395,12 @@ const app = {
         }
     },
 
+    setDashPeriod(period) {
+        this.dashPeriod = period;
+        document.querySelectorAll('#dash-filter-bar .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.period === period));
+        this.renderDashboard();
+    },
+
     setHistoryFilter(filter) {
         this.historyFilter = filter;
         document.querySelectorAll('.filter-btn').forEach(b => { if (b.dataset.filter) b.classList.toggle('active', b.dataset.filter === filter); });
@@ -2194,6 +2202,8 @@ const app = {
             this.closeCreateClientModal();
             this.toast('Client créé', 'success')
             this.renderClients();
+            const clientSelect = document.getElementById('sale-client');
+            if (clientSelect) this.loadSaleOptions();
         } catch (err) {
             this.toast(err.message, 'error');
         } finally {
