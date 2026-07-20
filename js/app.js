@@ -1433,6 +1433,9 @@ const app = {
                             <div class="list-item-meta">${this.escapeHtml(item.meta)} ${item.mode !== '-' ? '• ' + this.escapeHtml(item.mode) : ''}</div>
                         </div>
                         <span class="list-item-amount ${item.type === 'vente' ? 'positive' : 'negative'}">${item.type === 'vente' ? '+' : '-'}${this.formatMoney(item.amount)}</span>
+                        <button class="list-item-arrow" onclick="app.openHistoryDetail('${item.type}', '${this.escapeHtml(item.id)}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
                         <button class="list-item-delete" onclick="app.deleteItem('${item.type}', '${item.id}')">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 1 1-2 2H7a2 2 0 1 1-2-2V4m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         </button>
@@ -1447,6 +1450,14 @@ const app = {
     async deleteItem(type, id) {
         this.pendingDelete = { type, id };
         this.openConfirm();
+    },
+
+    openHistoryDetail(type, id) {
+        if (type === 'vente') {
+            this.openSaleDetail(id);
+        } else if (type === 'achat') {
+            this.openPurchaseDetail(id);
+        }
     },
 
     openConfirm() {
@@ -1660,6 +1671,8 @@ const app = {
         const unite = document.getElementById('product-unit').value.trim();
         const prixAchat = parseFloat(document.getElementById('product-prix-achat').value) || 0;
         const prixVente = parseFloat(document.getElementById('product-prix-vente').value) || 0;
+        const stockInitial = parseFloat(document.getElementById('product-stock-initial').value) || 0;
+        const stockMinimum = parseFloat(document.getElementById('product-stock-minimum').value) || 0;
         if (!libelle || !unite) return;
         const btn = e.target.querySelector('button[type="submit"]');
         this.setButtonLoading(btn, true);
@@ -1667,12 +1680,14 @@ const app = {
         try {
             await this.api('/products', {
                 method: 'POST',
-                body: JSON.stringify({ libelle, unite, prix_achat: prixAchat, prix_vente: prixVente }),
+                body: JSON.stringify({ libelle, unite, prix_achat: prixAchat, prix_vente: prixVente, stock_initial: stockInitial, stock_minimum: stockMinimum }),
             });
             document.getElementById('product-label').value = '';
             document.getElementById('product-unit').value = '';
             document.getElementById('product-prix-achat').value = '';
             document.getElementById('product-prix-vente').value = '';
+            document.getElementById('product-stock-initial').value = '';
+            document.getElementById('product-stock-minimum').value = '';
             this.toast('Produit enregistré', 'success')
             this.navigate('products');
         } catch (err) {
@@ -2002,6 +2017,9 @@ const app = {
                     </div>
                     <div class="list-item-actions">
                         <span class="list-item-amount negative">-${this.formatMoney(p.montant_achat)}</span>
+                        <button class="list-item-arrow" onclick="app.openPurchaseDetail('${this.escapeHtml(p.code_achat)}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
                         <button class="list-item-delete" onclick="app.deletePurchase('${this.escapeHtml(p.code_achat)}')">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 1 1-2 2H7a2 2 0 1 1-2-2V4m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         </button>
@@ -2245,6 +2263,7 @@ const app = {
         try {
             const data = await this.api(`/clients/detail?code=${encodeURIComponent(code)}`);
             const c = data.data.client;
+            const dette = parseFloat(data.data.dette_client) || 0;
             const html = `
                 <div class="detail-section">
                     <div class="detail-item"><span>Nom</span><strong>${this.escapeHtml(c.nom_client)}</strong></div>
@@ -2253,6 +2272,7 @@ const app = {
                     <div class="detail-item"><span>Adresse</span><strong>${this.escapeHtml(c.adresse_client || '-')}</strong></div>
                 </div>
                 <div class="detail-section">
+                    <div class="detail-item"><span>Dette</span><strong>${this.formatMoney(dette)}</strong></div>
                     <div class="detail-item"><span>Statut</span><strong><span class="badge ${c.statut_client === 'actif' ? 'badge-actif' : 'badge-inactif'}">${this.escapeHtml(c.statut_client)}</span></strong></div>
                     <div class="detail-item"><span>Créé le</span><strong>${this.escapeHtml(this.formatFrenchDate(c.created_at_client))}</strong></div>
                 </div>
@@ -2420,6 +2440,85 @@ const app = {
 
     closeSupplierDetail() {
         document.getElementById('supplier-detail-modal').classList.remove('open');
+    },
+
+    async openPurchaseDetail(code) {
+        const modal = document.getElementById('purchase-detail-modal');
+        const content = document.getElementById('purchase-detail-content');
+        content.innerHTML = '<div class="skeleton skeleton-list"><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div></div>';
+        modal.classList.add('open');
+
+        try {
+            const data = await this.api(`/purchases/detail?code=${encodeURIComponent(code)}`);
+            const a = data.data.purchase;
+            const html = `
+                <div class="detail-section">
+                    <div class="detail-item"><span>Produit</span><strong>${this.escapeHtml(data.data.produit_libelle || a.produit_code)}</strong></div>
+                    <div class="detail-item"><span>Code achat</span><strong>${this.escapeHtml(a.code_achat)}</strong></div>
+                    <div class="detail-item"><span>Fournisseur</span><strong>${this.escapeHtml(data.data.fournisseur_nom || '-')}</strong></div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-item"><span>Quantité</span><strong>${this.formatNumber(a.quantite_achat)} ${this.escapeHtml(data.data.produit_unite || '')}</strong></div>
+                    <div class="detail-item"><span>Prix unitaire</span><strong>${this.formatMoney(a.prix_unitaire_achat)}</strong></div>
+                    <div class="detail-item"><span>Montant</span><strong>${this.formatMoney(a.montant_achat)}</strong></div>
+                    <div class="detail-item"><span>Date</span><strong>${this.escapeHtml(this.formatFrenchDate(a.date_achat))}</strong></div>
+                </div>
+            `;
+            content.innerHTML = html;
+        } catch (err) {
+            content.innerHTML = `<div class="empty-state">${this.escapeHtml(err.message)}</div>`;
+        }
+    },
+
+    closePurchaseDetail() {
+        document.getElementById('purchase-detail-modal').classList.remove('open');
+    },
+
+    async openSaleDetail(code) {
+        const modal = document.getElementById('sale-detail-modal');
+        const content = document.getElementById('sale-detail-content');
+        content.innerHTML = '<div class="skeleton skeleton-list"><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div></div>';
+        modal.classList.add('open');
+
+        try {
+            const data = await this.api(`/sales/detail?code=${encodeURIComponent(code)}`);
+            const v = data.data.sale;
+            const lignes = data.data.lignes || [];
+            const lignesHtml = lignes.length
+                ? lignes.map(l => `
+                    <div class="list-item">
+                        <div class="list-item-info">
+                            <div class="list-item-title">${this.escapeHtml(l.produit_libelle || l.produit_code)}</div>
+                            <div class="list-item-meta">${this.formatNumber(l.quantite)} ${this.escapeHtml(l.produit_unite || '')} × ${this.formatMoney(l.prix_unitaire)}</div>
+                        </div>
+                        <span class="list-item-amount">${this.formatMoney(l.montant)}</span>
+                    </div>
+                `).join('')
+                : '<div class="empty-state">Aucune ligne</div>';
+
+            const html = `
+                <div class="detail-section">
+                    <div class="detail-item"><span>Client</span><strong>${this.escapeHtml(data.data.client_nom || 'Passager')}</strong></div>
+                    <div class="detail-item"><span>Code vente</span><strong>${this.escapeHtml(v.code_vente)}</strong></div>
+                    <div class="detail-item"><span>Statut paiement</span><strong><span class="badge ${v.statut_paiement_vente === 'credit' ? 'badge-inactif' : 'badge-actif'}">${this.escapeHtml(v.statut_paiement_vente)}</span></strong></div>
+                    <div class="detail-item"><span>Date</span><strong>${this.escapeHtml(this.formatFrenchDate(v.created_at_vente))}</strong></div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-item"><span>Montant total</span><strong>${this.formatMoney(v.montant_vente)}</strong></div>
+                    <div class="detail-item"><span>Montant payé</span><strong>${this.formatMoney(v.montant_paye_vente)}</strong></div>
+                    <div class="detail-item"><span>Reste à payer</span><strong>${this.formatMoney(v.reste_a_payer_vente)}</strong></div>
+                </div>
+                <h4 class="detail-title">Lignes de vente</h4>
+                <div class="list-container">${lignesHtml}</div>
+            `;
+            content.innerHTML = html;
+        } catch (err) {
+            content.innerHTML = `<div class="empty-state">${this.escapeHtml(err.message)}</div>`;
+        }
+    },
+
+    closeSaleDetail() {
+        document.getElementById('sale-detail-modal').classList.remove('open');
     },
 
     async deleteSupplier(code) {

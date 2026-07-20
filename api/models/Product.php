@@ -7,8 +7,8 @@ class Product
     public static function create(array $data): array
     {
         $stmt = Database::getConnection()->prepare(
-            'INSERT INTO produits (code_produit, boutique_code, libelle_produit, unite_produit, prix_achat_produit, prix_vente_produit, stock_initial_produit, statut_produit)
-             VALUES (:code_produit, :boutique_code, :libelle_produit, :unite_produit, :prix_achat_produit, :prix_vente_produit, :stock_initial_produit, :statut_produit)'
+            'INSERT INTO produits (code_produit, boutique_code, libelle_produit, unite_produit, prix_achat_produit, prix_vente_produit, stock_initial_produit, stock_minimum_produit, statut_produit)
+             VALUES (:code_produit, :boutique_code, :libelle_produit, :unite_produit, :prix_achat_produit, :prix_vente_produit, :stock_initial_produit, :stock_minimum_produit, :statut_produit)'
         );
         $stmt->execute([
             'code_produit' => $data['code_produit'],
@@ -18,6 +18,7 @@ class Product
             'prix_achat_produit' => $data['prix_achat_produit'],
             'prix_vente_produit' => $data['prix_vente_produit'],
             'stock_initial_produit' => $data['stock_initial_produit'],
+            'stock_minimum_produit' => $data['stock_minimum_produit'] ?? 0,
             'statut_produit' => $data['statut_produit'] ?? 'actif',
         ]);
         $id = Database::getConnection()->lastInsertId();

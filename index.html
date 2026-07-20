@@ -375,6 +375,14 @@
                     <label for="product-prix-vente">Prix de vente</label>
                     <input type="number" id="product-prix-vente" placeholder="0" inputmode="decimal" step="1" min="0">
                 </div>
+                <div class="input-group">
+                    <label for="product-stock-initial">Stock initial</label>
+                    <input type="number" id="product-stock-initial" placeholder="0" inputmode="decimal" step="1" min="0">
+                </div>
+                <div class="input-group">
+                    <label for="product-stock-minimum">Seuil d'alerte (stock minimum)</label>
+                    <input type="number" id="product-stock-minimum" placeholder="0" inputmode="decimal" step="1" min="0">
+                </div>
                 <button type="submit" class="btn btn-primary btn-full">Enregistrer</button>
             </form>
         </div>
@@ -655,6 +663,36 @@
                 </div>
                 <div class="modal-body">
                     <div id="supplier-detail-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PURCHASE DETAIL MODAL -->
+        <div id="purchase-detail-modal" class="modal-overlay" onclick="if(event.target===this)app.closePurchaseDetail()">
+            <div class="modal-sheet">
+                <div class="modal-header">
+                    <h3>Détail achat</h3>
+                    <button class="modal-close" onclick="app.closePurchaseDetail()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="purchase-detail-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SALE DETAIL MODAL -->
+        <div id="sale-detail-modal" class="modal-overlay" onclick="if(event.target===this)app.closeSaleDetail()">
+            <div class="modal-sheet">
+                <div class="modal-header">
+                    <h3>Détail vente</h3>
+                    <button class="modal-close" onclick="app.closeSaleDetail()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="sale-detail-content"></div>
                 </div>
             </div>
         </div>

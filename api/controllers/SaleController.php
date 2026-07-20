@@ -93,4 +93,56 @@ class SaleController extends Controller
 
         Response::success('Vente enregistrée', ['sale' => $sale]);
     }
+
+    public function detail(): void
+    {
+        $this->requireActiveSubscription();
+        $code = trim($_GET['code'] ?? '');
+
+        if (!$code) {
+            Response::error('Code vente requis');
+        }
+
+        $sale = Sale::findByCode($code);
+        if (!$sale) {
+            Response::error('Vente introuvable', [], 404);
+        }
+
+        $lines = SaleLine::findByVenteCode($code);
+
+        $lignes = [];
+        foreach ($lines as $line) {
+            $produitLibelle = '';
+            $produitUnite = '';
+            if (!empty($line['produit_code'])) {
+                $product = Product::findByCode($line['produit_code']);
+                if ($product) {
+                    $produitLibelle = $product['libelle_produit'] ?? '';
+                    $produitUnite = $product['unite_produit'] ?? '';
+                }
+            }
+            $lignes[] = [
+                'produit_code' => $line['produit_code'],
+                'produit_libelle' => $produitLibelle,
+                'produit_unite' => $produitUnite,
+                'quantite' => (float) $line['quantite'],
+                'prix_unitaire' => (float) $line['prix_unitaire'],
+                'montant' => (float) $line['montant'],
+            ];
+        }
+
+        $clientNom = '';
+        if (!empty($sale['client_code'])) {
+            $client = Client::findByCode($sale['client_code']);
+            if ($client) {
+                $clientNom = $client['nom_client'] ?? '';
+            }
+        }
+
+        Response::success('Vente', [
+            'sale' => $sale,
+            'lignes' => $lignes,
+            'client_nom' => $clientNom,
+        ]);
+    }
 }

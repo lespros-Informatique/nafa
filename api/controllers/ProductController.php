@@ -66,6 +66,7 @@ class ProductController extends Controller
         $prixAchat = (float) ($this->input('prix_achat', 0));
         $prixVente = (float) ($this->input('prix_vente', 0));
         $stockInitial = (float) ($this->input('stock_initial', 0));
+        $stockMinimum = (float) ($this->input('stock_minimum', 0));
 
         if (!$libelle) {
             Response::error('Libellé requis');
@@ -83,6 +84,7 @@ class ProductController extends Controller
             'prix_achat_produit' => $prixAchat,
             'prix_vente_produit' => $prixVente,
             'stock_initial_produit' => $stockInitial,
+            'stock_minimum_produit' => $stockMinimum,
             'statut_produit' => 'actif',
         ]);
 

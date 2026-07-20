@@ -160,4 +160,44 @@ class PurchaseController extends Controller
 
         Response::success('Achat mis à jour', ['purchase' => $purchase]);
     }
+
+    public function detail(): void
+    {
+        $this->requireActiveSubscription();
+        $code = trim($_GET['code'] ?? '');
+
+        if (!$code) {
+            Response::error('Code achat requis');
+        }
+
+        $purchase = Purchase::findByCode($code);
+        if (!$purchase) {
+            Response::error('Achat introuvable', [], 404);
+        }
+
+        $produitLibelle = '';
+        $produitUnite = '';
+        if (!empty($purchase['produit_code'])) {
+            $product = Product::findByCode($purchase['produit_code']);
+            if ($product) {
+                $produitLibelle = $product['libelle_produit'] ?? '';
+                $produitUnite = $product['unite_produit'] ?? '';
+            }
+        }
+
+        $fournisseurNom = '';
+        if (!empty($purchase['fournisseur_code'])) {
+            $supplier = Supplier::findByCode($purchase['fournisseur_code']);
+            if ($supplier) {
+                $fournisseurNom = $supplier['nom_fournisseur'] ?? '';
+            }
+        }
+
+        Response::success('Achat', [
+            'purchase' => $purchase,
+            'produit_libelle' => $produitLibelle,
+            'produit_unite' => $produitUnite,
+            'fournisseur_nom' => $fournisseurNom,
+        ]);
+    }
 }

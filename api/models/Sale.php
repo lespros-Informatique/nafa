@@ -25,6 +25,14 @@ class Sale
         return self::findById((int)$id);
     }
 
+    public static function findByCode(string $code): ?array
+    {
+        $stmt = Database::getConnection()->prepare('SELECT * FROM ventes WHERE code_vente = :code AND statut_vente != "supprime" LIMIT 1');
+        $stmt->execute(['code' => $code]);
+        $sale = $stmt->fetch();
+        return $sale ?: null;
+    }
+
     public static function findById(int $id): ?array
     {
         $stmt = Database::getConnection()->prepare('SELECT * FROM ventes WHERE id_vente = :id LIMIT 1');
