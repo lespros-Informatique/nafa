@@ -12,7 +12,18 @@ class DashboardController extends Controller
 
         $dateStart = null;
         $dateEnd = null;
-        if ($period === 'week') {
+        if ($period === 'custom') {
+            $dateStart = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date_start'] ?? '') ? $_GET['date_start'] : null;
+            $dateEnd = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date_end'] ?? '') ? $_GET['date_end'] : null;
+            if (!$dateStart || !$dateEnd) {
+                $dateStart = date('Y-m-d');
+                $dateEnd = date('Y-m-d');
+                $period = 'today';
+            }
+            if ($dateStart > $dateEnd) {
+                [$dateStart, $dateEnd] = [$dateEnd, $dateStart];
+            }
+        } elseif ($period === 'week') {
             $dateEnd = date('Y-m-d');
             $dateStart = date('Y-m-d', strtotime('-6 days'));
         } elseif ($period === 'month') {
@@ -22,6 +33,8 @@ class DashboardController extends Controller
             $dateStart = date('Y-m-d');
             $dateEnd = date('Y-m-d');
         }
+
+        $periodLabel = $period === 'week' ? 'semaine' : ($period === 'month' ? 'mois' : ($period === 'custom' ? 'période' : 'jour'));
 
         if ($isDev) {
             $todaySales = Sale::getAll();
@@ -141,11 +154,11 @@ class DashboardController extends Controller
 
         $recentSales = array_slice(array_reverse($todaySales), 0, 10);
 
-        $periodLabel = $period === 'week' ? 'semaine' : ($period === 'month' ? 'mois' : 'jour');
-
         Response::success('Dashboard', [
             'period' => $period,
             'period_label' => $periodLabel,
+            'date_start' => $dateStart,
+            'date_end' => $dateEnd,
             'sales' => $this->formatMoney($totalSales),
             'expenses' => $this->formatMoney($totalExpenses),
             'purchases' => $this->formatMoney($totalPurchases),

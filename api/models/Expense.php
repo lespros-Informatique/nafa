@@ -40,6 +40,20 @@ class Expense
         return $stmt->fetchAll();
     }
 
+    public static function getByShopPeriod(string $shopCode, string $dateStart, string $dateEnd): array
+    {
+        $stmt = Database::getConnection()->prepare(
+            'SELECT * FROM depenses
+             WHERE boutique_code = :boutique_code
+               AND statut_depense != "supprime"
+               AND DATE(date_depense_depense) >= :date_start
+               AND DATE(date_depense_depense) <= :date_end
+             ORDER BY date_depense_depense DESC'
+        );
+        $stmt->execute(['boutique_code' => $shopCode, 'date_start' => $dateStart, 'date_end' => $dateEnd]);
+        return $stmt->fetchAll();
+    }
+
     public static function getAllByShop(string $shopCode): array
     {
         $stmt = Database::getConnection()->prepare(

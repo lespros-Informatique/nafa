@@ -11,6 +11,28 @@ class HistoryController extends Controller
 
         $filter = $_GET['filter'] ?? 'today';
         $clientDate = $_GET['client_date'] ?? null;
+        $dateStart = null;
+        $dateEnd = null;
+
+        if ($filter === 'custom') {
+            $dateStart = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date_start'] ?? '') ? $_GET['date_start'] : null;
+            $dateEnd = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date_end'] ?? '') ? $_GET['date_end'] : null;
+            if (!$dateStart || !$dateEnd) {
+                Response::error('Dates de période personnalisée requises', [], 400);
+            }
+            if ($dateStart > $dateEnd) {
+                [$dateStart, $dateEnd] = [$dateEnd, $dateStart];
+            }
+        } elseif ($filter === 'week') {
+            $dateEnd = date('Y-m-d');
+            $dateStart = date('Y-m-d', strtotime('-7 days'));
+        } elseif ($filter === 'month') {
+            $dateEnd = date('Y-m-d');
+            $dateStart = date('Y-m-d', strtotime('-1 month'));
+        } else {
+            $dateStart = date('Y-m-d');
+            $dateEnd = date('Y-m-d');
+        }
 
         if ($isDev) {
             $sales = Sale::getAll();
@@ -28,41 +50,44 @@ class HistoryController extends Controller
 
         $items = [];
         foreach ($sales as $sale) {
-            $date = new DateTime($sale['created_at_vente']);
-            if ($this->matchFilter($date, $filter, $clientDate)) {
+            $date = substr($sale['created_at_vente'], 0, 10);
+            if ($date >= $dateStart && $date <= $dateEnd) {
                 $items[] = [
                     'type' => 'vente',
                     'id' => $sale['code_vente'],
                     'title' => 'Vente',
-                    'meta' => $date->format('d/m/Y H:i'),
+                    'meta' => (new DateTime($sale['created_at_vente']))->format('d/m/Y H:i'),
                     'amount' => (float) $sale['montant_vente'],
                     'mode' => $sale['mode_paiement_vente'],
+                    'statut' => $sale['statut_paiement_vente'] ?? null,
                 ];
             }
         }
         foreach ($expenses as $expense) {
-            $date = new DateTime($expense['date_depense_depense']);
-            if ($this->matchFilter($date, $filter, $clientDate)) {
+            $date = substr($expense['date_depense_depense'], 0, 10);
+            if ($date >= $dateStart && $date <= $dateEnd) {
                 $items[] = [
                     'type' => 'depense',
                     'id' => $expense['code_depense'],
                     'title' => $expense['libelle_depense'],
-                    'meta' => $date->format('d/m/Y H:i'),
+                    'meta' => (new DateTime($expense['date_depense_depense']))->format('d/m/Y H:i'),
                     'amount' => (float) $expense['montant_depense'],
                     'mode' => '-',
+                    'statut' => null,
                 ];
             }
         }
         foreach ($purchases as $purchase) {
-            $date = new DateTime($purchase['date_achat']);
-            if ($this->matchFilter($date, $filter, $clientDate)) {
+            $date = substr($purchase['date_achat'], 0, 10);
+            if ($date >= $dateStart && $date <= $dateEnd) {
                 $items[] = [
                     'type' => 'achat',
                     'id' => $purchase['code_achat'],
                     'title' => 'Achat',
-                    'meta' => $date->format('d/m/Y H:i'),
+                    'meta' => (new DateTime($purchase['date_achat']))->format('d/m/Y H:i'),
                     'amount' => (float) $purchase['montant_achat'],
                     'mode' => $purchase['produit_code'],
+                    'statut' => $purchase['statut_paiement_achat'] ?? null,
                 ];
             }
         }

@@ -8,7 +8,11 @@ const app = {
     currentUser: null,
     currentShop: null,
     historyFilter: 'today',
+    historyDateStart: '',
+    historyDateEnd: '',
+    clientDate: '',
     historyType: 'vente',
+    historySearch: '',
     reportPeriod: 'day',
     dashPeriod: 'today',
     pendingDelete: null,
@@ -49,6 +53,10 @@ const app = {
     purchasesListSearch: '',
     purchasesListDateStart: '',
     purchasesListDateEnd: '',
+    expenseListPeriod: 'today',
+    expenseListSearch: '',
+    expenseListDateStart: '',
+    expenseListDateEnd: '',
     clientPage: 1,
     clientLimit: 20,
     clientHasMore: false,
@@ -61,6 +69,7 @@ const app = {
     saleAllProducts: [],
     pendingProductDelete: null,
     pendingPurchaseDelete: null,
+    pendingExpenseDelete: null,
     pendingClientDelete: null,
     pendingSupplierDelete: null,
     contact: {
@@ -293,6 +302,7 @@ const app = {
         if (page === 'sale') this.loadSaleOptions();
         if (page === 'sales-list') this.renderSalesList();
         if (page === 'purchases-list') this.renderPurchasesList();
+        if (page === 'expense') this.renderExpensesList();
     },
 
     toggleSidebar() {
@@ -520,7 +530,7 @@ const app = {
         this.toast('Téléchargement lancé', 'success');
     },
 
-    async renderDashboard() {
+    async renderDashboard(startDate, endDate) {
         const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
         if (!isDev && !this.currentShop) return;
         const metricsGrid = document.querySelector('.metrics-grid');
@@ -529,7 +539,12 @@ const app = {
         if (recentList && !isDev) this.showSkeleton(recentList, 'list');
 
         try {
-            const data = await this.api(`/dashboard?period=${this.dashPeriod}`);
+            const params = new URLSearchParams({ period: this.dashPeriod });
+            if (this.dashPeriod === 'custom' && startDate && endDate) {
+                params.set('date_start', startDate);
+                params.set('date_end', endDate);
+            }
+            const data = await this.api(`/dashboard?${params.toString()}`);
             if (metricsGrid) {
                 const periodLabel = (data.data.period_label || 'jour');
                 metricsGrid.innerHTML = `
@@ -728,6 +743,7 @@ const app = {
             document.getElementById('expense-label').value = '';
             document.getElementById('expense-amount').value = '';
             this.toast('Dépense enregistrée', 'success')
+            this.renderExpensesList();
             this.refreshBadges();
         } catch (err) {
             this.toast(err.message, 'error');
@@ -1413,12 +1429,46 @@ const app = {
     setDashPeriod(period) {
         this.dashPeriod = period;
         document.querySelectorAll('#dash-filter-bar .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.period === period));
+        const range = document.getElementById('dash-custom-range');
+        if (range) range.style.display = period === 'custom' ? '' : 'none';
+        if (period === 'custom') {
+            const start = document.getElementById('dash-date-start');
+            const end = document.getElementById('dash-date-end');
+            if (start && !start.value) start.value = this.getClientDate();
+            if (end && !end.value) end.value = this.getClientDate();
+        }
         this.renderDashboard();
+    },
+
+    onDashCustomDate() {
+        const start = document.getElementById('dash-date-start');
+        const end = document.getElementById('dash-date-end');
+        if (start && end && start.value && end.value) {
+            this.renderDashboard(start.value, end.value);
+        }
     },
 
     setHistoryFilter(filter) {
         this.historyFilter = filter;
         document.querySelectorAll('.filter-btn').forEach(b => { if (b.dataset.filter) b.classList.toggle('active', b.dataset.filter === filter); });
+        const range = document.getElementById('history-custom-range');
+        if (range) range.style.display = filter === 'custom' ? '' : 'none';
+        if (filter === 'custom') {
+            const start = document.getElementById('history-date-start');
+            const end = document.getElementById('history-date-end');
+            if (start && !start.value) start.value = this.getClientDate();
+            if (end && !end.value) end.value = this.getClientDate();
+            this.historyDateStart = start ? start.value : '';
+            this.historyDateEnd = end ? end.value : '';
+        }
+        this.renderHistory();
+    },
+
+    onHistoryCustomDate() {
+        const start = document.getElementById('history-date-start');
+        const end = document.getElementById('history-date-end');
+        this.historyDateStart = start ? start.value : '';
+        this.historyDateEnd = end ? end.value : '';
         this.renderHistory();
     },
 
@@ -1428,28 +1478,43 @@ const app = {
         this.renderHistory();
     },
 
+    onHistorySearch(value) {
+        clearTimeout(this._historySearchTimer);
+        this._historySearchTimer = setTimeout(() => {
+            this.historySearch = value;
+            this.renderHistory();
+        }, 300);
+    },
+
     async renderHistory() {
         const list = document.getElementById('history-list');
         if (!list) return;
         document.querySelectorAll('#history-type-bar .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.type === this.historyType));
         this.showSkeleton(list, 'list');
         try {
-            const data = await this.api(`/history?filter=${this.historyFilter}&client_date=${this.getClientDate()}`);
+            const params = new URLSearchParams({ filter: this.historyFilter });
+            if (this.historyFilter === 'custom') {
+                params.set('date_start', this.historyDateStart || this.getClientDate());
+                params.set('date_end', this.historyDateEnd || this.getClientDate());
+            }
+            const data = await this.api(`/history?${params.toString()}`);
             const items = (data.data.items || []).filter(i => i.type === this.historyType);
-            const emptyText = this.historyType === 'vente' ? 'Aucune vente' : this.historyType === 'depense' ? 'Aucune dépense' : 'Aucun achat';
+            const q = (this.historySearch || '').toLowerCase().trim();
+            const filtered = q ? items.filter(item => (item.id || '').toLowerCase().includes(q) || (item.title || '').toLowerCase().includes(q) || (item.meta || '').toLowerCase().includes(q) || this.formatMoney(item.amount).toLowerCase().includes(q)) : items;
+            const emptyText = this.historySearch && !filtered.length ? 'Aucun résultat' : this.historyType === 'vente' ? 'Aucune vente' : this.historyType === 'depense' ? 'Aucune dépense' : 'Aucun achat';
 
-            list.innerHTML = items.length
-                ? items.map(item => `
+            list.innerHTML = filtered.length
+                ? filtered.map(item => `
                     <div class="list-item">
                         <div class="list-item-info">
-                            <div class="list-item-title">${this.escapeHtml(item.title)}</div>
+                            <div class="list-item-title">${this.escapeHtml(item.title)} ${item.statut ? '<span class="badge ' + (item.statut === 'payé' || item.statut === 'paye' ? 'badge-actif' : item.statut === 'credit' ? 'badge-inactif' : 'badge-inactif') + '">' + this.escapeHtml(item.statut) + '</span>' : ''}</div>
                             <div class="list-item-meta">${this.escapeHtml(item.meta)} ${item.mode !== '-' ? '• ' + this.escapeHtml(item.mode) : ''}</div>
                         </div>
-                        <span class="list-item-amount ${item.type === 'vente' ? 'positive' : 'negative'}">${item.type === 'vente' ? '+' : '-'}${this.formatMoney(item.amount)}</span>
+                        <span class="list-item-amount ${item.type === 'vente' || item.type === 'achat' ? 'positive' : 'negative'}">${item.type === 'vente' || item.type === 'achat' ? '+' : '-'}${this.formatMoney(item.amount)}</span>
                         <button class="list-item-arrow" onclick="app.openHistoryDetail('${item.type}', '${this.escapeHtml(item.id)}')">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                         </button>
-                        <button class="list-item-delete" onclick="app.deleteItem('${item.type}', '${item.id}')">
+                        <button class="list-item-delete" onclick="app.deleteItem('${item.type}', '${this.escapeHtml(item.id)}')">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 1 1-2 2H7a2 2 0 1 1-2-2V4m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         </button>
                     </div>
@@ -1497,6 +1562,25 @@ const app = {
         }
         if (this.pendingSupplierDelete) {
             await this.confirmSupplierDelete();
+            return;
+        }
+        if (this.pendingExpenseDelete) {
+            const code = this.pendingExpenseDelete;
+            const btn = document.querySelector('#confirm-modal .btn-danger');
+            this.setButtonLoading(btn, true);
+            this.closeConfirm();
+            try {
+                await this.api('/history/delete', {
+                    method: 'POST',
+                    body: JSON.stringify({ type: 'depense', id: code }),
+                });
+                this.renderExpensesList();
+                this.toast('Dépense supprimée', 'success');
+            } catch (err) {
+                this.toast(err.message, 'error');
+            } finally {
+                this.setButtonLoading(btn, false);
+            }
             return;
         }
         if (!this.pendingDelete) return;
@@ -2813,6 +2897,93 @@ const app = {
         } catch (err) {
             content.innerHTML = `<div class="empty-state">${this.escapeHtml(err.message)}</div>`;
         }
+    },
+
+    setExpenseListPeriod(period) {
+        this.expenseListPeriod = period;
+        document.querySelectorAll('#expense-filter-bar .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.period === period));
+        const range = document.getElementById('expense-custom-range');
+        if (range) range.style.display = period === 'custom' ? '' : 'none';
+        if (period === 'custom') {
+            const start = document.getElementById('expense-date-start');
+            const end = document.getElementById('expense-date-end');
+            if (start && !start.value) start.value = this.getClientDate();
+            if (end && !end.value) end.value = this.getClientDate();
+            this.expenseListDateStart = start ? start.value : '';
+            this.expenseListDateEnd = end ? end.value : '';
+        }
+        this.renderExpensesList();
+    },
+
+    onExpenseListCustomDate() {
+        const start = document.getElementById('expense-date-start');
+        const end = document.getElementById('expense-date-end');
+        this.expenseListDateStart = start ? start.value : '';
+        this.expenseListDateEnd = end ? end.value : '';
+        this.renderExpensesList();
+    },
+
+    onExpenseListSearch(value) {
+        clearTimeout(this._expenseListSearchTimer);
+        this._expenseListSearchTimer = setTimeout(() => {
+            this.expenseListSearch = value;
+            this.renderExpensesList();
+        }, 300);
+    },
+
+    async renderExpensesList() {
+        const content = document.getElementById('expense-list-content');
+        if (!content) return;
+        this.showSkeleton(content, 'list');
+        try {
+            const period = this.expenseListPeriod || 'today';
+            const params = new URLSearchParams({ period });
+            if (period === 'custom') {
+                params.set('date_start', this.expenseListDateStart || this.getClientDate());
+                params.set('date_end', this.expenseListDateEnd || this.getClientDate());
+            }
+            const data = await this.api(`/expenses?${params.toString()}`);
+            const expenses = data.data.expenses || [];
+            const stats = data.data.stats || {};
+
+            const countEl = document.getElementById('expense-count');
+            const totalEl = document.getElementById('expense-total');
+            if (countEl) countEl.textContent = stats.count ?? 0;
+            if (totalEl) totalEl.textContent = this.formatMoney(stats.total_montant || 0);
+
+            const q = (this.expenseListSearch || '').toLowerCase().trim();
+            const filtered = q
+                ? expenses.filter(e =>
+                    (e.libelle_depense || '').toLowerCase().includes(q) ||
+                    (e.code_depense || '').toLowerCase().includes(q) ||
+                    (this.formatMoney(e.montant_depense) || '').includes(q))
+                : expenses;
+
+            if (!filtered.length) {
+                content.innerHTML = '<div class="empty-state">Aucune dépense</div>';
+                return;
+            }
+
+            content.innerHTML = filtered.map(e => `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${this.escapeHtml(e.libelle_depense)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(e.code_depense)} • ${this.escapeHtml(this.formatFrenchDate(e.date_depense_depense))}</div>
+                    </div>
+                    <span class="list-item-amount negative">-${this.formatMoney(e.montant_depense)}</span>
+                    <button class="list-item-delete" onclick="app.deleteExpense('${this.escapeHtml(e.code_depense)}')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 1 1-2 2H7a2 2 0 1 1-2-2V4m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </div>
+            `).join('');
+        } catch (err) {
+            content.innerHTML = `<div class="empty-state">${this.escapeHtml(err.message)}</div>`;
+        }
+    },
+
+    async deleteExpense(code) {
+        this.pendingExpenseDelete = code;
+        this.openConfirm();
     },
 
     async deleteSupplier(code) {
