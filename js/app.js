@@ -662,7 +662,6 @@ const app = {
         e.preventDefault();
         const clientCode = document.getElementById('sale-client').value;
         const montantPaye = parseFloat(document.getElementById('sale-montant-paye').value) || 0;
-        const statutPaiement = document.getElementById('sale-statut-paiement').value;
         const produits = this.saleProducts.filter(p => p.quantite > 0 && p.prix_unitaire >= 0).map(p => ({
             produit_code: p.code,
             quantite: p.quantite,
@@ -680,7 +679,6 @@ const app = {
                     client_code: clientCode || null,
                     montant,
                     montant_paye: montantPaye,
-                    statut_paiement: statutPaiement,
                     produits,
                     client_now: new Date().toISOString()
                 }),

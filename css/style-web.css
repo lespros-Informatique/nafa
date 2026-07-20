@@ -490,14 +490,14 @@
         padding: 0 28px 20px;
     }
 
-    /* Form pages plus larges */
+    /* Form pages pleine largeur sur PC */
     .form-page {
-        max-width: 640px;
-        padding: 28px;
+        max-width: none;
+        padding: 20px 28px;
         margin-top: 20px;
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 0 20px;
+        gap: 0 24px;
     }
 
     .form-page .input-group {
@@ -512,22 +512,48 @@
         grid-column: 1 / -1;
     }
 
-    /* Product chips horizontal on desktop */
+    /* Product chips full-width rows on desktop */
     .product-chips {
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 10px;
+        flex-direction: column;
+        gap: 12px;
     }
 
     .product-chip {
-        flex: 0 0 auto;
-        min-width: 280px;
+        flex: 1 0 auto;
+        min-width: 100%;
         max-width: 100%;
+        padding: 12px 16px;
+        flex-wrap: nowrap;
+        overflow: hidden;
+    }
+
+    .product-chip-info {
+        flex: 1 1 auto;
+        min-width: 180px;
+        overflow: hidden;
+    }
+
+    .product-chip-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .chip-qty,
     .chip-price {
-        width: 70px;
+        width: 72px;
+        padding: 6px 8px;
+        font-size: 13px;
+    }
+
+    .chip-remove {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+    }
+
+    .chip-remove {
+        flex-shrink: 0;
     }
 
     /* Client info card compact on desktop */

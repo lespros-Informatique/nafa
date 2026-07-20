@@ -24,8 +24,15 @@ class SaleController extends Controller
 
         $clientCode = trim($this->input('client_code', ''));
         $montantPaye = (float) ($this->input('montant_paye', 0));
-        $statutPaiement = $this->input('statut_paiement', 'comptant');
         $reste = max(0, $montant - $montantPaye);
+
+        if ($montantPaye <= 0) {
+            $statutPaiement = 'credit';
+        } elseif ($reste <= 0) {
+            $statutPaiement = 'comptant';
+        } else {
+            $statutPaiement = 'partiel';
+        }
 
         $sale = Sale::create([
             'code_vente' => 'VTE' . time() . mt_rand(100, 999),
