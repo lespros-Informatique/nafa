@@ -415,7 +415,7 @@
     /* Form pages centrées */
     .form-page {
         max-width: 560px;
-        margin: 0 auto;
+        margin: 20px auto 0;
         padding: 24px;
     }
 
@@ -428,6 +428,11 @@
     /* FAB caché sur tablette (actions via sidebar) */
     #fab-container {
         display: none !important;
+    }
+
+    /* Filter bar spacing */
+    .filter-bar {
+        margin-top: 20px;
     }
 }
 
@@ -467,11 +472,17 @@
     .form-page {
         max-width: 640px;
         padding: 28px;
+        margin-top: 20px;
     }
 
     /* Tableau / listes plus lisibles */
     .list-container {
         padding: 0;
+    }
+
+    /* Filter bar spacing */
+    .filter-bar {
+        margin-top: 20px;
     }
 
     /* Sidebar toujours visible et étendue */
@@ -506,5 +517,6 @@
 
     .form-page {
         max-width: 700px;
+        margin-top: 20px;
     }
 }

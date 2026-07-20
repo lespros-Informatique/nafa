@@ -108,7 +108,10 @@ const app = {
             if (logoutBtn) logoutBtn.style.display = isDev ? 'flex' : 'none';
             const downloadBtn = document.getElementById('download-top');
             if (downloadBtn) downloadBtn.style.display = isDev ? 'flex' : 'none';
-            this.navigate('dashboard');
+            const lastPage = localStorage.getItem('nafa_last_page');
+            const validPages = ['dashboard', 'history', 'products', 'purchases', 'stock', 'reports', 'dev-shops', 'dev-list', 'dev-forfaits', 'dev-abonnements'];
+            const targetPage = validPages.includes(lastPage) ? lastPage : 'dashboard';
+            this.navigate(targetPage);
         } else {
             this.navigate('login');
         }
@@ -163,6 +166,10 @@ const app = {
 
         const loggedIn = page !== 'login' && page !== 'subscription';
         const isPublicPage = page === 'login' || page === 'subscription' || page === 'download';
+
+        if (!isPublicPage && this.currentUser) {
+            localStorage.setItem('nafa_last_page', page);
+        }
 
         // Mobile nav
         const bottomNav = document.getElementById('bottom-nav');
