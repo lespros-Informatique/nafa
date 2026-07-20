@@ -32,7 +32,7 @@ class Supplier
 
     public static function findByCode(string $code): ?array
     {
-        $stmt = Database::getConnection()->prepare('SELECT * FROM fournisseurs WHERE code_fournisseur = :code LIMIT 1');
+        $stmt = Database::getConnection()->prepare('SELECT * FROM fournisseurs WHERE code_fournisseur = :code AND statut_fournisseur != "supprime" LIMIT 1');
         $stmt->execute(['code' => $code]);
         $supplier = $stmt->fetch();
         return $supplier ?: null;
@@ -41,7 +41,7 @@ class Supplier
     public static function getByShop(string $shopCode): array
     {
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM fournisseurs WHERE boutique_code = :boutique_code ORDER BY created_at_fournisseur DESC'
+            'SELECT * FROM fournisseurs WHERE boutique_code = :boutique_code AND statut_fournisseur != "supprime" ORDER BY created_at_fournisseur DESC'
         );
         $stmt->execute(['boutique_code' => $shopCode]);
         return $stmt->fetchAll();
@@ -49,7 +49,7 @@ class Supplier
 
     public static function getAll(): array
     {
-        $stmt = Database::getConnection()->query('SELECT * FROM fournisseurs ORDER BY created_at_fournisseur DESC');
+        $stmt = Database::getConnection()->query('SELECT * FROM fournisseurs WHERE statut_fournisseur != "supprime" ORDER BY created_at_fournisseur DESC');
         return $stmt->fetchAll();
     }
 
@@ -58,6 +58,7 @@ class Supplier
         $stmt = Database::getConnection()->prepare(
             'SELECT * FROM fournisseurs
              WHERE boutique_code = :boutique_code
+               AND statut_fournisseur != "supprime"
                AND (nom_fournisseur LIKE :query1 OR code_fournisseur LIKE :query2 OR telephone_fournisseur LIKE :query3)
              ORDER BY created_at_fournisseur DESC
              LIMIT :limit'
@@ -81,20 +82,20 @@ class Supplier
 
     public static function delete(string $code): bool
     {
-        $stmt = Database::getConnection()->prepare('DELETE FROM fournisseurs WHERE code_fournisseur = :code');
+        $stmt = Database::getConnection()->prepare('UPDATE fournisseurs SET statut_fournisseur = "supprime" WHERE code_fournisseur = :code AND statut_fournisseur != "supprime"');
         return $stmt->execute(['code' => $code]);
     }
 
     public static function countByShop(string $shopCode): int
     {
-        $stmt = Database::getConnection()->prepare('SELECT COUNT(*) AS total FROM fournisseurs WHERE boutique_code = :boutique_code');
+        $stmt = Database::getConnection()->prepare('SELECT COUNT(*) AS total FROM fournisseurs WHERE boutique_code = :boutique_code AND statut_fournisseur != "supprime"');
         $stmt->execute(['boutique_code' => $shopCode]);
         return (int) $stmt->fetchColumn();
     }
 
     public static function countAll(): int
     {
-        $stmt = Database::getConnection()->query('SELECT COUNT(*) AS total FROM fournisseurs');
+        $stmt = Database::getConnection()->query('SELECT COUNT(*) AS total FROM fournisseurs WHERE statut_fournisseur != "supprime"');
         return (int) $stmt->fetchColumn();
     }
 }

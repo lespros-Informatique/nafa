@@ -98,7 +98,7 @@ class DashboardController extends Controller
             $clientCount = Client::countByShop($shop['code_boutique']);
             $supplierCount = Supplier::countByShop($shop['code_boutique']);
             $stmt = Database::getConnection()->prepare(
-                'SELECT SUM(reste_a_payer_vente) as total FROM ventes WHERE boutique_code = :boutique_code AND statut_paiement_vente IN ("partiel","credit")'
+                'SELECT SUM(reste_a_payer_vente) as total FROM ventes WHERE boutique_code = :boutique_code AND statut_vente != "supprime" AND statut_paiement_vente IN ("partiel","credit")'
             );
             $stmt->execute(['boutique_code' => $shop['code_boutique']]);
             $totalDettes = (float)($stmt->fetchColumn() ?: 0);
@@ -111,6 +111,8 @@ class DashboardController extends Controller
                  FROM lignes_ventes lv
                  JOIN ventes v ON lv.vente_code = v.code_vente
                  WHERE v.boutique_code = :boutique_code
+                   AND v.statut_vente != "supprime"
+                   AND lv.statut_ligne != "supprime"
                    AND DATE(v.created_at_vente) >= :date_start
                    AND DATE(v.created_at_vente) <= :date_end
                  GROUP BY lv.produit_code

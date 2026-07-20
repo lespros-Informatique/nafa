@@ -34,7 +34,7 @@ class Purchase
 
     public static function findByCode(string $code): ?array
     {
-        $stmt = Database::getConnection()->prepare('SELECT * FROM achats WHERE code_achat = :code LIMIT 1');
+        $stmt = Database::getConnection()->prepare('SELECT * FROM achats WHERE code_achat = :code AND statut_achat != "supprime" LIMIT 1');
         $stmt->execute(['code' => $code]);
         $purchase = $stmt->fetch();
         return $purchase ?: null;
@@ -43,7 +43,7 @@ class Purchase
     public static function getByShop(string $shopCode): array
     {
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM achats WHERE boutique_code = :boutique_code ORDER BY date_achat DESC'
+            'SELECT * FROM achats WHERE boutique_code = :boutique_code AND statut_achat != "supprime" ORDER BY date_achat DESC'
         );
         $stmt->execute(['boutique_code' => $shopCode]);
         return $stmt->fetchAll();
@@ -51,7 +51,7 @@ class Purchase
 
     public static function getAll(): array
     {
-        $stmt = Database::getConnection()->query('SELECT * FROM achats ORDER BY date_achat DESC');
+        $stmt = Database::getConnection()->query('SELECT * FROM achats WHERE statut_achat != "supprime" ORDER BY date_achat DESC');
         return $stmt->fetchAll();
     }
 
@@ -60,6 +60,7 @@ class Purchase
         $stmt = Database::getConnection()->prepare(
             'SELECT * FROM achats
              WHERE boutique_code = :boutique_code
+               AND statut_achat != "supprime"
                AND (code_achat LIKE :query1 OR produit_code LIKE :query2)
              ORDER BY date_achat DESC
              LIMIT :limit'
@@ -75,7 +76,7 @@ class Purchase
 
     public static function delete(string $code): bool
     {
-        $stmt = Database::getConnection()->prepare('DELETE FROM achats WHERE code_achat = :code');
+        $stmt = Database::getConnection()->prepare('UPDATE achats SET statut_achat = "supprime" WHERE code_achat = :code AND statut_achat != "supprime"');
         return $stmt->execute(['code' => $code]);
     }
 

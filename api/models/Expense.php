@@ -34,7 +34,7 @@ class Expense
     {
         $date = $date ?? date('Y-m-d');
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM depenses WHERE boutique_code = :boutique_code AND DATE(date_depense_depense) = :date'
+            'SELECT * FROM depenses WHERE boutique_code = :boutique_code AND statut_depense != "supprime" AND DATE(date_depense_depense) = :date'
         );
         $stmt->execute(['boutique_code' => $shopCode, 'date' => $date]);
         return $stmt->fetchAll();
@@ -43,7 +43,7 @@ class Expense
     public static function getAllByShop(string $shopCode): array
     {
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM depenses WHERE boutique_code = :boutique_code ORDER BY date_depense_depense DESC'
+            'SELECT * FROM depenses WHERE boutique_code = :boutique_code AND statut_depense != "supprime" ORDER BY date_depense_depense DESC'
         );
         $stmt->execute(['boutique_code' => $shopCode]);
         return $stmt->fetchAll();
@@ -51,13 +51,13 @@ class Expense
 
     public static function getAll(): array
     {
-        $stmt = Database::getConnection()->query('SELECT * FROM depenses ORDER BY date_depense_depense DESC');
+        $stmt = Database::getConnection()->query('SELECT * FROM depenses WHERE statut_depense != "supprime" ORDER BY date_depense_depense DESC');
         return $stmt->fetchAll();
     }
 
     public static function delete(string $codeDepense): bool
     {
-        $stmt = Database::getConnection()->prepare('DELETE FROM depenses WHERE code_depense = :code_depense');
+        $stmt = Database::getConnection()->prepare('UPDATE depenses SET statut_depense = "supprime" WHERE code_depense = :code_depense AND statut_depense != "supprime"');
         return $stmt->execute(['code_depense' => $codeDepense]);
     }
 }

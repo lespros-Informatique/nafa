@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : lun. 20 juil. 2026 à 01:44
+-- Généré le : lun. 20 juil. 2026 à 09:06
 -- Version du serveur : 9.1.0
 -- Version de PHP : 8.3.14
 
@@ -74,12 +74,23 @@ CREATE TABLE IF NOT EXISTS `achats` (
   `montant_achat` decimal(12,2) NOT NULL,
   `date_achat` datetime NOT NULL,
   `created_at_achat` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `statut_achat` enum('actif','inactif','supprime') NOT NULL DEFAULT 'actif',
   PRIMARY KEY (`id_achat`),
   UNIQUE KEY `code_achat` (`code_achat`),
   KEY `boutique_code` (`boutique_code`),
   KEY `produit_code` (`produit_code`),
   KEY `fk_achats_fournisseurs` (`fournisseur_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `achats`
+--
+
+INSERT INTO `achats` (`id_achat`, `code_achat`, `boutique_code`, `fournisseur_code`, `produit_code`, `quantite_achat`, `prix_unitaire_achat`, `montant_achat`, `date_achat`, `created_at_achat`, `statut_achat`) VALUES
+(1, 'ACH1784513838295', 'BTE1783965223', 'FOU1784513551612', 'PRD1784513630932', 50.00, 1000.00, 50000.00, '2026-07-20 02:17:18', '2026-07-20 02:17:18', 'actif'),
+(2, 'ACH1784517083912', 'BTE1783965223', 'FOU1784515252145', 'PRD1784513630932', 20.00, 600.00, 12000.00, '2026-07-20 03:11:24', '2026-07-20 03:11:23', 'actif'),
+(3, 'ACH1784517115663', 'BTE1783965223', 'FOU1784515240853', 'PRD1784511003661', 22.00, 800.00, 17600.00, '2026-07-20 03:11:55', '2026-07-20 03:11:55', 'actif'),
+(4, 'ACH1784517847844', 'BTE1783965223', NULL, 'PRD1784513630932', 10.00, 1000.00, 10000.00, '2026-07-20 03:24:08', '2026-07-20 03:24:07', 'actif');
 
 -- --------------------------------------------------------
 
@@ -132,13 +143,21 @@ CREATE TABLE IF NOT EXISTS `clients` (
   `nom_client` varchar(150) NOT NULL,
   `telephone_client` varchar(20) DEFAULT NULL,
   `adresse_client` varchar(255) DEFAULT NULL,
-  `statut_client` enum('actif','inactif') DEFAULT 'actif',
+  `statut_client` enum('actif','inactif','supprime') DEFAULT 'actif',
   `created_at_client` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at_client` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_client`),
   UNIQUE KEY `code_client` (`code_client`),
   KEY `fk_clients_boutiques` (`boutique_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `clients`
+--
+
+INSERT INTO `clients` (`id_client`, `code_client`, `boutique_code`, `nom_client`, `telephone_client`, `adresse_client`, `statut_client`, `created_at_client`, `updated_at_client`) VALUES
+(1, 'CLI1784513620747', 'BTE1783965223', 'LMagasin Heintein', '+2250122334455', 'Belle-ville', 'actif', '2026-07-20 02:13:40', NULL),
+(2, 'CLI1784514859558', 'BTE1783965223', 'Kone patrice', '+2250566015517', 'Zone', 'actif', '2026-07-20 02:34:19', NULL);
 
 -- --------------------------------------------------------
 
@@ -156,10 +175,19 @@ CREATE TABLE IF NOT EXISTS `depenses` (
   `date_depense_depense` datetime NOT NULL,
   `created_at_depense` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at_depense` timestamp NULL DEFAULT NULL,
+  `statut_depense` enum('actif','inactif','supprime') NOT NULL DEFAULT 'actif',
   PRIMARY KEY (`id_depense`),
   UNIQUE KEY `code_depense` (`code_depense`),
   KEY `fk_depenses_boutiques` (`boutique_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `depenses`
+--
+
+INSERT INTO `depenses` (`id_depense`, `code_depense`, `boutique_code`, `libelle_depense`, `montant_depense`, `date_depense_depense`, `created_at_depense`, `updated_at_depense`, `statut_depense`) VALUES
+(1, 'DEP1784513854166', 'BTE1783965223', 'Plaquette d\'oeuf', 50.00, '2026-07-20 02:17:35', '2026-07-20 02:17:35', NULL, 'actif'),
+(2, 'DEP1784516652314', 'BTE1783965223', 'Plaquette d\'oeuf', 50.00, '2026-07-20 03:04:12', '2026-07-20 03:04:12', NULL, 'actif');
 
 -- --------------------------------------------------------
 
@@ -206,13 +234,25 @@ CREATE TABLE IF NOT EXISTS `fournisseurs` (
   `nom_fournisseur` varchar(150) NOT NULL,
   `telephone_fournisseur` varchar(20) DEFAULT NULL,
   `adresse_fournisseur` varchar(255) DEFAULT NULL,
-  `statut_fournisseur` enum('actif','inactif') DEFAULT 'actif',
+  `statut_fournisseur` enum('actif','inactif','supprime') DEFAULT 'actif',
   `created_at_fournisseur` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at_fournisseur` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_fournisseur`),
   UNIQUE KEY `code_fournisseur` (`code_fournisseur`),
   KEY `fk_fournisseurs_boutiques` (`boutique_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `fournisseurs`
+--
+
+INSERT INTO `fournisseurs` (`id_fournisseur`, `code_fournisseur`, `boutique_code`, `nom_fournisseur`, `telephone_fournisseur`, `adresse_fournisseur`, `statut_fournisseur`, `created_at_fournisseur`, `updated_at_fournisseur`) VALUES
+(2, 'FOU1784513531984', 'BTE1783965223', 'LMagasin Heintein', '+2250122334455', 'Belle-ville', 'actif', '2026-07-20 02:12:11', NULL),
+(3, 'FOU1784513542877', 'BTE1783965223', 'LMagasin Heintein', '+2250599009988', 'Belle-ville', 'actif', '2026-07-20 02:12:22', NULL),
+(4, 'FOU1784513551612', 'BTE1783965223', 'camara', '+2250599009988', 'Zone', 'actif', '2026-07-20 02:12:31', NULL),
+(5, 'FOU1784513562632', 'BTE1783965223', 'camara', '+2250599009988', 'Zone', 'actif', '2026-07-20 02:12:42', NULL),
+(6, 'FOU1784515240853', 'BTE1783965223', 'LMagasin Heintein', '+2250122334455', 'Belle-ville', 'actif', '2026-07-20 02:40:40', NULL),
+(7, 'FOU1784515252145', 'BTE1783965223', 'xxxxxxxxxxxxx', '+2250599009988', 'Zone', 'actif', '2026-07-20 02:40:52', NULL);
 
 -- --------------------------------------------------------
 
@@ -229,11 +269,25 @@ CREATE TABLE IF NOT EXISTS `lignes_ventes` (
   `quantite` decimal(12,2) NOT NULL,
   `prix_unitaire` decimal(12,2) NOT NULL,
   `montant` decimal(12,2) NOT NULL,
+  `statut_ligne` enum('actif','inactif','supprime') NOT NULL DEFAULT 'actif',
   PRIMARY KEY (`id_ligne`),
   UNIQUE KEY `code_ligne` (`code_ligne`),
   KEY `vente_code` (`vente_code`),
   KEY `produit_code` (`produit_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `lignes_ventes`
+--
+
+INSERT INTO `lignes_ventes` (`id_ligne`, `code_ligne`, `vente_code`, `produit_code`, `quantite`, `prix_unitaire`, `montant`, `statut_ligne`) VALUES
+(1, 'LIG1784514090891', 'VTE1784514090656', 'PRD1784513630932', 2.00, 900.00, 1800.00, 'actif'),
+(2, 'LIG1784514140837', 'VTE1784514140526', 'PRD1784513630932', 22.00, 900.00, 19800.00, 'actif'),
+(3, 'LIG1784514563394', 'VTE1784514563707', 'PRD1784513630932', 6.00, 2500.00, 15000.00, 'actif'),
+(4, 'LIG1784516057683', 'VTE1784516057733', 'PRD1784513630932', 2.00, 2500.00, 5000.00, 'actif'),
+(5, 'LIG1784516057200', 'VTE1784516057733', 'PRD1784511003661', 2.00, 2500.00, 5000.00, 'actif'),
+(6, 'LIG1784516378822', 'VTE1784516378222', 'PRD1784511003661', 1.00, 2500.00, 2500.00, 'actif'),
+(7, 'LIG1784517011518', 'VTE1784517011853', 'PRD1784513630932', 11.00, 2500.00, 27500.00, 'actif');
 
 -- --------------------------------------------------------
 
@@ -252,20 +306,31 @@ CREATE TABLE IF NOT EXISTS `produits` (
   `prix_vente_produit` decimal(12,2) DEFAULT '0.00',
   `stock_initial_produit` decimal(12,2) DEFAULT '0.00',
   `stock_minimum_produit` decimal(12,2) NOT NULL DEFAULT '0.00',
-  `statut_produit` enum('actif','inactif') DEFAULT 'actif',
+  `statut_produit` enum('actif','inactif','supprime') DEFAULT 'actif',
   `created_at_produit` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at_produit` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_produit`),
   UNIQUE KEY `code_produit` (`code_produit`),
   KEY `boutique_code` (`boutique_code`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Déchargement des données de la table `produits`
 --
 
 INSERT INTO `produits` (`id_produit`, `code_produit`, `boutique_code`, `libelle_produit`, `unite_produit`, `prix_achat_produit`, `prix_vente_produit`, `stock_initial_produit`, `stock_minimum_produit`, `statut_produit`, `created_at_produit`, `updated_at_produit`) VALUES
-(1, 'PRD1784511003661', 'BTE1783965223', 'oeuf', 'plaquette', 2000.00, 2500.00, 0.00, 0.00, 'actif', '2026-07-20 01:30:03', NULL);
+(1, 'PRD1784511003661', 'BTE1783965223', 'oeuf', 'plaquette', 2000.00, 2500.00, 0.00, 0.00, 'actif', '2026-07-20 01:30:03', NULL),
+(2, 'PRD1784513630932', 'BTE1783965223', 'oeuf', 'plaquette', 2000.00, 2500.00, 0.00, 0.00, 'actif', '2026-07-20 02:13:50', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Doublure de structure pour la vue `ue_stock_produits`
+-- (Voir ci-dessous la vue réelle)
+--
+DROP VIEW IF EXISTS `ue_stock_produits`;
+CREATE TABLE IF NOT EXISTS `ue_stock_produits` (
+);
 
 -- --------------------------------------------------------
 
@@ -322,11 +387,24 @@ CREATE TABLE IF NOT EXISTS `ventes` (
   `mode_paiement_vente` enum('especes','wave','orange','mtn','moov','carte','autre') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'especes',
   `created_at_vente` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at_vente` timestamp NULL DEFAULT NULL,
+  `statut_vente` enum('actif','inactif','supprime') NOT NULL DEFAULT 'actif',
   PRIMARY KEY (`id_vente`),
   UNIQUE KEY `code_vente` (`code_vente`),
   KEY `fk_ventes_boutiques` (`boutique_code`),
   KEY `fk_ventes_clients` (`client_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `ventes`
+--
+
+INSERT INTO `ventes` (`id_vente`, `code_vente`, `boutique_code`, `client_code`, `montant_vente`, `montant_paye_vente`, `reste_a_payer_vente`, `statut_paiement_vente`, `mode_paiement_vente`, `created_at_vente`, `updated_at_vente`, `statut_vente`) VALUES
+(1, 'VTE1784514090656', 'BTE1783965223', 'CLI1784513620747', 1800.00, 1000.00, 800.00, 'credit', 'especes', '2026-07-20 02:21:30', NULL, 'actif'),
+(2, 'VTE1784514140526', 'BTE1783965223', 'CLI1784513620747', 19800.00, 9000.00, 10800.00, 'credit', 'especes', '2026-07-20 02:22:20', NULL, 'actif'),
+(3, 'VTE1784514563707', 'BTE1783965223', NULL, 15000.00, 0.00, 15000.00, 'comptant', 'especes', '2026-07-20 02:29:24', NULL, 'actif'),
+(4, 'VTE1784516057733', 'BTE1783965223', NULL, 10000.00, 0.00, 10000.00, 'comptant', 'especes', '2026-07-20 02:54:18', NULL, 'actif'),
+(5, 'VTE1784516378222', 'BTE1783965223', 'CLI1784514859558', 2500.00, 0.00, 2500.00, 'credit', 'especes', '2026-07-20 02:59:39', NULL, 'actif'),
+(6, 'VTE1784517011853', 'BTE1783965223', 'CLI1784514859558', 27500.00, 0.00, 27500.00, 'credit', 'especes', '2026-07-20 03:10:12', NULL, 'actif');
 
 -- --------------------------------------------------------
 
@@ -336,15 +414,17 @@ CREATE TABLE IF NOT EXISTS `ventes` (
 --
 DROP VIEW IF EXISTS `vue_stock_produits`;
 CREATE TABLE IF NOT EXISTS `vue_stock_produits` (
-`code_produit` varchar(20)
-,`boutique_code` varchar(20)
-,`libelle_produit` varchar(150)
-,`unite_produit` varchar(30)
-,`stock_initial_produit` decimal(12,2)
-,`total_achats` decimal(34,2)
-,`total_ventes` decimal(34,2)
-,`stock_disponible` decimal(36,2)
 );
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la vue `ue_stock_produits`
+--
+DROP TABLE IF EXISTS `ue_stock_produits`;
+
+DROP VIEW IF EXISTS `ue_stock_produits`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`oot`@`localhost` SQL SECURITY DEFINER VIEW `ue_stock_produits`  AS SELECT `p`.`code_produit` AS `code_produit`, `p`.`boutique_code` AS `boutique_code`, `p`.`libelle_produit` AS `libelle_produit`, `p`.`unite_produit` AS `unite_produit`, `p`.`stock_initial_produit` AS `stock_initial_produit`, coalesce(`a`.`total_achats`,0) AS `total_achats`, coalesce(`v`.`total_ventes`,0) AS `total_ventes`, greatest(((`p`.`stock_initial_produit` + coalesce(`a`.`total_achats`,0)) - coalesce(`v`.`total_ventes`,0)),0) AS `stock_disponible` FROM ((`produits` `p` left join (select `achats`.`produit_code` AS `produit_code`,sum(`achats`.`quantite_achat`) AS `total_achats` from `achats` where (`achats`.`deleted_at_achat` is null) group by `achats`.`produit_code`) `a` on((`a`.`produit_code` = `p`.`code_produit`))) left join (select `lv`.`produit_code` AS `produit_code`,sum(`lv`.`quantite`) AS `total_ventes` from `lignes_ventes` `lv` where (`lv`.`deleted_at_ligne` is null) group by `lv`.`produit_code`) `v` on((`v`.`produit_code` = `p`.`code_produit`))) WHERE (`p`.`deleted_at_produit` is null) ;
 
 -- --------------------------------------------------------
 
@@ -354,7 +434,7 @@ CREATE TABLE IF NOT EXISTS `vue_stock_produits` (
 DROP TABLE IF EXISTS `vue_stock_produits`;
 
 DROP VIEW IF EXISTS `vue_stock_produits`;
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vue_stock_produits`  AS SELECT `p`.`code_produit` AS `code_produit`, `p`.`boutique_code` AS `boutique_code`, `p`.`libelle_produit` AS `libelle_produit`, `p`.`unite_produit` AS `unite_produit`, `p`.`stock_initial_produit` AS `stock_initial_produit`, coalesce(`a`.`total_achats`,0) AS `total_achats`, coalesce(`v`.`total_ventes`,0) AS `total_ventes`, GREATEST(((`p`.`stock_initial_produit` + coalesce(`a`.`total_achats`,0)) - coalesce(`v`.`total_ventes`,0)), 0) AS `stock_disponible` FROM ((`produits` `p` left join (select `achats`.`produit_code` AS `produit_code`,sum(`achats`.`quantite_achat`) AS `total_achats` from `achats` group by `achats`.`produit_code`) `a` on((`a`.`produit_code` = `p`.`code_produit`))) left join (select `lv`.`produit_code` AS `produit_code`,sum(`lv`.`quantite`) AS `total_ventes` from `lignes_ventes` `lv` group by `lv`.`produit_code`) `v` on((`v`.`produit_code` = `p`.`code_produit`))) ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vue_stock_produits`  AS SELECT `p`.`code_produit` AS `code_produit`, `p`.`boutique_code` AS `boutique_code`, `p`.`libelle_produit` AS `libelle_produit`, `p`.`unite_produit` AS `unite_produit`, `p`.`stock_initial_produit` AS `stock_initial_produit`, coalesce(`a`.`total_achats`,0) AS `total_achats`, coalesce(`v`.`total_ventes`,0) AS `total_ventes`, greatest(((`p`.`stock_initial_produit` + coalesce(`a`.`total_achats`,0)) - coalesce(`v`.`total_ventes`,0)),0) AS `stock_disponible` FROM ((`produits` `p` left join (select `achats`.`produit_code` AS `produit_code`,sum(`achats`.`quantite_achat`) AS `total_achats` from `achats` where (`achats`.`deleted_at_achat` is null) group by `achats`.`produit_code`) `a` on((`a`.`produit_code` = `p`.`code_produit`))) left join (select `lv`.`produit_code` AS `produit_code`,sum(`lv`.`quantite`) AS `total_ventes` from `lignes_ventes` `lv` where (`lv`.`deleted_at_ligne` is null) group by `lv`.`produit_code`) `v` on((`v`.`produit_code` = `p`.`code_produit`))) WHERE (`p`.`deleted_at_produit` is null) ;
 
 --
 -- Contraintes pour les tables déchargées

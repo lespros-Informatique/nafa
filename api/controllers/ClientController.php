@@ -93,7 +93,7 @@ class ClientController extends Controller
 
         $dette = 0;
         try {
-            $stmt = Database::getConnection()->prepare('SELECT SUM(reste_a_payer_vente) as total FROM ventes WHERE client_code = :client_code AND statut_paiement_vente IN ("partiel","credit")');
+            $stmt = Database::getConnection()->prepare('SELECT SUM(reste_a_payer_vente) as total FROM ventes WHERE client_code = :client_code AND statut_vente != "supprime" AND statut_paiement_vente IN ("partiel","credit")');
             $stmt->execute(['client_code' => $code]);
             $dette = (float) ($stmt->fetchColumn() ?: 0);
         } catch (\Exception $e) {

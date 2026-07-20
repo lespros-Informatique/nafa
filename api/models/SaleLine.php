@@ -32,20 +32,20 @@ class SaleLine
 
     public static function findByVenteCode(string $venteCode): array
     {
-        $stmt = Database::getConnection()->prepare('SELECT * FROM lignes_ventes WHERE vente_code = :vente_code');
+        $stmt = Database::getConnection()->prepare('SELECT * FROM lignes_ventes WHERE vente_code = :vente_code AND statut_ligne != "supprime"');
         $stmt->execute(['vente_code' => $venteCode]);
         return $stmt->fetchAll();
     }
 
     public static function delete(string $code): bool
     {
-        $stmt = Database::getConnection()->prepare('DELETE FROM lignes_ventes WHERE code_ligne = :code');
+        $stmt = Database::getConnection()->prepare('UPDATE lignes_ventes SET statut_ligne = "supprime" WHERE code_ligne = :code AND statut_ligne != "supprime"');
         return $stmt->execute(['code' => $code]);
     }
 
     public static function deleteByVenteCode(string $venteCode): bool
     {
-        $stmt = Database::getConnection()->prepare('DELETE FROM lignes_ventes WHERE vente_code = :vente_code');
+        $stmt = Database::getConnection()->prepare('UPDATE lignes_ventes SET statut_ligne = "supprime" WHERE vente_code = :vente_code AND statut_ligne != "supprime"');
         return $stmt->execute(['vente_code' => $venteCode]);
     }
 
@@ -69,7 +69,7 @@ class SaleLine
 
     public static function findByCode(string $code): ?array
     {
-        $stmt = Database::getConnection()->prepare('SELECT * FROM lignes_ventes WHERE code_ligne = :code LIMIT 1');
+        $stmt = Database::getConnection()->prepare('SELECT * FROM lignes_ventes WHERE code_ligne = :code AND statut_ligne != "supprime" LIMIT 1');
         $stmt->execute(['code' => $code]);
         $line = $stmt->fetch();
         return $line ?: null;

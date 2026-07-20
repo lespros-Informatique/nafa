@@ -32,7 +32,7 @@ class Client
 
     public static function findByCode(string $code): ?array
     {
-        $stmt = Database::getConnection()->prepare('SELECT * FROM clients WHERE code_client = :code LIMIT 1');
+        $stmt = Database::getConnection()->prepare('SELECT * FROM clients WHERE code_client = :code AND statut_client != "supprime" LIMIT 1');
         $stmt->execute(['code' => $code]);
         $client = $stmt->fetch();
         return $client ?: null;
@@ -41,7 +41,7 @@ class Client
     public static function getByShop(string $shopCode): array
     {
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM clients WHERE boutique_code = :boutique_code ORDER BY created_at_client DESC'
+            'SELECT * FROM clients WHERE boutique_code = :boutique_code AND statut_client != "supprime" ORDER BY created_at_client DESC'
         );
         $stmt->execute(['boutique_code' => $shopCode]);
         return $stmt->fetchAll();
@@ -49,7 +49,7 @@ class Client
 
     public static function getAll(): array
     {
-        $stmt = Database::getConnection()->query('SELECT * FROM clients ORDER BY created_at_client DESC');
+        $stmt = Database::getConnection()->query('SELECT * FROM clients WHERE statut_client != "supprime" ORDER BY created_at_client DESC');
         return $stmt->fetchAll();
     }
 
@@ -58,6 +58,7 @@ class Client
         $stmt = Database::getConnection()->prepare(
             'SELECT * FROM clients
              WHERE boutique_code = :boutique_code
+               AND statut_client != "supprime"
                AND (nom_client LIKE :query1 OR code_client LIKE :query2 OR telephone_client LIKE :query3)
              ORDER BY created_at_client DESC
              LIMIT :limit'
@@ -81,20 +82,20 @@ class Client
 
     public static function delete(string $code): bool
     {
-        $stmt = Database::getConnection()->prepare('DELETE FROM clients WHERE code_client = :code');
+        $stmt = Database::getConnection()->prepare('UPDATE clients SET statut_client = "supprime" WHERE code_client = :code AND statut_client != "supprime"');
         return $stmt->execute(['code' => $code]);
     }
 
     public static function countByShop(string $shopCode): int
     {
-        $stmt = Database::getConnection()->prepare('SELECT COUNT(*) AS total FROM clients WHERE boutique_code = :boutique_code');
+        $stmt = Database::getConnection()->prepare('SELECT COUNT(*) AS total FROM clients WHERE boutique_code = :boutique_code AND statut_client != "supprime"');
         $stmt->execute(['boutique_code' => $shopCode]);
         return (int) $stmt->fetchColumn();
     }
 
     public static function countAll(): int
     {
-        $stmt = Database::getConnection()->query('SELECT COUNT(*) AS total FROM clients');
+        $stmt = Database::getConnection()->query('SELECT COUNT(*) AS total FROM clients WHERE statut_client != "supprime"');
         return (int) $stmt->fetchColumn();
     }
 }

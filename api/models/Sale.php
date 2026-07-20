@@ -36,7 +36,7 @@ class Sale
     public static function getRecentByShop(string $shopCode, int $limit = 10): array
     {
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM ventes WHERE boutique_code = :boutique_code ORDER BY created_at_vente DESC LIMIT :limit'
+            'SELECT * FROM ventes WHERE boutique_code = :boutique_code AND statut_vente != "supprime" ORDER BY created_at_vente DESC LIMIT :limit'
         );
         $stmt->bindValue(':boutique_code', $shopCode);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -48,7 +48,7 @@ class Sale
     {
         $date = $date ?? date('Y-m-d');
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM ventes WHERE boutique_code = :boutique_code AND DATE(created_at_vente) = :date'
+            'SELECT * FROM ventes WHERE boutique_code = :boutique_code AND statut_vente != "supprime" AND DATE(created_at_vente) = :date'
         );
         $stmt->execute(['boutique_code' => $shopCode, 'date' => $date]);
         return $stmt->fetchAll();
@@ -57,7 +57,7 @@ class Sale
     public static function getAllByShop(string $shopCode): array
     {
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM ventes WHERE boutique_code = :boutique_code ORDER BY created_at_vente DESC'
+            'SELECT * FROM ventes WHERE boutique_code = :boutique_code AND statut_vente != "supprime" ORDER BY created_at_vente DESC'
         );
         $stmt->execute(['boutique_code' => $shopCode]);
         return $stmt->fetchAll();
@@ -65,7 +65,7 @@ class Sale
 
     public static function getAll(): array
     {
-        $stmt = Database::getConnection()->query('SELECT * FROM ventes ORDER BY created_at_vente DESC');
+        $stmt = Database::getConnection()->query('SELECT * FROM ventes WHERE statut_vente != "supprime" ORDER BY created_at_vente DESC');
         return $stmt->fetchAll();
     }
 
@@ -74,6 +74,7 @@ class Sale
         $stmt = Database::getConnection()->prepare(
             'SELECT * FROM ventes
              WHERE boutique_code = :boutique_code
+               AND statut_vente != "supprime"
                AND (CAST(montant_vente AS CHAR) LIKE :query1 OR DATE_FORMAT(created_at_vente, "%d/%m/%Y %H:%i") LIKE :query2)
              ORDER BY created_at_vente DESC
              LIMIT :limit'
@@ -89,7 +90,18 @@ class Sale
 
     public static function delete(string $codeVente): bool
     {
-        $stmt = Database::getConnection()->prepare('DELETE FROM ventes WHERE code_vente = :code_vente');
-        return $stmt->execute(['code_vente' => $codeVente]);
+        $conn = Database::getConnection();
+        $conn->beginTransaction();
+        try {
+            $stmt = $conn->prepare('UPDATE ventes SET statut_vente = "supprime" WHERE code_vente = :code_vente AND statut_vente != "supprime"');
+            $stmt->execute(['code_vente' => $codeVente]);
+            $stmtLine = $conn->prepare('UPDATE lignes_ventes SET statut_ligne = "supprime" WHERE vente_code = :vente_code AND statut_ligne != "supprime"');
+            $stmtLine->execute(['vente_code' => $codeVente]);
+            $conn->commit();
+            return true;
+        } catch (\Exception $e) {
+            $conn->rollBack();
+            return false;
+        }
     }
 }

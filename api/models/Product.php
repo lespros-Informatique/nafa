@@ -34,7 +34,7 @@ class Product
 
     public static function findByCode(string $code): ?array
     {
-        $stmt = Database::getConnection()->prepare('SELECT * FROM produits WHERE code_produit = :code LIMIT 1');
+        $stmt = Database::getConnection()->prepare('SELECT * FROM produits WHERE code_produit = :code AND statut_produit != "supprime" LIMIT 1');
         $stmt->execute(['code' => $code]);
         $product = $stmt->fetch();
         return $product ?: null;
@@ -43,7 +43,7 @@ class Product
     public static function getByShop(string $shopCode): array
     {
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM produits WHERE boutique_code = :boutique_code ORDER BY created_at_produit DESC'
+            'SELECT * FROM produits WHERE boutique_code = :boutique_code AND statut_produit != "supprime" ORDER BY created_at_produit DESC'
         );
         $stmt->execute(['boutique_code' => $shopCode]);
         return $stmt->fetchAll();
@@ -51,7 +51,7 @@ class Product
 
     public static function getAll(): array
     {
-        $stmt = Database::getConnection()->query('SELECT * FROM produits ORDER BY created_at_produit DESC');
+        $stmt = Database::getConnection()->query('SELECT * FROM produits WHERE statut_produit != "supprime" ORDER BY created_at_produit DESC');
         return $stmt->fetchAll();
     }
 
@@ -60,6 +60,7 @@ class Product
         $stmt = Database::getConnection()->prepare(
             'SELECT * FROM produits
              WHERE boutique_code = :boutique_code
+               AND statut_produit != "supprime"
                AND (libelle_produit LIKE :query1 OR code_produit LIKE :query2 OR unite_produit LIKE :query3)
              ORDER BY created_at_produit DESC
              LIMIT :limit'
@@ -83,20 +84,20 @@ class Product
 
     public static function delete(string $code): bool
     {
-        $stmt = Database::getConnection()->prepare('DELETE FROM produits WHERE code_produit = :code');
+        $stmt = Database::getConnection()->prepare('UPDATE produits SET statut_produit = "supprime" WHERE code_produit = :code AND statut_produit != "supprime"');
         return $stmt->execute(['code' => $code]);
     }
 
     public static function countByShop(string $shopCode): int
     {
-        $stmt = Database::getConnection()->prepare('SELECT COUNT(*) AS total FROM produits WHERE boutique_code = :boutique_code');
+        $stmt = Database::getConnection()->prepare('SELECT COUNT(*) AS total FROM produits WHERE boutique_code = :boutique_code AND statut_produit != "supprime"');
         $stmt->execute(['boutique_code' => $shopCode]);
         return (int) $stmt->fetchColumn();
     }
 
     public static function countAll(): int
     {
-        $stmt = Database::getConnection()->query('SELECT COUNT(*) AS total FROM produits');
+        $stmt = Database::getConnection()->query('SELECT COUNT(*) AS total FROM produits WHERE statut_produit != "supprime"');
         return (int) $stmt->fetchColumn();
     }
 }
