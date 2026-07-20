@@ -1539,7 +1539,6 @@ const app = {
         const unite = document.getElementById('product-unit').value.trim();
         const prixAchat = parseFloat(document.getElementById('product-prix-achat').value) || 0;
         const prixVente = parseFloat(document.getElementById('product-prix-vente').value) || 0;
-        const stockInitial = parseFloat(document.getElementById('product-stock').value) || 0;
         if (!libelle || !unite) return;
         const btn = e.target.querySelector('button[type="submit"]');
         this.setButtonLoading(btn, true);
@@ -1547,13 +1546,12 @@ const app = {
         try {
             await this.api('/products', {
                 method: 'POST',
-                body: JSON.stringify({ libelle, unite, prix_achat: prixAchat, prix_vente: prixVente, stock_initial: stockInitial }),
+                body: JSON.stringify({ libelle, unite, prix_achat: prixAchat, prix_vente: prixVente }),
             });
             document.getElementById('product-label').value = '';
             document.getElementById('product-unit').value = '';
             document.getElementById('product-prix-achat').value = '';
             document.getElementById('product-prix-vente').value = '';
-            document.getElementById('product-stock').value = '';
             this.toast('Produit enregistré', 'success')
             this.navigate('products');
         } catch (err) {
