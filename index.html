@@ -1039,6 +1039,44 @@
             </div>
         </div>
 
+        <!-- PAYMENT MODAL -->
+        <div id="payment-modal" class="modal-overlay" onclick="if(event.target===this)app.closePayment()">
+            <div class="modal-sheet">
+                <div class="modal-header">
+                    <h3 id="payment-title">Encaisser un paiement</h3>
+                    <button class="modal-close" onclick="app.closePayment()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <form class="form-page" onsubmit="app.handlePayment(event)">
+                    <input type="hidden" id="payment-type">
+                    <input type="hidden" id="payment-code">
+                    <div class="detail-section" style="padding: 4px 0 8px;">
+                        <div class="detail-item"><span>Montant total</span><strong id="payment-total">0 F</strong></div>
+                        <div class="detail-item"><span>Déjà payé</span><strong id="payment-paid">0 F</strong></div>
+                        <div class="detail-item"><span>Reste à payer</span><strong id="payment-rest" class="debt-amount">0 F</strong></div>
+                    </div>
+                    <div class="input-group">
+                        <label for="payment-amount">Montant à payer</label>
+                        <input type="number" id="payment-amount" placeholder="0" required inputmode="decimal" step="1" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="payment-mode">Mode de paiement</label>
+                        <select id="payment-mode">
+                            <option value="especes">Espèces</option>
+                            <option value="wave">Wave</option>
+                            <option value="orange">Orange Money</option>
+                            <option value="mtn">MTN Money</option>
+                            <option value="moov">Moov Money</option>
+                            <option value="carte">Carte</option>
+                            <option value="autre">Autre</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-full">Enregistrer le paiement</button>
+                </form>
+            </div>
+        </div>
+
         <!-- CONFIRM MODAL -->
         <div id="confirm-modal" class="modal-overlay" onclick="if(event.target===this)app.closeConfirm()">
             <div class="modal-sheet confirm-sheet">

@@ -381,10 +381,6 @@ CREATE TABLE IF NOT EXISTS `ventes` (
   `boutique_code` varchar(20) NOT NULL,
   `client_code` varchar(20) DEFAULT NULL,
   `montant_vente` decimal(12,2) NOT NULL,
-  `montant_paye_vente` decimal(12,2) NOT NULL DEFAULT '0.00',
-  `reste_a_payer_vente` decimal(12,2) NOT NULL DEFAULT '0.00',
-  `statut_paiement_vente` enum('comptant','partiel','credit') DEFAULT 'comptant',
-  `mode_paiement_vente` enum('especes','wave','orange','mtn','moov','carte','autre') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'especes',
   `created_at_vente` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at_vente` timestamp NULL DEFAULT NULL,
   `statut_vente` enum('actif','inactif','supprime') NOT NULL DEFAULT 'actif',
@@ -398,13 +394,13 @@ CREATE TABLE IF NOT EXISTS `ventes` (
 -- Déchargement des données de la table `ventes`
 --
 
-INSERT INTO `ventes` (`id_vente`, `code_vente`, `boutique_code`, `client_code`, `montant_vente`, `montant_paye_vente`, `reste_a_payer_vente`, `statut_paiement_vente`, `mode_paiement_vente`, `created_at_vente`, `updated_at_vente`, `statut_vente`) VALUES
-(1, 'VTE1784514090656', 'BTE1783965223', 'CLI1784513620747', 1800.00, 1000.00, 800.00, 'credit', 'especes', '2026-07-20 02:21:30', NULL, 'actif'),
-(2, 'VTE1784514140526', 'BTE1783965223', 'CLI1784513620747', 19800.00, 9000.00, 10800.00, 'credit', 'especes', '2026-07-20 02:22:20', NULL, 'actif'),
-(3, 'VTE1784514563707', 'BTE1783965223', NULL, 15000.00, 0.00, 15000.00, 'comptant', 'especes', '2026-07-20 02:29:24', NULL, 'actif'),
-(4, 'VTE1784516057733', 'BTE1783965223', NULL, 10000.00, 0.00, 10000.00, 'comptant', 'especes', '2026-07-20 02:54:18', NULL, 'actif'),
-(5, 'VTE1784516378222', 'BTE1783965223', 'CLI1784514859558', 2500.00, 0.00, 2500.00, 'credit', 'especes', '2026-07-20 02:59:39', NULL, 'actif'),
-(6, 'VTE1784517011853', 'BTE1783965223', 'CLI1784514859558', 27500.00, 0.00, 27500.00, 'credit', 'especes', '2026-07-20 03:10:12', NULL, 'actif');
+INSERT INTO `ventes` (`id_vente`, `code_vente`, `boutique_code`, `client_code`, `montant_vente`, `created_at_vente`, `updated_at_vente`, `statut_vente`) VALUES
+(1, 'VTE1784514090656', 'BTE1783965223', 'CLI1784513620747', 1800.00, '2026-07-20 02:21:30', NULL, 'actif'),
+(2, 'VTE1784514140526', 'BTE1783965223', 'CLI1784513620747', 19800.00, '2026-07-20 02:22:20', NULL, 'actif'),
+(3, 'VTE1784514563707', 'BTE1783965223', NULL, 15000.00, '2026-07-20 02:29:24', NULL, 'actif'),
+(4, 'VTE1784516057733', 'BTE1783965223', NULL, 10000.00, '2026-07-20 02:54:18', NULL, 'actif'),
+(5, 'VTE1784516378222', 'BTE1783965223', 'CLI1784514859558', 2500.00, '2026-07-20 02:59:39', NULL, 'actif'),
+(6, 'VTE1784517011853', 'BTE1783965223', 'CLI1784514859558', 27500.00, '2026-07-20 03:10:12', NULL, 'actif');
 
 -- --------------------------------------------------------
 
@@ -441,6 +437,40 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 
 --
+-- Structure de la table `paiements`
+-- Trace chaque règlement (partiel ou total) effectué sur une vente ou un achat
+--
+
+DROP TABLE IF EXISTS `paiements`;
+CREATE TABLE IF NOT EXISTS `paiements` (
+  `id_paiement` int NOT NULL AUTO_INCREMENT,
+  `code_paiement` varchar(20) NOT NULL,
+  `type_paiement` enum('vente','achat') NOT NULL,
+  `reference_code` varchar(20) NOT NULL COMMENT 'code_vente ou code_achat',
+  `boutique_code` varchar(20) NOT NULL,
+  `montant_paiement` decimal(12,2) NOT NULL,
+  `mode_paiement` enum('especes','wave','orange','mtn','moov','carte','autre') DEFAULT 'especes',
+  `date_paiement` datetime NOT NULL,
+  `created_at_paiement` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `statut_paiement` enum('actif','supprime') NOT NULL DEFAULT 'actif',
+  PRIMARY KEY (`id_paiement`),
+  UNIQUE KEY `code_paiement` (`code_paiement`),
+  KEY `boutique_code` (`boutique_code`),
+  KEY `reference_code` (`reference_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `paiements`
+-- ( historique initial dérivé des anciennes colonnes de paiement des ventes )
+--
+
+INSERT INTO `paiements` (`code_paiement`, `type_paiement`, `reference_code`, `boutique_code`, `montant_paiement`, `mode_paiement`, `date_paiement`, `statut_paiement`) VALUES
+('PAV1784514090656', 'vente', 'VTE1784514090656', 'BTE1783965223', 1000.00, 'especes', '2026-07-20 02:21:30', 'actif'),
+('PAV1784514140526', 'vente', 'VTE1784514140526', 'BTE1783965223', 9000.00, 'especes', '2026-07-20 02:22:20', 'actif');
+
+--
+
+
 -- Contraintes pour la table `abonnements`
 --
 ALTER TABLE `abonnements`

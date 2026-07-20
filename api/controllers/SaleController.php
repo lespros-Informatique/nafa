@@ -1,6 +1,8 @@
 <?php
 
 require_once __DIR__ . '/../core/Controller.php';
+require_once __DIR__ . '/../models/Sale.php';
+require_once __DIR__ . '/../models/Paiement.php';
 
 class SaleController extends Controller
 {
@@ -24,15 +26,6 @@ class SaleController extends Controller
 
         $clientCode = trim($this->input('client_code', ''));
         $montantPaye = (float) ($this->input('montant_paye', 0));
-        $reste = max(0, $montant - $montantPaye);
-
-        if ($montantPaye <= 0) {
-            $statutPaiement = 'credit';
-        } elseif ($reste <= 0) {
-            $statutPaiement = 'comptant';
-        } else {
-            $statutPaiement = 'partiel';
-        }
 
         $produitsValides = [];
         foreach ($produits as $prod) {
@@ -73,8 +66,6 @@ class SaleController extends Controller
             'client_code' => $clientCode ?: null,
             'montant_vente' => $montant,
             'montant_paye_vente' => $montantPaye,
-            'reste_a_payer_vente' => $reste,
-            'statut_paiement_vente' => $statutPaiement,
             'mode_paiement_vente' => 'especes',
             'created_at_vente' => $this->input('client_now', date('Y-m-d H:i:s')),
         ]);
@@ -92,6 +83,28 @@ class SaleController extends Controller
         }
 
         Response::success('Vente enregistrée', ['sale' => $sale]);
+    }
+
+    public function pay(): void
+    {
+        $user = $this->requireActiveSubscription();
+        $code = trim($this->input('code', ''));
+        $montant = (float) ($this->input('montant', 0));
+        $mode = trim($this->input('mode', 'especes'));
+
+        if (!$code) {
+            Response::error('Code vente requis');
+        }
+        if ($montant <= 0) {
+            Response::error('Montant invalide');
+        }
+
+        $sale = Sale::pay($code, $montant, $mode);
+        if (!$sale) {
+            Response::error('Vente introuvable', [], 404);
+        }
+
+        Response::success('Paiement enregistré', ['sale' => $sale]);
     }
 
     public function detail(): void
@@ -143,6 +156,7 @@ class SaleController extends Controller
             'sale' => $sale,
             'lignes' => $lignes,
             'client_nom' => $clientNom,
+            'paiements' => Paiement::getByReference('vente', $code),
         ]);
     }
 

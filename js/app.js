@@ -543,6 +543,7 @@ const app = {
                     <div class="metric-card"><span class="metric-label">Qté en stock</span><span class="metric-value">${data.data.total_stock_qte ?? 0}</span></div>
                     <div class="metric-card"><span class="metric-label">Valeur stock</span><span class="metric-value">${data.data.stock_value || '0 F'}</span></div>
                     <div class="metric-card metric-expenses metric-card-full"><span class="metric-label">Ruptures</span><span class="metric-value">${data.data.out_of_stock ?? 0}</span></div>
+                    <div class="metric-card metric-expenses metric-card-full"><span class="metric-label">Stock bas</span><span class="metric-value">${data.data.low_stock ?? 0}</span></div>
                 `;
             }
             const nameEl = document.getElementById('dash-user-name');
@@ -2473,8 +2474,12 @@ const app = {
                     <div class="detail-item"><span>Quantité</span><strong>${this.formatNumber(a.quantite_achat)} ${this.escapeHtml(data.data.produit_unite || '')}</strong></div>
                     <div class="detail-item"><span>Prix unitaire</span><strong>${this.formatMoney(a.prix_unitaire_achat)}</strong></div>
                     <div class="detail-item"><span>Montant</span><strong>${this.formatMoney(a.montant_achat)}</strong></div>
+                    <div class="detail-item"><span>Montant payé</span><strong>${this.formatMoney(a.montant_paye_achat || 0)}</strong></div>
+                    <div class="detail-item"><span>Reste à payer</span><strong>${this.formatMoney(a.reste_a_payer_achat || 0)}</strong></div>
                     <div class="detail-item"><span>Date</span><strong>${this.escapeHtml(this.formatFrenchDate(a.date_achat))}</strong></div>
                 </div>
+                ${(parseFloat(a.reste_a_payer_achat || 0) > 0) ? `<button class="btn btn-success btn-full" style="margin-top:12px;" onclick="app.openPayment('achat', '${this.escapeHtml(a.code_achat)}')">Régler le reste (${this.formatMoney(a.reste_a_payer_achat || 0)})</button>` : ''}
+                ${this.renderPaiementsHtml(data.data.paiements)}
             `;
             content.innerHTML = html;
         } catch (err) {
@@ -2484,6 +2489,91 @@ const app = {
 
     closePurchaseDetail() {
         document.getElementById('purchase-detail-modal').classList.remove('open');
+    },
+
+    async openPayment(type, code) {
+        this.paymentType = type;
+        this.paymentCode = code;
+        const title = document.getElementById('payment-title');
+        const typeLabel = type === 'vente' ? 'Encaisser un paiement' : 'Régler un achat';
+        if (title) title.textContent = typeLabel;
+
+        let detail;
+        try {
+            if (type === 'vente') {
+                const data = await this.api(`/sales/detail?code=${encodeURIComponent(code)}`);
+                detail = data.data.sale;
+                document.getElementById('payment-total').textContent = this.formatMoney(detail.montant_vente);
+                document.getElementById('payment-paid').textContent = this.formatMoney(detail.montant_paye_vente);
+                document.getElementById('payment-rest').textContent = this.formatMoney(detail.reste_a_payer_vente);
+                document.getElementById('payment-amount').value = detail.reste_a_payer_vente;
+            } else {
+                const data = await this.api(`/purchases/detail?code=${encodeURIComponent(code)}`);
+                detail = data.data.purchase;
+                document.getElementById('payment-total').textContent = this.formatMoney(detail.montant_achat);
+                document.getElementById('payment-paid').textContent = this.formatMoney(detail.montant_paye_achat || 0);
+                document.getElementById('payment-rest').textContent = this.formatMoney(detail.reste_a_payer_achat || 0);
+                document.getElementById('payment-amount').value = detail.reste_a_payer_achat || 0;
+            }
+        } catch (err) {
+            this.toast(err.message, 'error');
+            return;
+        }
+
+        document.getElementById('payment-type').value = type;
+        document.getElementById('payment-code').value = code;
+        document.getElementById('payment-modal').classList.add('open');
+        setTimeout(() => document.getElementById('payment-amount').focus(), 100);
+    },
+
+    closePayment() {
+        document.getElementById('payment-modal').classList.remove('open');
+    },
+
+    async handlePayment(e) {
+        e.preventDefault();
+        const type = document.getElementById('payment-type').value;
+        const code = document.getElementById('payment-code').value;
+        const montant = parseFloat(document.getElementById('payment-amount').value) || 0;
+        const mode = document.getElementById('payment-mode').value;
+
+        const resteEl = document.getElementById('payment-rest');
+        const reste = parseFloat(resteEl ? resteEl.textContent.replace(/[^\d.-]/g, '') : '0') || 0;
+        if (!montant || montant <= 0) return;
+        if (reste <= 0) {
+            this.toast('Ce règlement est déjà complet', 'error');
+            return;
+        }
+        if (montant > reste + 0.0001) {
+            this.toast('Le montant saisi dépasse le reste à payer (' + this.formatMoney(reste) + ')', 'error');
+            return;
+        }
+
+        const btn = e.target.querySelector('button[type="submit"]');
+        this.setButtonLoading(btn, true);
+        try {
+            if (type === 'vente') {
+                await this.api('/sales/pay', {
+                    method: 'POST',
+                    body: JSON.stringify({ code, montant, mode }),
+                });
+                this.closePayment();
+                this.openSaleDetail(code);
+            } else {
+                await this.api('/purchases/pay', {
+                    method: 'POST',
+                    body: JSON.stringify({ code, montant, mode }),
+                });
+                this.closePayment();
+                this.openPurchaseDetail(code);
+            }
+            this.refreshBadges();
+            this.toast('Paiement enregistré', 'success');
+        } catch (err) {
+            this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
+        }
     },
 
     async openSaleDetail(code) {
@@ -2522,6 +2612,8 @@ const app = {
                 </div>
                 <h4 class="detail-title">Lignes de vente</h4>
                 <div class="list-container">${lignesHtml}</div>
+                ${(parseFloat(v.reste_a_payer_vente) > 0) ? `<button class="btn btn-success btn-full" style="margin-top:12px;" onclick="app.openPayment('vente', '${this.escapeHtml(v.code_vente)}')">Encaisser le reste (${this.formatMoney(v.reste_a_payer_vente)})</button>` : ''}
+                ${this.renderPaiementsHtml(data.data.paiements)}
             `;
             content.innerHTML = html;
         } catch (err) {
@@ -2531,6 +2623,21 @@ const app = {
 
     closeSaleDetail() {
         document.getElementById('sale-detail-modal').classList.remove('open');
+    },
+
+    renderPaiementsHtml(paiements) {
+        const list = Array.isArray(paiements) ? paiements : [];
+        if (!list.length) return '';
+        const items = list.map(p => `
+            <div class="list-item">
+                <div class="list-item-info">
+                    <div class="list-item-title">${this.escapeHtml(this.formatMoney(p.montant_paiement))}</div>
+                    <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(p.date_paiement))} • ${this.escapeHtml(p.mode_paiement || '-')}</div>
+                </div>
+                <span class="list-item-amount positive">+${this.escapeHtml(this.formatMoney(p.montant_paiement))}</span>
+            </div>
+        `).join('');
+        return `<h4 class="detail-title">Historique des paiements</h4><div class="list-container">${items}</div>`;
     },
 
     setSalesListPeriod(period) {

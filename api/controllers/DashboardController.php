@@ -60,13 +60,14 @@ class DashboardController extends Controller
 
         $productCount = count($allProducts);
         $outOfStock = 0;
+        $lowStock = 0;
         $stockValue = 0;
         $totalStockQte = 0;
 
         $stockMap = [];
         try {
             $shopFilter = $isDev ? '' : ' WHERE boutique_code = :boutique_code';
-            $sql = 'SELECT code_produit, stock_disponible FROM vue_stock_produits' . $shopFilter;
+            $sql = 'SELECT code_produit, stock_disponible, stock_minimum_produit FROM vue_stock_produits' . $shopFilter;
             $stmt = Database::getConnection()->prepare($sql);
             if (!$isDev && $shop) {
                 $stmt->execute(['boutique_code' => $shop['code_boutique']]);
@@ -75,7 +76,7 @@ class DashboardController extends Controller
             }
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($rows as $row) {
-                $stockMap[$row['code_produit']] = $row['stock_disponible'];
+                $stockMap[$row['code_produit']] = $row;
             }
         } catch (\Exception $e) {
             $stockMap = [];
@@ -83,11 +84,15 @@ class DashboardController extends Controller
 
         foreach ($allProducts as $product) {
             $code = $product['code_produit'];
-            $stock = isset($stockMap[$code]) ? (float) $stockMap[$code] : (float)($product['stock_initial_produit'] ?? 0);
+            $stockRow = $stockMap[$code] ?? null;
+            $stock = $stockRow ? (float) $stockRow['stock_disponible'] : (float)($product['stock_initial_produit'] ?? 0);
+            $stockMin = $stockRow ? (float) $stockRow['stock_minimum_produit'] : (float)($product['stock_minimum_produit'] ?? 0);
             $totalStockQte += $stock;
             $stockValue += $stock * (float)($product['prix_achat_produit'] ?? 0);
             if ($stock <= 0) {
                 $outOfStock++;
+            } elseif ($stockMin > 0 && $stock <= $stockMin) {
+                $lowStock++;
             }
         }
 
@@ -98,7 +103,17 @@ class DashboardController extends Controller
             $clientCount = Client::countByShop($shop['code_boutique']);
             $supplierCount = Supplier::countByShop($shop['code_boutique']);
             $stmt = Database::getConnection()->prepare(
-                'SELECT SUM(reste_a_payer_vente) as total FROM ventes WHERE boutique_code = :boutique_code AND statut_vente != "supprime" AND statut_paiement_vente IN ("partiel","credit")'
+                'SELECT COALESCE(SUM(v.montant_vente - COALESCE(p.total_paye, 0)), 0) as total
+                 FROM ventes v
+                 LEFT JOIN (
+                     SELECT reference_code, SUM(montant_paiement) as total_paye
+                     FROM paiements
+                     WHERE type_paiement = "vente" AND statut_paiement != "supprime"
+                     GROUP BY reference_code
+                 ) p ON p.reference_code = v.code_vente
+                 WHERE v.boutique_code = :boutique_code
+                   AND v.statut_vente != "supprime"
+                   AND COALESCE(p.total_paye, 0) < v.montant_vente'
             );
             $stmt->execute(['boutique_code' => $shop['code_boutique']]);
             $totalDettes = (float)($stmt->fetchColumn() ?: 0);
@@ -140,6 +155,7 @@ class DashboardController extends Controller
             'purchases_count' => count($todayPurchases),
             'product_count' => $productCount,
             'out_of_stock' => $outOfStock,
+            'low_stock' => $lowStock,
             'stock_value' => $this->formatMoney($stockValue),
             'total_stock_qte' => (int) $totalStockQte,
             'client_count' => $clientCount,

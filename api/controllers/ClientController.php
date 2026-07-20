@@ -93,7 +93,19 @@ class ClientController extends Controller
 
         $dette = 0;
         try {
-            $stmt = Database::getConnection()->prepare('SELECT SUM(reste_a_payer_vente) as total FROM ventes WHERE client_code = :client_code AND statut_vente != "supprime" AND statut_paiement_vente IN ("partiel","credit")');
+            $stmt = Database::getConnection()->prepare(
+                'SELECT COALESCE(SUM(v.montant_vente - COALESCE(p.total_paye, 0)), 0) as total
+                 FROM ventes v
+                 LEFT JOIN (
+                     SELECT reference_code, SUM(montant_paiement) as total_paye
+                     FROM paiements
+                     WHERE type_paiement = "vente" AND statut_paiement != "supprime"
+                     GROUP BY reference_code
+                 ) p ON p.reference_code = v.code_vente
+                 WHERE v.client_code = :client_code
+                   AND v.statut_vente != "supprime"
+                   AND COALESCE(p.total_paye, 0) < v.montant_vente'
+            );
             $stmt->execute(['client_code' => $code]);
             $dette = (float) ($stmt->fetchColumn() ?: 0);
         } catch (\Exception $e) {

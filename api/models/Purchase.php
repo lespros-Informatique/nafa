@@ -1,27 +1,64 @@
 <?php
 
 require_once __DIR__ . '/../core/Database.php';
+require_once __DIR__ . '/Paiement.php';
 
 class Purchase
 {
     public static function create(array $data): array
     {
-        $stmt = Database::getConnection()->prepare(
-            'INSERT INTO achats (code_achat, boutique_code, fournisseur_code, produit_code, quantite_achat, prix_unitaire_achat, montant_achat, date_achat)
-             VALUES (:code_achat, :boutique_code, :fournisseur_code, :produit_code, :quantite_achat, :prix_unitaire_achat, :montant_achat, :date_achat)'
-        );
-        $stmt->execute([
-            'code_achat' => $data['code_achat'],
-            'boutique_code' => $data['boutique_code'],
-            'fournisseur_code' => $data['fournisseur_code'] ?? null,
-            'produit_code' => $data['produit_code'],
-            'quantite_achat' => $data['quantite_achat'],
-            'prix_unitaire_achat' => $data['prix_unitaire_achat'],
-            'montant_achat' => $data['montant_achat'],
-            'date_achat' => $data['date_achat'],
-        ]);
-        $id = Database::getConnection()->lastInsertId();
+        $montant = (float) ($data['montant_achat'] ?? 0);
+        $type = 'achat';
+
+        $conn = Database::getConnection();
+        $conn->beginTransaction();
+        try {
+            $stmt = $conn->prepare(
+                'INSERT INTO achats (code_achat, boutique_code, fournisseur_code, produit_code, quantite_achat, prix_unitaire_achat, montant_achat, date_achat)
+                 VALUES (:code_achat, :boutique_code, :fournisseur_code, :produit_code, :quantite_achat, :prix_unitaire_achat, :montant_achat, :date_achat)'
+            );
+            $stmt->execute([
+                'code_achat' => $data['code_achat'],
+                'boutique_code' => $data['boutique_code'],
+                'fournisseur_code' => $data['fournisseur_code'] ?? null,
+                'produit_code' => $data['produit_code'],
+                'quantite_achat' => $data['quantite_achat'],
+                'prix_unitaire_achat' => $data['prix_unitaire_achat'],
+                'montant_achat' => $montant,
+                'date_achat' => $data['date_achat'],
+            ]);
+            $id = $conn->lastInsertId();
+
+            $montantPaye = (float) ($data['montant_paye_achat'] ?? 0);
+            if ($montantPaye > 0 && $montantPaye <= $montant + 0.0001) {
+                Paiement::create([
+                    'code_paiement' => 'PAA' . time() . mt_rand(100, 999),
+                    'type_paiement' => $type,
+                    'reference_code' => $data['code_achat'],
+                    'boutique_code' => $data['boutique_code'],
+                    'montant_paiement' => $montantPaye,
+                    'mode_paiement' => $data['mode_paiement_achat'] ?? 'especes',
+                    'date_paiement' => $data['date_achat'],
+                ]);
+            }
+            $conn->commit();
+        } catch (\Exception $e) {
+            $conn->rollBack();
+            Response::error('Échec de l\'enregistrement de l\'achat');
+        }
+
         return self::findById((int)$id);
+    }
+
+    private static function enrich(array $purchase): array
+    {
+        $montant = (float) ($purchase['montant_achat'] ?? 0);
+        $resume = Paiement::getResume('achat', $purchase['code_achat'], $montant);
+        $purchase['montant_paye_achat'] = $resume['montant_paye'];
+        $purchase['reste_a_payer_achat'] = $resume['reste_a_payer'];
+        $purchase['statut_paiement_achat'] = $resume['statut_paiement'];
+        $purchase['mode_paiement_achat'] = $resume['mode_paiement'];
+        return $purchase;
     }
 
     public static function findById(int $id): ?array
@@ -29,7 +66,7 @@ class Purchase
         $stmt = Database::getConnection()->prepare('SELECT * FROM achats WHERE id_achat = :id LIMIT 1');
         $stmt->execute(['id' => $id]);
         $purchase = $stmt->fetch();
-        return $purchase ?: null;
+        return $purchase ? self::enrich($purchase) : null;
     }
 
     public static function findByCode(string $code): ?array
@@ -37,7 +74,7 @@ class Purchase
         $stmt = Database::getConnection()->prepare('SELECT * FROM achats WHERE code_achat = :code AND statut_achat != "supprime" LIMIT 1');
         $stmt->execute(['code' => $code]);
         $purchase = $stmt->fetch();
-        return $purchase ?: null;
+        return $purchase ? self::enrich($purchase) : null;
     }
 
     public static function getByShop(string $shopCode): array
@@ -46,7 +83,7 @@ class Purchase
             'SELECT * FROM achats WHERE boutique_code = :boutique_code AND statut_achat != "supprime" ORDER BY date_achat DESC'
         );
         $stmt->execute(['boutique_code' => $shopCode]);
-        return $stmt->fetchAll();
+        return array_map([self::class, 'enrich'], $stmt->fetchAll());
     }
 
     public static function getByShopPeriod(string $shopCode, string $dateStart, string $dateEnd): array
@@ -60,13 +97,13 @@ class Purchase
              ORDER BY date_achat DESC'
         );
         $stmt->execute(['boutique_code' => $shopCode, 'date_start' => $dateStart, 'date_end' => $dateEnd]);
-        return $stmt->fetchAll();
+        return array_map([self::class, 'enrich'], $stmt->fetchAll());
     }
 
     public static function getAll(): array
     {
         $stmt = Database::getConnection()->query('SELECT * FROM achats WHERE statut_achat != "supprime" ORDER BY date_achat DESC');
-        return $stmt->fetchAll();
+        return array_map([self::class, 'enrich'], $stmt->fetchAll());
     }
 
     public static function search(string $shopCode, string $query, int $limit = 20): array
@@ -85,13 +122,58 @@ class Purchase
         $stmt->bindValue(':query2', $like);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll();
+        return array_map([self::class, 'enrich'], $stmt->fetchAll());
+    }
+
+    public static function pay(string $code, float $montant, string $mode = 'especes'): ?array
+    {
+        $purchase = self::findByCode($code);
+        if (!$purchase) {
+            return null;
+        }
+
+        $reste = (float) $purchase['reste_a_payer_achat'];
+        if ($reste <= 0) {
+            Response::error('Cet achat est déjà entièrement payé');
+        }
+        if ($montant > $reste + 0.0001) {
+            Response::error('Le montant saisi (' . number_format($montant, 0, ',', ' ') . ' F) dépasse le reste à payer (' . number_format($reste, 0, ',', ' ') . ' F)');
+        }
+
+        $conn = Database::getConnection();
+        $conn->beginTransaction();
+        try {
+            Paiement::create([
+                'code_paiement' => 'PAA' . time() . mt_rand(100, 999),
+                'type_paiement' => 'achat',
+                'reference_code' => $code,
+                'boutique_code' => $purchase['boutique_code'],
+                'montant_paiement' => $montant,
+                'mode_paiement' => $mode,
+                'date_paiement' => date('Y-m-d H:i:s'),
+            ]);
+            $conn->commit();
+        } catch (\Exception $e) {
+            $conn->rollBack();
+            Response::error('Échec de l\'enregistrement du paiement');
+        }
+        return self::findByCode($code);
     }
 
     public static function delete(string $code): bool
     {
-        $stmt = Database::getConnection()->prepare('UPDATE achats SET statut_achat = "supprime" WHERE code_achat = :code AND statut_achat != "supprime"');
-        return $stmt->execute(['code' => $code]);
+        $conn = Database::getConnection();
+        $conn->beginTransaction();
+        try {
+            $stmt = $conn->prepare('UPDATE achats SET statut_achat = "supprime" WHERE code_achat = :code AND statut_achat != "supprime"');
+            $stmt->execute(['code' => $code]);
+            Paiement::softDeleteByReference('achat', $code);
+            $conn->commit();
+            return true;
+        } catch (\Exception $e) {
+            $conn->rollBack();
+            return false;
+        }
     }
 
     public static function update(string $code, array $data): ?array

@@ -1,6 +1,8 @@
 <?php
 
 require_once __DIR__ . '/../core/Controller.php';
+require_once __DIR__ . '/../models/Purchase.php';
+require_once __DIR__ . '/../models/Paiement.php';
 
 class PurchaseController extends Controller
 {
@@ -95,6 +97,28 @@ class PurchaseController extends Controller
         ]);
 
         Response::success('Achat enregistré', ['purchase' => $purchase]);
+    }
+
+    public function pay(): void
+    {
+        $user = $this->requireActiveSubscription();
+        $code = trim($this->input('code', ''));
+        $montant = (float) ($this->input('montant', 0));
+        $mode = trim($this->input('mode', 'especes'));
+
+        if (!$code) {
+            Response::error('Code achat requis');
+        }
+        if ($montant <= 0) {
+            Response::error('Montant invalide');
+        }
+
+        $purchase = Purchase::pay($code, $montant, $mode);
+        if (!$purchase) {
+            Response::error('Achat introuvable', [], 404);
+        }
+
+        Response::success('Paiement enregistré', ['purchase' => $purchase]);
     }
 
     public function delete(): void
@@ -198,6 +222,7 @@ class PurchaseController extends Controller
             'produit_libelle' => $produitLibelle,
             'produit_unite' => $produitUnite,
             'fournisseur_nom' => $fournisseurNom,
+            'paiements' => Paiement::getByReference('achat', $code),
         ]);
     }
 
