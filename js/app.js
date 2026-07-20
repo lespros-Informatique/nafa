@@ -1296,6 +1296,41 @@ const app = {
         document.getElementById('user-detail-modal').classList.remove('open');
     },
 
+    closeProductDetail() {
+        document.getElementById('product-detail-modal').classList.remove('open');
+    },
+
+    async openProductDetail(code) {
+        const modal = document.getElementById('product-detail-modal');
+        const content = document.getElementById('product-detail-content');
+        content.innerHTML = '<div class="skeleton skeleton-list"><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div></div></div>';
+        modal.classList.add('open');
+
+        try {
+            const data = await this.api(`/products/detail?code=${encodeURIComponent(code)}`);
+            const p = data.data.product;
+            const html = `
+                <div class="detail-section">
+                    <div class="detail-item"><span>Libellé</span><strong>${this.escapeHtml(p.libelle_produit)}</strong></div>
+                    <div class="detail-item"><span>Code</span><strong>${this.escapeHtml(p.code_produit)}</strong></div>
+                    <div class="detail-item"><span>Unité</span><strong>${this.escapeHtml(p.unite_produit)}</strong></div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-item"><span>Prix d'achat</span><strong>${this.formatMoney(p.prix_achat_produit)}</strong></div>
+                    <div class="detail-item"><span>Prix de vente</span><strong>${this.formatMoney(p.prix_vente_produit)}</strong></div>
+                    <div class="detail-item"><span>Stock initial</span><strong>${this.formatMoney(p.stock_initial_produit)}</strong></div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-item"><span>Statut</span><strong><span class="badge ${p.statut_produit === 'actif' ? 'badge-actif' : 'badge-inactif'}">${this.escapeHtml(p.statut_produit)}</span></strong></div>
+                    <div class="detail-item"><span>Créé le</span><strong>${this.escapeHtml(this.formatFrenchDate(p.created_at_produit))}</strong></div>
+                </div>
+            `;
+            content.innerHTML = html;
+        } catch (err) {
+            content.innerHTML = `<div class="empty-state">${this.escapeHtml(err.message)}</div>`;
+        }
+    },
+
     setHistoryFilter(filter) {
         this.historyFilter = filter;
         document.querySelectorAll('.filter-btn').forEach(b => { if (b.dataset.filter) b.classList.toggle('active', b.dataset.filter === filter); });
@@ -1588,8 +1623,8 @@ const app = {
                         <div class="list-item-meta">${this.escapeHtml(p.code_produit)} • ${this.escapeHtml(p.unite_produit)}</div>
                     </div>
                     <div class="list-item-actions">
-                        <span class="badge ${p.statut_produit === 'actif' ? 'badge-actif' : 'badge-inactif'}">${this.escapeHtml(p.statut_produit)}</span>
-                        <button class="list-item-arrow" onclick="app.toggleProductStatut('${this.escapeHtml(p.code_produit)}')">
+                        <button class="badge ${p.statut_produit === 'actif' ? 'badge-actif' : 'badge-inactif'}" onclick="app.toggleProductStatut('${this.escapeHtml(p.code_produit)}')">${this.escapeHtml(p.statut_produit)}</button>
+                        <button class="list-item-arrow" onclick="app.openProductDetail('${this.escapeHtml(p.code_produit)}')">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                         </button>
                         <button class="list-item-delete" onclick="app.deleteProduct('${this.escapeHtml(p.code_produit)}')">

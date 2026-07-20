@@ -76,6 +76,7 @@ $routes = [
         '/api/dev/forfaits' => [DeveloperController::class, 'listForfaitsDev'],
         '/api/dev/abonnements' => [DeveloperController::class, 'listAbonnements'],
         '/api/products' => [ProductController::class, 'index'],
+        '/api/products/detail' => [ProductController::class, 'show'],
         '/api/purchases' => [PurchaseController::class, 'index'],
         '/api/stock' => [StockController::class, 'index'],
         '/api/sale-lines' => [SaleLineController::class, 'index'],

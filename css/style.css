@@ -434,11 +434,20 @@ html, body {
 .badge {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     padding: 4px 10px;
     border-radius: 8px;
     font-size: 12px;
     font-weight: 600;
     text-transform: capitalize;
+    cursor: pointer;
+    border: none;
+    font-family: 'Poppins', sans-serif;
+    transition: opacity 0.2s ease;
+}
+
+.badge:active {
+    opacity: 0.7;
 }
 
 .badge-actif,

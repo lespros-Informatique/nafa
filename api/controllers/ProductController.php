@@ -126,4 +126,21 @@ class ProductController extends Controller
         Product::delete($code);
         Response::success('Produit supprimé');
     }
+
+    public function show(): void
+    {
+        $this->requireActiveSubscription();
+        $code = trim($_GET['code'] ?? '');
+
+        if (!$code) {
+            Response::error('Code produit requis');
+        }
+
+        $product = Product::findByCode($code);
+        if (!$product) {
+            Response::error('Produit introuvable', [], 404);
+        }
+
+        Response::success('Produit', ['product' => $product]);
+    }
 }
