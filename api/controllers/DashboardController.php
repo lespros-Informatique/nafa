@@ -122,15 +122,16 @@ class DashboardController extends Controller
         $topProducts = [];
         if (!$isDev && $shop) {
             $stmt = Database::getConnection()->prepare(
-                'SELECT lv.produit_code, SUM(lv.quantite) AS total_vendu, SUM(lv.montant) AS total_montant
+                'SELECT lv.produit_code, p.libelle_produit, SUM(lv.quantite) AS total_vendu, SUM(lv.montant) AS total_montant
                  FROM lignes_ventes lv
                  JOIN ventes v ON lv.vente_code = v.code_vente
+                 JOIN produits p ON p.code_produit = lv.produit_code
                  WHERE v.boutique_code = :boutique_code
                    AND v.statut_vente != "supprime"
                    AND lv.statut_ligne != "supprime"
                    AND DATE(v.created_at_vente) >= :date_start
                    AND DATE(v.created_at_vente) <= :date_end
-                 GROUP BY lv.produit_code
+                 GROUP BY lv.produit_code, p.libelle_produit
                  ORDER BY total_vendu DESC
                  LIMIT 5'
             );

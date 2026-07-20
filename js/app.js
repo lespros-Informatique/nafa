@@ -580,8 +580,8 @@ const app = {
                         topProductsList.innerHTML = topProducts.map(p => `
                             <div class="list-item">
                                 <div class="list-item-info">
-                                    <div class="list-item-title">${this.escapeHtml(p.produit_code)}</div>
-                                    <div class="list-item-meta">${this.escapeHtml(p.total_vendu)} vendus • ${this.formatMoney(p.total_montant)}</div>
+                                    <div class="list-item-title">${this.escapeHtml(p.libelle_produit || p.produit_code)}</div>
+                                    <div class="list-item-meta">${this.escapeHtml(p.produit_code)} • ${this.escapeHtml(p.total_vendu)} vendus • ${this.formatMoney(p.total_montant)}</div>
                                 </div>
                             </div>
                         `).join('');
