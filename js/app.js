@@ -134,7 +134,10 @@ const app = {
                 const prix = parseFloat(prixInput.value) || 0;
                 montantDisplay.textContent = this.formatMoney(qty * prix);
             };
-            qtyInput.addEventListener('input', updateMontant);
+            qtyInput.addEventListener('input', () => {
+                qtyInput.value = qtyInput.value.replace(',', '.');
+                updateMontant();
+            });
             prixInput.addEventListener('input', updateMontant);
         }
 
@@ -147,7 +150,10 @@ const app = {
                 const prix = parseFloat(salePrixInput.value) || 0;
                 saleMontantDisplay.textContent = this.formatMoney(qty * prix);
             };
-            saleQtyInput.addEventListener('input', updateSaleMontant);
+            saleQtyInput.addEventListener('input', () => {
+                saleQtyInput.value = saleQtyInput.value.replace(',', '.');
+                updateSaleMontant();
+            });
             salePrixInput.addEventListener('input', updateSaleMontant);
         }
     },
@@ -574,6 +580,15 @@ const app = {
         });
     },
 
+    async refreshBadges() {
+        try {
+            const data = await this.api(`/dashboard?client_date=${this.getClientDate()}`);
+            this.updateSidebarBadges(data.data);
+        } catch (e) {
+            // silencieux
+        }
+    },
+
     renderRecentSales(sales = []) {
         const list = document.getElementById('recent-list');
         if (!list) return;
@@ -613,6 +628,7 @@ const app = {
             document.getElementById('sale-prix').value = '';
             document.getElementById('sale-montant-display').textContent = '0 F';
             this.toast('Vente enregistrée', 'success')
+            this.refreshBadges();
         } catch (err) {
             this.toast(err.message, 'error');
         } finally {
@@ -636,6 +652,7 @@ const app = {
             document.getElementById('expense-label').value = '';
             document.getElementById('expense-amount').value = '';
             this.toast('Dépense enregistrée', 'success')
+            this.refreshBadges();
         } catch (err) {
             this.toast(err.message, 'error');
         } finally {
@@ -1669,6 +1686,7 @@ const app = {
             document.getElementById('purchase-prix').value = '';
             document.getElementById('purchase-montant-display').textContent = '0 F';
             this.toast('Achat enregistré', 'success')
+            this.refreshBadges();
             this.navigate('purchases');
         } catch (err) {
             this.toast(err.message, 'error');
