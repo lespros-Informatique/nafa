@@ -48,6 +48,8 @@ const app = {
     supplierLimit: 20,
     supplierHasMore: false,
     supplierSearch: '',
+    saleProducts: [],
+    saleAllProducts: [],
     pendingProductDelete: null,
     pendingPurchaseDelete: null,
     pendingClientDelete: null,
@@ -625,16 +627,49 @@ const app = {
         `).join('');
     },
 
+    async onSaleClientChange(code) {
+        const card = document.getElementById('sale-client-info');
+        if (!card) return;
+        if (!code) {
+            card.style.display = 'none';
+            return;
+        }
+        card.style.display = 'block';
+        document.getElementById('sale-client-name').textContent = 'Chargement...';
+        document.getElementById('sale-client-phone').textContent = '';
+        document.getElementById('sale-client-address').textContent = '';
+        document.getElementById('sale-client-debt').style.display = 'none';
+
+        try {
+            const data = await this.api(`/clients/detail?code=${encodeURIComponent(code)}`);
+            const client = data.data.client || {};
+            document.getElementById('sale-client-name').textContent = client.nom_client || 'Client';
+            document.getElementById('sale-client-phone').textContent = client.telephone_client ? '📞 ' + client.telephone_client : '';
+            document.getElementById('sale-client-address').textContent = client.adresse_client ? '📍 ' + client.adresse_client : '';
+            document.getElementById('sale-client-statut').textContent = (client.statut_client || '').toUpperCase();
+            document.getElementById('sale-client-statut').className = 'client-info-badge badge-' + (client.statut_client || '');
+            const debt = parseFloat(data.data.dette_client || 0);
+            if (debt > 0) {
+                document.getElementById('sale-client-debt').style.display = 'block';
+                document.getElementById('sale-client-debt-amount').textContent = this.formatMoney(debt);
+            }
+        } catch (err) {
+            document.getElementById('sale-client-name').textContent = 'Erreur chargement';
+        }
+    },
+
     async handleSale(e) {
         e.preventDefault();
         const clientCode = document.getElementById('sale-client').value;
-        const produitCode = document.getElementById('sale-product').value;
-        const quantite = parseFloat(document.getElementById('sale-quantite').value);
-        const prixUnitaire = parseFloat(document.getElementById('sale-prix').value);
         const montantPaye = parseFloat(document.getElementById('sale-montant-paye').value) || 0;
         const statutPaiement = document.getElementById('sale-statut-paiement').value;
-        if (!produitCode || !quantite || isNaN(prixUnitaire)) return;
-        const montant = quantite * prixUnitaire;
+        const produits = this.saleProducts.filter(p => p.quantite > 0 && p.prix_unitaire >= 0).map(p => ({
+            produit_code: p.code,
+            quantite: p.quantite,
+            prix_unitaire: p.prix_unitaire,
+        }));
+        if (!produits.length) return;
+        const montant = produits.reduce((sum, p) => sum + (p.quantite * p.prix_unitaire), 0);
         const btn = e.target.querySelector('button[type="submit"]');
         this.setButtonLoading(btn, true);
 
@@ -646,15 +681,15 @@ const app = {
                     montant,
                     montant_paye: montantPaye,
                     statut_paiement: statutPaiement,
-                    produits: [{ produit_code: produitCode, quantite, prix_unitaire: prixUnitaire }],
+                    produits,
                     client_now: new Date().toISOString()
                 }),
             });
+            this.saleProducts = [];
+            this.renderSaleChips();
+            this.updateSaleTotal();
             document.getElementById('sale-client').value = '';
-            document.getElementById('sale-product').value = '';
-            document.getElementById('sale-quantite').value = '';
-            document.getElementById('sale-prix').value = '';
-            document.getElementById('sale-montant-display').textContent = '0 F';
+            document.getElementById('sale-product-search').value = '';
             document.getElementById('sale-montant-paye').value = '';
             this.toast('Vente enregistrée', 'success')
             this.refreshBadges();
@@ -1791,17 +1826,6 @@ const app = {
     },
 
     async loadSaleOptions() {
-        const productSelect = document.getElementById('sale-product');
-        if (productSelect) {
-            try {
-                const data = await this.api('/products');
-                const products = data.data.products || [];
-                productSelect.innerHTML = '<option value="">Sélectionner un produit</option>' +
-                    products.map(p => `<option value="${this.escapeHtml(p.code_produit)}">${this.escapeHtml(p.libelle_produit)} (${this.escapeHtml(p.unite_produit)})</option>`).join('');
-            } catch (err) {
-                this.toast(err.message, 'error');
-            }
-        }
         const clientSelect = document.getElementById('sale-client');
         if (clientSelect) {
             try {
@@ -1813,6 +1837,131 @@ const app = {
                 this.toast(err.message, 'error');
             }
         }
+        this.saleProducts = [];
+        this.renderSaleChips();
+        this.updateSaleTotal();
+        try {
+            const data = await this.api('/products');
+            this.saleAllProducts = data.data.products || [];
+        } catch (err) {
+            this.toast(err.message, 'error');
+        }
+    },
+
+    filterSaleProducts(query) {
+        const q = query.toLowerCase().trim();
+        if (!q) return this.saleAllProducts.slice(0, 10);
+        return this.saleAllProducts.filter(p =>
+            p.libelle_produit.toLowerCase().includes(q) ||
+            p.code_produit.toLowerCase().includes(q) ||
+            (p.unite_produit && p.unite_produit.toLowerCase().includes(q))
+        ).slice(0, 10);
+    },
+
+    onSaleProductSearch(query) {
+        const autocomplete = document.getElementById('sale-product-autocomplete');
+        if (!autocomplete) return;
+        const matches = this.filterSaleProducts(query);
+        if (!matches.length) {
+            autocomplete.innerHTML = '<div class="product-autocomplete-item">Aucun produit trouvé</div>';
+            autocomplete.style.display = 'block';
+            return;
+        }
+        autocomplete.innerHTML = matches.map(p => `
+            <div class="product-autocomplete-item" onclick="app.addSaleProduct('${this.escapeHtml(p.code_produit)}')">
+                <div class="pa-name">${this.escapeHtml(p.libelle_produit)}</div>
+                <div class="pa-meta">${this.escapeHtml(p.code_produit)} • ${this.escapeHtml(p.unite_produit || '')} • ${this.formatMoney(parseFloat(p.prix_vente_produit || p.prix_achat_produit || 0))}</div>
+            </div>
+        `).join('');
+        autocomplete.style.display = 'block';
+    },
+
+    onSaleProductKeydown(e) {
+        const autocomplete = document.getElementById('sale-product-autocomplete');
+        if (!autocomplete || autocomplete.style.display === 'none') {
+            if (e.key === 'Escape') return;
+            if (e.key === 'Enter') {
+                const first = autocomplete ? autocomplete.querySelector('.product-autocomplete-item') : null;
+                if (first && first.onclick) first.onclick();
+            }
+            return;
+        }
+        if (e.key === 'Escape') {
+            autocomplete.style.display = 'none';
+            e.target.value = '';
+            return;
+        }
+    },
+
+    addSaleProduct(code) {
+        const product = this.saleAllProducts.find(p => p.code_produit === code);
+        if (!product) return;
+        if (this.saleProducts.find(p => p.code === code)) {
+            this.toast('Produit déjà ajouté', 'error');
+            return;
+        }
+        this.saleProducts.push({
+            code: product.code_produit,
+            name: product.libelle_produit,
+            unit: product.unite_produit || '',
+            quantite: 1,
+            prix_unitaire: parseFloat(product.prix_vente_produit || product.prix_achat_produit || 0),
+        });
+        this.renderSaleChips();
+        this.updateSaleTotal();
+        document.getElementById('sale-product-search').value = '';
+        document.getElementById('sale-product-autocomplete').style.display = 'none';
+    },
+
+    removeSaleProduct(code) {
+        this.saleProducts = this.saleProducts.filter(p => p.code !== code);
+        this.renderSaleChips();
+        this.updateSaleTotal();
+    },
+
+    renderSaleChips() {
+        const container = document.getElementById('sale-product-chips');
+        if (!container) return;
+        if (!this.saleProducts.length) {
+            container.innerHTML = '';
+            return;
+        }
+        container.innerHTML = this.saleProducts.map(p => `
+            <div class="product-chip" data-code="${this.escapeHtml(p.code)}">
+                <div class="product-chip-info">
+                    <div class="product-chip-name">${this.escapeHtml(p.name)}</div>
+                    <div class="product-chip-unit">${this.escapeHtml(p.unit)}</div>
+                </div>
+                <input type="number" class="chip-qty" value="${this.escapeHtml(String(p.quantite))}" placeholder="Qté" inputmode="numeric" step="1" min="1" onchange="app.updateSaleProductQty('${this.escapeHtml(p.code)}', this.value)" oninput="app.updateSaleProductQty('${this.escapeHtml(p.code)}', this.value)">
+                <input type="number" class="chip-price" value="${this.escapeHtml(String(p.prix_unitaire))}" placeholder="Prix" inputmode="decimal" step="1" min="0" onchange="app.updateSaleProductPrice('${this.escapeHtml(p.code)}', this.value)" oninput="app.updateSaleProductPrice('${this.escapeHtml(p.code)}', this.value)">
+                <button type="button" class="chip-remove" onclick="app.removeSaleProduct('${this.escapeHtml(p.code)}')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+        `).join('');
+    },
+
+    updateSaleProductQty(code, value) {
+        const product = this.saleProducts.find(p => p.code === code);
+        if (product) {
+            product.quantite = Math.max(1, parseFloat(value) || 1);
+            this.updateSaleTotal();
+        }
+    },
+
+    updateSaleProductPrice(code, value) {
+        const product = this.saleProducts.find(p => p.code === code);
+        if (product) {
+            product.prix_unitaire = Math.max(0, parseFloat(value) || 0);
+            this.updateSaleTotal();
+        }
+    },
+
+    updateSaleTotal() {
+        const display = document.getElementById('sale-montant-display');
+        if (!display) return;
+        const total = this.saleProducts.reduce((sum, p) => sum + (p.quantite * p.prix_unitaire), 0);
+        display.textContent = this.formatMoney(total);
     },
 
     async renderPurchases(append = false) {
@@ -2200,6 +2349,8 @@ const app = {
             this.closeCreateSupplierModal();
             this.toast('Fournisseur créé', 'success')
             this.renderSuppliers();
+            const supplierSelect = document.getElementById('purchase-supplier');
+            if (supplierSelect) this.loadPurchaseOptions();
         } catch (err) {
             this.toast(err.message, 'error');
         } finally {
@@ -2288,6 +2439,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const dropdown = document.getElementById('navbar-dropdown');
         if (dropdown && btn && !btn.contains(e.target) && !dropdown.contains(e.target)) {
             app.closeNavbarMenu();
+        }
+        const autocomplete = document.getElementById('sale-product-autocomplete');
+        const searchInput = document.getElementById('sale-product-search');
+        if (autocomplete && searchInput && !autocomplete.contains(e.target) && e.target !== searchInput) {
+            autocomplete.style.display = 'none';
         }
     });
 });

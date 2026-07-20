@@ -508,6 +508,38 @@
         grid-column: 1 / -1;
     }
 
+    .form-page .input-group-full {
+        grid-column: 1 / -1;
+    }
+
+    /* Product chips horizontal on desktop */
+    .product-chips {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .product-chip {
+        flex: 0 0 auto;
+        min-width: 280px;
+        max-width: 100%;
+    }
+
+    .chip-qty,
+    .chip-price {
+        width: 70px;
+    }
+
+    /* Client info card compact on desktop */
+    .client-info-card {
+        gap: 6px;
+    }
+
+    .client-info-debt {
+        margin-top: 4px;
+        margin-left: 0;
+    }
+
     /* Tableau / listes plus lisibles */
     .list-container {
         padding: 0;
@@ -561,6 +593,10 @@
     }
 
     .form-page .btn-full {
+        grid-column: 1 / -1;
+    }
+
+    .form-page .input-group-full {
         grid-column: 1 / -1;
     }
 }
