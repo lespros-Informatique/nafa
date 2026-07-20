@@ -65,9 +65,9 @@ INSERT INTO `abonnements` (`id_abonnement`, `code_abonnement`, `boutique_code`, 
 DROP TABLE IF EXISTS `achats`;
 CREATE TABLE IF NOT EXISTS `achats` (
   `id_achat` int NOT NULL AUTO_INCREMENT,
-  `code_achat` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `boutique_code` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `produit_code` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `code_achat` varchar(20) NOT NULL,
+  `boutique_code` varchar(20) NOT NULL,
+  `produit_code` varchar(20) NOT NULL,
   `quantite_achat` decimal(12,2) NOT NULL,
   `prix_unitaire_achat` decimal(12,2) NOT NULL,
   `montant_achat` decimal(12,2) NOT NULL,
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS `achats` (
   UNIQUE KEY `code_achat` (`code_achat`),
   KEY `boutique_code` (`boutique_code`),
   KEY `produit_code` (`produit_code`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -188,9 +188,9 @@ INSERT INTO `forfaits` (`id_forfait`, `code_forfait`, `libelle_forfait`, `prix_f
 DROP TABLE IF EXISTS `lignes_ventes`;
 CREATE TABLE IF NOT EXISTS `lignes_ventes` (
   `id_ligne` int NOT NULL AUTO_INCREMENT,
-  `code_ligne` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `vente_code` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `produit_code` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `code_ligne` varchar(20) NOT NULL,
+  `vente_code` varchar(20) NOT NULL,
+  `produit_code` varchar(20) NOT NULL,
   `quantite` decimal(12,2) NOT NULL,
   `prix_unitaire` decimal(12,2) NOT NULL,
   `montant` decimal(12,2) NOT NULL,
@@ -198,7 +198,7 @@ CREATE TABLE IF NOT EXISTS `lignes_ventes` (
   UNIQUE KEY `code_ligne` (`code_ligne`),
   KEY `vente_code` (`vente_code`),
   KEY `produit_code` (`produit_code`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -209,20 +209,20 @@ CREATE TABLE IF NOT EXISTS `lignes_ventes` (
 DROP TABLE IF EXISTS `produits`;
 CREATE TABLE IF NOT EXISTS `produits` (
   `id_produit` int NOT NULL AUTO_INCREMENT,
-  `code_produit` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `boutique_code` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `libelle_produit` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `unite_produit` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `code_produit` varchar(20) NOT NULL,
+  `boutique_code` varchar(20) NOT NULL,
+  `libelle_produit` varchar(150) NOT NULL,
+  `unite_produit` varchar(30) NOT NULL,
   `prix_achat_produit` decimal(12,2) DEFAULT '0.00',
   `prix_vente_produit` decimal(12,2) DEFAULT '0.00',
   `stock_initial_produit` decimal(12,2) DEFAULT '0.00',
-  `statut_produit` enum('actif','inactif') COLLATE utf8mb4_unicode_ci DEFAULT 'actif',
+  `statut_produit` enum('actif','inactif') DEFAULT 'actif',
   `created_at_produit` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at_produit` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_produit`),
   UNIQUE KEY `code_produit` (`code_produit`),
   KEY `boutique_code` (`boutique_code`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
