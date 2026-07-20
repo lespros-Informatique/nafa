@@ -162,14 +162,56 @@ const app = {
         }
 
         const loggedIn = page !== 'login' && page !== 'subscription';
-        document.getElementById('bottom-nav').style.display = loggedIn ? 'flex' : 'none';
-        document.getElementById('fab-container').style.display = (loggedIn && page === 'dashboard' && this.currentUser?.role_user !== 'developpeur') ? 'flex' : 'none';
+        const isPublicPage = page === 'login' || page === 'subscription' || page === 'download';
+
+        // Mobile nav
+        const bottomNav = document.getElementById('bottom-nav');
+        if (bottomNav) bottomNav.style.display = loggedIn ? 'flex' : 'none';
+
+        const fabContainer = document.getElementById('fab-container');
+        if (fabContainer) fabContainer.style.display = (loggedIn && page === 'dashboard' && this.currentUser?.role_user !== 'developpeur') ? 'flex' : 'none';
 
         const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
+
+        // Boutons mobiles flottants (hors media query)
         const logoutBtn = document.getElementById('logout-top');
         if (logoutBtn) logoutBtn.style.display = loggedIn ? 'flex' : 'none';
         const downloadBtn = document.getElementById('download-top');
         if (downloadBtn) downloadBtn.style.display = (loggedIn && isDev) ? 'flex' : 'none';
+
+        // Sidebar et navbar desktop
+        const sidebar = document.getElementById('sidebar');
+        const mainWrapper = document.getElementById('main-wrapper');
+        const topNavbar = document.getElementById('top-navbar');
+        if (sidebar) sidebar.style.display = isPublicPage ? 'none' : '';
+        if (mainWrapper && isPublicPage) mainWrapper.style.marginLeft = '0';
+        else if (mainWrapper) mainWrapper.style.marginLeft = '';
+        if (topNavbar) topNavbar.style.display = isPublicPage ? 'none' : '';
+
+        // Titre de la navbar desktop
+        const pageLabels = {
+            'dashboard': 'Accueil',
+            'history': 'Historique',
+            'products': 'Produits',
+            'product': 'Nouveau produit',
+            'purchases': 'Achats',
+            'purchase': 'Nouvel achat',
+            'sale': 'Nouvelle vente',
+            'expense': 'Nouvelle d\u00e9pense',
+            'stock': 'Stock',
+            'reports': 'Rapports',
+            'dev-list': 'Utilisateurs',
+            'dev-shops': 'Boutiques',
+            'dev-forfaits': 'Forfaits',
+            'dev-abonnements': 'Abonnements',
+            'download': 'T\u00e9l\u00e9chargement',
+            'subscription': 'Abonnement',
+        };
+        const pageTitle = document.getElementById('page-title');
+        if (pageTitle) pageTitle.textContent = pageLabels[page] || 'NAFA';
+
+        // Fermer dropdown navbar si ouvert
+        this.closeNavbarMenu();
 
         this.closeCreateUserModal();
         this.closeCreateShopModal();
@@ -210,6 +252,23 @@ const app = {
         if (page === 'product') this.loadProductOptions();
         if (page === 'purchase') this.loadPurchaseOptions();
         if (page === 'sale') this.loadSaleOptions();
+    },
+
+    toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+        sidebar.classList.toggle('collapsed');
+    },
+
+    toggleNavbarMenu() {
+        const dropdown = document.getElementById('navbar-dropdown');
+        if (!dropdown) return;
+        dropdown.classList.toggle('open');
+    },
+
+    closeNavbarMenu() {
+        const dropdown = document.getElementById('navbar-dropdown');
+        if (dropdown) dropdown.classList.remove('open');
     },
 
     async api(url, options = {}) {
@@ -1775,4 +1834,14 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
     app.init();
+
+    // Fermer le dropdown navbar en cliquant en dehors
+    document.addEventListener('click', (e) => {
+        const btn = document.getElementById('navbar-menu-btn');
+        const dropdown = document.getElementById('navbar-dropdown');
+        if (dropdown && btn && !btn.contains(e.target) && !dropdown.contains(e.target)) {
+            app.closeNavbarMenu();
+        }
+    });
 });
+
