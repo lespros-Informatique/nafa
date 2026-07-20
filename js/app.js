@@ -133,7 +133,9 @@ const app = {
             this.currentUser = s.user;
             this.currentShop = s.shop || null;
             const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
-            document.querySelectorAll('.dev-only').forEach(el => el.style.display = isDev ? '' : 'none');
+        document.querySelectorAll('.dev-only').forEach(el => el.style.display = isDev ? '' : 'none');
+        document.querySelectorAll('.seller-only').forEach(el => el.style.display = isDev ? 'none' : '');
+            document.querySelectorAll('.seller-only').forEach(el => el.style.display = isDev ? 'none' : '');
             const logoutBtn = document.getElementById('logout-top');
             if (logoutBtn) logoutBtn.style.display = isDev ? 'flex' : 'none';
             const downloadBtn = document.getElementById('download-top');
@@ -265,6 +267,7 @@ const app = {
         this.closeConfirm();
 
         document.querySelectorAll('.dev-only').forEach(el => el.style.display = isDev ? '' : 'none');
+        document.querySelectorAll('.seller-only').forEach(el => el.style.display = isDev ? 'none' : '');
 
         document.querySelectorAll('.nav-item').forEach(i => {
             const pageName = i.dataset.page;
@@ -342,6 +345,10 @@ const app = {
                 data = JSON.parse(text);
             } catch (e) {
                 data = { success: false, message: 'Réponse invalide du serveur', data: [] };
+            }
+            if (response.status === 401 || response.status === 403) {
+                this.autoLogout();
+                throw new Error(data.message || 'Session expirée');
             }
             if (!data.success) {
                 const err = new Error(data.message || 'Erreur API');
@@ -494,6 +501,18 @@ const app = {
             this.toast('Déconnexion réussie', 'success')
             this.setButtonLoading(logoutBtn, false);
         }
+    },
+
+    autoLogout() {
+        this.currentUser = null;
+        this.currentShop = null;
+        localStorage.removeItem('nafa_session');
+        const logoutBtn = document.getElementById('logout-top');
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        const downloadBtn = document.getElementById('download-top');
+        if (downloadBtn) downloadBtn.style.display = 'none';
+        this.navigate('login');
+        this.toast('Session expirée', 'error');
     },
 
     assetUrl(path) {
