@@ -73,7 +73,7 @@ class Paiement
         if ($paye <= 0) {
             $statut = 'credit';
         } elseif ($reste <= 0) {
-            $statut = 'comptant';
+            $statut = 'paye';
         } else {
             $statut = 'partiel';
         }
