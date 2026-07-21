@@ -45,6 +45,8 @@ const app = {
     stockLimit: 20,
     stockHasMore: false,
     stockSearch: '',
+    stockHistoryPage: 1,
+    stockHistoryHasMore: false,
     salesListPeriod: 'today',
     salesListSearch: '',
     salesListDateStart: '',
@@ -2240,6 +2242,7 @@ const app = {
                     <div class="list-item-actions">
                         <span class="badge ${statusClass}">${statusLabel}</span>
                         <span class="list-item-amount">${this.formatNumber(stockDispo)} ${this.escapeHtml(s.unite_produit || '')}</span>
+                        <button class="btn btn-primary" onclick="app.openStockAdjust('${this.escapeHtml(s.code_produit)}', '${this.escapeHtml(s.libelle_produit)}', ${stockDispo})">Ajuster</button>
                     </div>
                 </div>
             `;
@@ -2270,6 +2273,103 @@ const app = {
     loadMoreStock() {
         this.stockPage++;
         this.renderStock(true);
+    },
+
+    openStockAdjust(code, name, currentStock) {
+        document.getElementById('adjust-produit-code').value = code;
+        document.getElementById('adjust-produit-name').textContent = name;
+        document.getElementById('adjust-current-stock').textContent = this.formatNumber(currentStock);
+        document.getElementById('adjust-quantite').value = '';
+        document.getElementById('adjust-motif').value = '';
+        document.getElementById('adjust-date').value = new Date().toISOString().slice(0, 10);
+        document.getElementById('stock-adjust-modal').classList.add('open');
+    },
+
+    closeStockAdjust() {
+        document.getElementById('stock-adjust-modal').classList.remove('open');
+    },
+
+    async handleStockAdjust(e) {
+        e.preventDefault();
+        const code = document.getElementById('adjust-produit-code').value.trim();
+        const quantite = parseFloat(document.getElementById('adjust-quantite').value);
+        const motif = document.getElementById('adjust-motif').value.trim();
+        const dateAjustement = document.getElementById('adjust-date').value;
+        const btn = e.target.querySelector('button[type="submit"]');
+        this.setButtonLoading(btn, true);
+        try {
+            await this.api('/stock/adjust', {
+                method: 'POST',
+                body: JSON.stringify({ produit_code: code, quantite, motif, date_ajustement: dateAjustement }),
+            });
+            this.toast('Ajustement enregistré', 'success');
+            this.closeStockAdjust();
+            this.renderStock();
+        } catch (err) {
+            this.toast(err.message, 'error');
+        } finally {
+            this.setButtonLoading(btn, false);
+        }
+    },
+
+    async openStockHistory() {
+        document.getElementById('stock-history-modal').classList.add('open');
+        this.stockHistoryPage = 1;
+        await this.renderStockHistory();
+    },
+
+    closeStockHistory() {
+        document.getElementById('stock-history-modal').classList.remove('open');
+    },
+
+    async renderStockHistory(append = false) {
+        const list = document.getElementById('stock-history-list');
+        if (!list) return;
+        if (!append) {
+            this.showSkeleton(list, 'list');
+            this.stockHistoryPage = 1;
+        }
+        try {
+            const params = new URLSearchParams({
+                page: this.stockHistoryPage,
+                limit: 50,
+            });
+            const data = await this.api(`/stock/history?${params.toString()}`);
+            const items = data.data.items || [];
+            const pagination = data.data.pagination || {};
+            const html = items.map(item => {
+                const qty = parseFloat(item.quantite) || 0;
+                const sign = qty > 0 ? '+' : '';
+                const qtyBadge = qty > 0 ? 'badge-actif' : (qty < 0 ? 'badge-inactif' : '');
+                return `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${this.escapeHtml(item.produit_code)} • ${this.escapeHtml(item.boutique_code)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(item.date_ajustement)} • ${item.motif ? this.escapeHtml(item.motif) : 'Sans motif'}</div>
+                    </div>
+                    <div class="list-item-actions">
+                        <span class="badge ${qtyBadge}">${sign}${this.formatNumber(qty)}</span>
+                    </div>
+                </div>
+            `;
+            }).join('');
+            if (append) {
+                list.insertAdjacentHTML('beforeend', html);
+            } else {
+                list.innerHTML = html || '<div class="empty-state">Aucun ajustement</div>';
+            }
+            this.stockHistoryHasMore = pagination.has_more || false;
+            const btn = document.getElementById('stock-history-load-more');
+            if (btn) btn.style.display = this.stockHistoryHasMore ? 'flex' : 'none';
+        } catch (err) {
+            if (!append) list.innerHTML = '<div class="empty-state">Erreur</div>';
+            this.toast(err.message, 'error');
+        }
+    },
+
+    loadMoreStockHistory() {
+        this.stockHistoryPage++;
+        this.renderStockHistory(true);
     },
 
     async renderClients(append = false) {

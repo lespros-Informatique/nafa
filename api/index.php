@@ -26,8 +26,8 @@ require_once __DIR__ . '/controllers/StockController.php';
 require_once __DIR__ . '/controllers/SaleLineController.php';
 require_once __DIR__ . '/controllers/ClientController.php';
 require_once __DIR__ . '/models/Client.php';
-require_once __DIR__ . '/models/Client.php';
 require_once __DIR__ . '/models/Supplier.php';
+require_once __DIR__ . '/models/StockAdjustment.php';
 require_once __DIR__ . '/controllers/SupplierController.php';
 require_once __DIR__ . '/controllers/PdfController.php';
 
@@ -77,6 +77,7 @@ $routes = [
         '/api/sale-lines' => [SaleLineController::class, 'store'],
         '/api/sale-lines/update' => [SaleLineController::class, 'update'],
         '/api/sale-lines/delete' => [SaleLineController::class, 'delete'],
+        '/api/stock/adjust' => [StockController::class, 'adjust'],
     ],
     'GET' => [
         '/api/auth/me' => [AuthController::class, 'me'],
@@ -101,6 +102,7 @@ $routes = [
         '/api/purchases/detail' => [PurchaseController::class, 'detail'],
         '/api/purchases/list' => [PurchaseController::class, 'list'],
         '/api/stock' => [StockController::class, 'index'],
+        '/api/stock/history' => [StockController::class, 'history'],
         '/api/expenses' => [ExpenseController::class, 'index'],
         '/api/sales/detail' => [SaleController::class, 'detail'],
         '/api/sales/list' => [SaleController::class, 'list'],

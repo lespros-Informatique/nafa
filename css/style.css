@@ -52,6 +52,16 @@ html, body {
     padding-bottom: 80px;
 }
 
+#page-stock .list-container {
+    padding-top: 32px;
+    margin-top: 34px;
+}
+#page-history .header {
+    padding-top: 32px;
+    margin-top: 54px;
+    
+}
+
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }

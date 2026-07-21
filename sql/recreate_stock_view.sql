@@ -13,7 +13,8 @@ SELECT
     p.prix_vente_produit AS prix_vente_produit,
     COALESCE(a.total_achats, 0) AS total_achats,
     COALESCE(v.total_ventes, 0) AS total_ventes,
-    GREATEST(((p.stock_initial_produit + COALESCE(a.total_achats, 0)) - COALESCE(v.total_ventes, 0)), 0) AS stock_disponible
+    COALESCE(aj.total_ajustements, 0) AS total_ajustements,
+    GREATEST(((p.stock_initial_produit + COALESCE(a.total_achats, 0)) - COALESCE(v.total_ventes, 0) + COALESCE(aj.total_ajustements, 0)), 0) AS stock_disponible
 FROM (
     (produits p
         LEFT JOIN (
@@ -29,5 +30,11 @@ FROM (
         WHERE lv.statut_ligne != 'supprime'
         GROUP BY lv.produit_code
     ) v ON (v.produit_code = p.code_produit)
+    LEFT JOIN (
+        SELECT sa.produit_code AS produit_code, SUM(sa.quantite) AS total_ajustements
+        FROM stock_ajustements sa
+        WHERE sa.statut_ajustement != 'supprime'
+        GROUP BY sa.produit_code
+    ) aj ON (aj.produit_code = p.code_produit)
 )
 WHERE p.statut_produit != 'supprime';
