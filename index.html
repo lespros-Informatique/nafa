@@ -589,10 +589,28 @@
                 <div class="dev-search-bar">
                     <input type="text" class="dev-search-input" id="stock-search" placeholder="Rechercher un produit..." oninput="app.onStockSearch(this.value)">
                     <button class="btn btn-secondary" onclick="app.openStockHistory()">Historique ajustements</button>
+                    <button class="btn btn-primary" onclick="app.navigate('inventory')">Inventaire</button>
                 </div>
             </div>
             <div class="list-container" id="stock-list"></div>
             <button class="btn-load-more" id="stock-load-more" style="display:none;" onclick="app.loadMoreStock()">Charger plus</button>
+            <div class="bottom-spacer"></div>
+        </div>
+
+        <!-- INVENTORY PAGE -->
+        <div id="page-inventory" class="page">
+            <div class="header">
+                <button class="btn-back" onclick="app.navigate('stock')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </button>
+                <h2>Inventaire</h2>
+                <p class="header-subtitle">Détail par produit</p>
+            </div>
+            <div class="dev-search-bar">
+                <input type="text" class="dev-search-input" id="inventory-search" placeholder="Rechercher un produit..." oninput="app.onInventorySearch(this.value)">
+            </div>
+            <div class="list-container" id="inventory-list"></div>
+            <button class="btn-load-more" id="inventory-load-more" style="display:none;" onclick="app.loadMoreInventory()">Charger plus</button>
             <div class="bottom-spacer"></div>
         </div>
 

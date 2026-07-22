@@ -103,6 +103,7 @@ $routes = [
         '/api/purchases/list' => [PurchaseController::class, 'list'],
         '/api/stock' => [StockController::class, 'index'],
         '/api/stock/history' => [StockController::class, 'history'],
+        '/api/stock/inventory' => [StockController::class, 'inventory'],
         '/api/expenses' => [ExpenseController::class, 'index'],
         '/api/sales/detail' => [SaleController::class, 'detail'],
         '/api/sales/list' => [SaleController::class, 'list'],

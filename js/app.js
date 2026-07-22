@@ -49,6 +49,10 @@ const app = {
     stockSearch: '',
     stockHistoryPage: 1,
     stockHistoryHasMore: false,
+    inventoryPage: 1,
+    inventoryLimit: 20,
+    inventoryHasMore: false,
+    inventorySearch: '',
     salesListPeriod: 'today',
     salesListSearch: '',
     salesListDateStart: '',
@@ -144,7 +148,7 @@ const app = {
             const downloadBtn = document.getElementById('download-top');
             if (downloadBtn) downloadBtn.style.display = isDev ? 'flex' : 'none';
             const lastPage = localStorage.getItem('nafa_last_page');
-            const validPages = ['dashboard', 'history', 'products', 'purchases', 'purchases-list', 'stock', 'clients', 'suppliers', 'reports', 'sales-list', 'dev-shops', 'dev-list', 'dev-forfaits', 'dev-abonnements'];
+            const validPages = ['dashboard', 'history', 'products', 'purchases', 'purchases-list', 'stock', 'inventory', 'clients', 'suppliers', 'reports', 'sales-list', 'dev-shops', 'dev-list', 'dev-forfaits', 'dev-abonnements'];
             const targetPage = validPages.includes(lastPage) ? lastPage : 'dashboard';
             this.navigate(targetPage);
         } else {
@@ -271,6 +275,7 @@ const app = {
         if (page === 'products') this.renderProducts();
         if (page === 'purchases') this.renderPurchases();
         if (page === 'stock') this.renderStock();
+        if (page === 'inventory') this.renderInventory();
         if (page === 'clients') this.renderClients();
         if (page === 'suppliers') this.renderSuppliers();
         if (page === 'product') this.loadProductOptions();
@@ -2339,6 +2344,109 @@ const app = {
     loadMoreStockHistory() {
         this.stockHistoryPage++;
         this.renderStockHistory(true);
+    },
+
+    async renderInventory(append = false) {
+        const list = document.getElementById('inventory-list');
+        if (!list) return;
+        if (!append) {
+            this.showSkeleton(list, 'list');
+            this.inventoryPage = 1;
+        }
+        try {
+            const params = new URLSearchParams({
+                page: this.inventoryPage,
+                limit: this.inventoryLimit,
+            });
+            if (this.inventorySearch) params.set('search', this.inventorySearch);
+            const data = await this.api(`/stock/inventory?${params.toString()}`);
+            const items = data.data.inventory || [];
+            const pagination = data.data.pagination || {};
+
+            const cardsHtml = items.map(item => `
+                <div class="list-item list-item-column">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${this.escapeHtml(item.libelle_produit)}</div>
+                        <div class="list-item-meta">${this.escapeHtml(item.code_produit)} • ${this.escapeHtml(item.unite_produit || '')}</div>
+                    </div>
+                    <div class="inventory-mobile-grid">
+                        <div class="inventory-mobile-row"><span>Stock initial</span><strong>${this.formatNumber(item.stock_initial)}</strong></div>
+                        <div class="inventory-mobile-row"><span>Acheté</span><strong>+${this.formatNumber(item.total_achats)}</strong></div>
+                        <div class="inventory-mobile-row"><span>Vendu</span><strong>-${this.formatNumber(item.total_ventes)}</strong></div>
+                        <div class="inventory-mobile-row"><span>Ajustements</span><strong>${this.formatNumber(item.total_ajustements)}</strong></div>
+                        <div class="inventory-mobile-row inventory-mobile-total"><span>Stock actuel</span><strong>${this.formatNumber(item.stock_actuel)}</strong></div>
+                        <div class="inventory-mobile-row"><span>Valeur achat</span><strong>${this.formatMoney(item.valeur_achat_stock)}</strong></div>
+                        <div class="inventory-mobile-row"><span>Valeur vente</span><strong>${this.formatMoney(item.valeur_vente_stock)}</strong></div>
+                        <div class="inventory-mobile-row inventory-mobile-total"><span>Bénéfice</span><strong>${this.formatMoney(item.benefice_potentiel)}</strong></div>
+                    </div>
+                </div>
+            `).join('');
+
+            const tableHtml = `
+                <div class="inventory-table-wrapper">
+                    <table class="inventory-table">
+                        <thead>
+                            <tr>
+                                <th>Produit</th>
+                                <th class="inventory-number">Stock initial</th>
+                                <th class="inventory-number">Acheté</th>
+                                <th class="inventory-number">Vendu</th>
+                                <th class="inventory-number">Ajustements</th>
+                                <th class="inventory-number">Stock actuel</th>
+                                <th class="inventory-number">Valeur achat</th>
+                                <th class="inventory-number">Valeur vente</th>
+                                <th class="inventory-number">Bénéfice</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${items.map(item => `
+                                <tr>
+                                    <td>
+                                        <div class="inventory-title">${this.escapeHtml(item.libelle_produit)}</div>
+                                        <div class="inventory-code">${this.escapeHtml(item.code_produit)} • ${this.escapeHtml(item.unite_produit || '')}</div>
+                                    </td>
+                                    <td class="inventory-number">${this.formatNumber(item.stock_initial)}</td>
+                                    <td class="inventory-number">+${this.formatNumber(item.total_achats)}</td>
+                                    <td class="inventory-number">-${this.formatNumber(item.total_ventes)}</td>
+                                    <td class="inventory-number">${this.formatNumber(item.total_ajustements)}</td>
+                                    <td class="inventory-number"><strong>${this.formatNumber(item.stock_actuel)}</strong></td>
+                                    <td class="inventory-number">${this.formatMoney(item.valeur_achat_stock)}</td>
+                                    <td class="inventory-number">${this.formatMoney(item.valeur_vente_stock)}</td>
+                                    <td class="inventory-number inventory-benefice">${this.formatMoney(item.benefice_potentiel)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            const html = `<div class="inventory-mobile">${cardsHtml}</div><div class="inventory-desktop">${tableHtml}</div>`;
+            if (append) {
+                list.insertAdjacentHTML('beforeend', html);
+            } else {
+                list.innerHTML = html || '<div class="empty-state">Aucun produit</div>';
+            }
+            this.inventoryHasMore = pagination.has_more || false;
+            const btn = document.getElementById('inventory-load-more');
+            if (btn) btn.style.display = this.inventoryHasMore ? 'flex' : 'none';
+        } catch (err) {
+            if (!append) list.innerHTML = '<div class="empty-state">Erreur</div>';
+            this.toast(err.message, 'error');
+        }
+    },
+
+    onInventorySearch(value) {
+        clearTimeout(this._inventorySearchTimer);
+        this._inventorySearchTimer = setTimeout(() => {
+            this.inventorySearch = value;
+            this.inventoryPage = 1;
+            this.renderInventory();
+        }, 300);
+    },
+
+    loadMoreInventory() {
+        this.inventoryPage++;
+        this.renderInventory(true);
     },
 
     async renderClients(append = false) {
