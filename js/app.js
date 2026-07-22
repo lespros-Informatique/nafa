@@ -137,8 +137,7 @@ const app = {
             this.currentUser = s.user;
             this.currentShop = s.shop || null;
             const isDev = this.currentUser && this.currentUser.role_user === 'developpeur';
-        document.querySelectorAll('.dev-only').forEach(el => el.style.display = isDev ? '' : 'none');
-        document.querySelectorAll('.seller-only').forEach(el => el.style.display = isDev ? 'none' : '');
+            document.querySelectorAll('.dev-only').forEach(el => el.style.display = isDev ? '' : 'none');
             document.querySelectorAll('.seller-only').forEach(el => el.style.display = isDev ? 'none' : '');
             const logoutBtn = document.getElementById('logout-top');
             if (logoutBtn) logoutBtn.style.display = isDev ? 'flex' : 'none';
@@ -162,36 +161,6 @@ const app = {
         });
 
         const qtyInput = document.getElementById('purchase-quantite');
-        const prixInput = document.getElementById('purchase-prix');
-        const montantDisplay = document.getElementById('purchase-montant-display');
-        if (qtyInput && prixInput && montantDisplay) {
-            const updateMontant = () => {
-                const qty = parseFloat(qtyInput.value) || 0;
-                const prix = parseFloat(prixInput.value) || 0;
-                montantDisplay.textContent = this.formatMoney(qty * prix);
-            };
-            qtyInput.addEventListener('input', () => {
-                qtyInput.value = qtyInput.value.replace(',', '.');
-                updateMontant();
-            });
-            prixInput.addEventListener('input', updateMontant);
-        }
-
-        const saleQtyInput = document.getElementById('sale-quantite');
-        const salePrixInput = document.getElementById('sale-prix');
-        const saleMontantDisplay = document.getElementById('sale-montant-display');
-        if (saleQtyInput && salePrixInput && saleMontantDisplay) {
-            const updateSaleMontant = () => {
-                const qty = parseFloat(saleQtyInput.value) || 0;
-                const prix = parseFloat(salePrixInput.value) || 0;
-                saleMontantDisplay.textContent = this.formatMoney(qty * prix);
-            };
-            saleQtyInput.addEventListener('input', () => {
-                saleQtyInput.value = saleQtyInput.value.replace(',', '.');
-                updateSaleMontant();
-            });
-            salePrixInput.addEventListener('input', updateSaleMontant);
-        }
     },
 
     navigate(page) {
@@ -343,7 +312,6 @@ const app = {
                 credentials: 'same-origin',
             });
             const text = await response.text();
-            console.log('API response:', response.status, text);
             let data;
             try {
                 data = JSON.parse(text);
@@ -964,7 +932,7 @@ const app = {
 
     async setAbonnementStatut(code, statut) {
         const btn = document.querySelector(`button[onclick*="'${code}'"]`);
-        this.setButtonLoading(btn, true);
+        if (btn) this.setButtonLoading(btn, true);
         try {
             await this.api('/dev/abonnement/statut', {
                 method: 'POST',
@@ -974,13 +942,12 @@ const app = {
         } catch (err) {
             this.toast(err.message, 'error');
         } finally {
-            this.setButtonLoading(btn, false);
+            if (btn) this.setButtonLoading(btn, false);
             this.renderDevAbonnements();
         }
     },
 
-    async reabonnement(boutiqueCode, forfaitCode) {
-        const btn = document.querySelector(`button[onclick*="'${boutiqueCode}'"]`);
+    async reabonnement(btn, boutiqueCode, forfaitCode) {
         this.setButtonLoading(btn, true);
         try {
             await this.api('/dev/abonnements', {
@@ -1125,7 +1092,7 @@ const app = {
                         <h4 class="detail-title">Réabonnement</h4>
                         <div class="reabonnement-row">
                             <select id="shop-reabonnement-forfait" class="abonnement-statut">${forfaitOptions}</select>
-                            <button class="btn btn-primary" onclick="app.reabonnement('${this.escapeHtml(shop.code_boutique)}', document.getElementById('shop-reabonnement-forfait').value)">Réabonner</button>
+                             <button class="btn btn-primary" onclick="app.reabonnement(this, '${this.escapeHtml(shop.code_boutique)}', document.getElementById('shop-reabonnement-forfait').value)">Réabonner</button>
                         </div>
                     </div>
                     <div class="detail-section">
