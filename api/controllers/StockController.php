@@ -263,4 +263,73 @@ class StockController extends Controller
             ],
         ]);
     }
+
+    public function inventoryDetail(): void
+    {
+        $user = $this->requireActiveSubscription();
+        $isDev = ($user['role_user'] ?? '') === 'developpeur';
+        $code = trim($_GET['code'] ?? '');
+
+        if ($code === '') {
+            Response::error('Code produit requis');
+        }
+
+        $product = Product::findByCode($code);
+        if (!$product) {
+            Response::error('Produit introuvable', [], 404);
+        }
+
+        if (!$isDev) {
+            $shop = Shop::findByUserCode($user['code_user']);
+            if (!$shop || $product['boutique_code'] !== $shop['code_boutique']) {
+                Response::error('Accès refusé', [], 403);
+            }
+        }
+
+        $conn = Database::getConnection();
+
+        $ventesStmt = $conn->prepare(
+            'SELECT DATE(v.created_at_vente) AS date, SUM(lv.quantite) AS quantite, SUM(lv.montant) AS montant
+             FROM lignes_ventes lv
+             JOIN ventes v ON v.code_vente = lv.vente_code
+             WHERE lv.produit_code = :code AND lv.statut_ligne != "supprime" AND v.statut_vente != "supprime"
+             GROUP BY DATE(v.created_at_vente)
+             ORDER BY date DESC'
+        );
+        $ventesStmt->execute(['code' => $code]);
+        $ventes = $ventesStmt->fetchAll();
+
+        $achatsStmt = $conn->prepare(
+            'SELECT DATE(a.date_achat) AS date, SUM(a.quantite_achat) AS quantite, SUM(a.montant_achat) AS montant
+             FROM achats a
+             WHERE a.produit_code = :code AND a.statut_achat != "supprime"
+             GROUP BY DATE(a.date_achat)
+             ORDER BY date DESC'
+        );
+        $achatsStmt->execute(['code' => $code]);
+        $achats = $achatsStmt->fetchAll();
+
+        $ajustementsStmt = $conn->prepare(
+            'SELECT date_ajustement AS date, quantite, motif
+             FROM stock_ajustements
+             WHERE produit_code = :code AND statut_ajustement != "supprime"
+             ORDER BY date_ajustement DESC, created_at_ajustement DESC'
+        );
+        $ajustementsStmt->execute(['code' => $code]);
+        $ajustements = $ajustementsStmt->fetchAll();
+
+        Response::success('Détail inventaire', [
+            'produit' => [
+                'code_produit' => $product['code_produit'],
+                'libelle_produit' => $product['libelle_produit'],
+                'unite_produit' => $product['unite_produit'],
+                'prix_achat_produit' => $product['prix_achat_produit'],
+                'prix_vente_produit' => $product['prix_vente_produit'],
+                'stock_initial_produit' => $product['stock_initial_produit'],
+            ],
+            'ventes' => $ventes,
+            'achats' => $achats,
+            'ajustements' => $ajustements,
+        ]);
+    }
 }

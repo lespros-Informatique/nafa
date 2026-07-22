@@ -2379,6 +2379,7 @@ const app = {
                         <div class="inventory-mobile-row"><span>Valeur vente</span><strong>${this.formatMoney(item.valeur_vente_stock)}</strong></div>
                         <div class="inventory-mobile-row inventory-mobile-total"><span>Bénéfice</span><strong>${this.formatMoney(item.benefice_potentiel)}</strong></div>
                     </div>
+                    <button class="btn btn-secondary" style="margin-top:8px;" onclick="app.openInventoryDetail('${this.escapeHtml(item.code_produit)}')">Détail</button>
                 </div>
             `).join('');
 
@@ -2396,6 +2397,7 @@ const app = {
                                 <th class="inventory-number">Valeur achat</th>
                                 <th class="inventory-number">Valeur vente</th>
                                 <th class="inventory-number">Bénéfice</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -2413,6 +2415,7 @@ const app = {
                                     <td class="inventory-number">${this.formatMoney(item.valeur_achat_stock)}</td>
                                     <td class="inventory-number">${this.formatMoney(item.valeur_vente_stock)}</td>
                                     <td class="inventory-number inventory-benefice">${this.formatMoney(item.benefice_potentiel)}</td>
+                                    <td class="inventory-actions"><button class="btn btn-secondary" style="padding:8px 12px; min-height:auto; font-size:12px;" onclick="app.openInventoryDetail('${this.escapeHtml(item.code_produit)}')">Détail</button></td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -2447,6 +2450,117 @@ const app = {
     loadMoreInventory() {
         this.inventoryPage++;
         this.renderInventory(true);
+    },
+
+    async openInventoryDetail(code) {
+        const modal = document.getElementById('inventory-detail-modal');
+        const body = document.getElementById('inventory-detail-body');
+        const title = document.getElementById('inventory-detail-title');
+        body.innerHTML = '<div class="skeleton skeleton-list"><div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton skeleton-line w-60"></div></div></div></div>';
+        modal.classList.add('open');
+        if (title) title.textContent = 'Détail inventaire';
+
+        try {
+            const data = await this.api(`/stock/inventory-detail?code=${encodeURIComponent(code)}`);
+            const product = data.data.produit;
+            const ventes = data.data.ventes || [];
+            const achats = data.data.achats || [];
+            const ajustements = data.data.ajustements || [];
+
+            const totalsVentes = ventes.reduce((sum, v) => sum + (parseFloat(v.quantite) || 0), 0);
+            const totalsAchats = achats.reduce((sum, a) => sum + (parseFloat(a.quantite) || 0), 0);
+            const totalMontantVentes = ventes.reduce((sum, v) => sum + (parseFloat(v.montant) || 0), 0);
+            const totalMontantAchats = achats.reduce((sum, a) => sum + (parseFloat(a.montant) || 0), 0);
+            const totalAjust = ajustements.reduce((sum, a) => sum + (parseFloat(a.quantite) || 0), 0);
+
+            let html = `
+                <div class="detail-section">
+                    <h4 class="detail-title">Produit</h4>
+                    <div class="detail-grid">
+                        <div class="detail-item"><span>Libellé</span><strong>${this.escapeHtml(product.libelle_produit)}</strong></div>
+                        <div class="detail-item"><span>Code</span><strong>${this.escapeHtml(product.code_produit)}</strong></div>
+                        <div class="detail-item"><span>Unité</span><strong>${this.escapeHtml(product.unite_produit)}</strong></div>
+                        <div class="detail-item"><span>Prix achat</span><strong>${this.formatMoney(product.prix_achat_produit)}</strong></div>
+                        <div class="detail-item"><span>Prix vente</span><strong>${this.formatMoney(product.prix_vente_produit)}</strong></div>
+                        <div class="detail-item"><span>Stock initial</span><strong>${this.formatNumber(product.stock_initial_produit)}</strong></div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h4 class="detail-title">Résumé</h4>
+                    <div class="detail-grid">
+                        <div class="detail-item"><span>Total acheté</span><strong>+${this.formatNumber(totalsAchats)} ${this.escapeHtml(product.unite_produit)}</strong></div>
+                        <div class="detail-item"><span>Total vendu</span><strong>-${this.formatNumber(totalsVentes)} ${this.escapeHtml(product.unite_produit)}</strong></div>
+                        <div class="detail-item"><span>Ajustements</span><strong>${this.formatNumber(totalAjust)} ${this.escapeHtml(product.unite_produit)}</strong></div>
+                        <div class="detail-item"><span>Valeur achats</span><strong>${this.formatMoney(totalMontantAchats)}</strong></div>
+                        <div class="detail-item"><span>Valeur ventes</span><strong>${this.formatMoney(totalMontantVentes)}</strong></div>
+                    </div>
+                </div>
+            `;
+
+            if (achats.length) {
+                html += `
+                <div class="detail-section">
+                    <h4 class="detail-title">Historique des achats</h4>
+                    <div class="detail-transactions-scroll">
+                        ${achats.map(a => `
+                            <div class="list-item">
+                                <div class="list-item-info">
+                                    <div class="list-item-title">${this.escapeHtml(a.date)}</div>
+                                    <div class="list-item-meta">${this.escapeHtml(product.unite_produit || '')}</div>
+                                </div>
+                                <span class="list-item-amount">+${this.formatNumber(a.quantite)}</span>
+                                <span class="list-item-amount">${this.formatMoney(a.montant)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            }
+
+            if (ventes.length) {
+                html += `
+                <div class="detail-section">
+                    <h4 class="detail-title">Historique des ventes</h4>
+                    <div class="detail-transactions-scroll">
+                        ${ventes.map(v => `
+                            <div class="list-item">
+                                <div class="list-item-info">
+                                    <div class="list-item-title">${this.escapeHtml(v.date)}</div>
+                                    <div class="list-item-meta">${this.escapeHtml(product.unite_produit || '')}</div>
+                                </div>
+                                <span class="list-item-amount negative">-${this.formatNumber(v.quantite)}</span>
+                                <span class="list-item-amount positive">+${this.formatMoney(v.montant)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            }
+
+            if (ajustements.length) {
+                html += `
+                <div class="detail-section">
+                    <h4 class="detail-title">Ajustements</h4>
+                    <div class="detail-transactions-scroll">
+                        ${ajustements.map(aj => `
+                            <div class="list-item">
+                                <div class="list-item-info">
+                                    <div class="list-item-title">${this.escapeHtml(aj.date)}</div>
+                                    <div class="list-item-meta">${this.escapeHtml(aj.motif || 'Sans motif')}</div>
+                                </div>
+                                <span class="list-item-amount ${parseFloat(aj.quantite) >= 0 ? '' : 'negative'}">${this.formatNumber(aj.quantite)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            }
+
+            body.innerHTML = html;
+        } catch (err) {
+            body.innerHTML = `<div class="empty-state">${this.escapeHtml(err.message)}</div>`;
+        }
+    },
+
+    closeInventoryDetail() {
+        document.getElementById('inventory-detail-modal').classList.remove('open');
     },
 
     async renderClients(append = false) {
