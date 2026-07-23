@@ -148,7 +148,7 @@ const app = {
             const downloadBtn = document.getElementById('download-top');
             if (downloadBtn) downloadBtn.style.display = isDev ? 'flex' : 'none';
             const lastPage = localStorage.getItem('nafa_last_page');
-            const validPages = ['dashboard', 'history', 'products', 'purchases', 'purchases-list', 'stock', 'inventory', 'clients', 'suppliers', 'reports', 'sales-list', 'dev-shops', 'dev-list', 'dev-forfaits', 'dev-abonnements'];
+            const validPages = ['dashboard', 'history', 'products', 'product', 'purchases', 'purchase', 'purchases-list', 'stock', 'inventory', 'clients', 'suppliers', 'reports', 'sale', 'sales-list', 'expense', 'dev-shops', 'dev-list', 'dev-forfaits', 'dev-abonnements'];
             const targetPage = validPages.includes(lastPage) ? lastPage : 'dashboard';
             this.navigate(targetPage);
         } else {
