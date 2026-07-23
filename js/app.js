@@ -163,39 +163,6 @@ const app = {
                 item.classList.add('active');
             });
         });
-
-        const qtyInput = document.getElementById('purchase-quantite');
-        const prixInput = document.getElementById('purchase-prix');
-        const productSelect = document.getElementById('purchase-product');
-        const montantDisplay = document.getElementById('purchase-montant-display');
-
-        const updateMontant = () => {
-            if (!qtyInput || !prixInput || !montantDisplay) return;
-            const qte = parseFloat(qtyInput.value) || 0;
-            const prix = parseFloat(prixInput.value) || 0;
-            const total = qte * prix;
-            montantDisplay.value = this.formatMoney(total);
-        };
-
-        if (productSelect) {
-            productSelect.addEventListener('change', async () => {
-                if (!productSelect.value) return;
-                try {
-                    const data = await this.api(`/products/detail?code=${encodeURIComponent(productSelect.value)}`);
-                    const product = data.data.product;
-                    if (product && prixInput) {
-                        const prix = parseFloat(product.prix_achat_produit || product.prix_vente_produit || 0);
-                        prixInput.value = prix;
-                        updateMontant();
-                    }
-                } catch (err) {
-                    this.toast(err.message, 'error');
-                }
-            });
-        }
-
-        if (qtyInput) qtyInput.addEventListener('input', updateMontant);
-        if (prixInput) prixInput.addEventListener('input', updateMontant);
     },
 
     navigate(page) {
@@ -1936,24 +1903,26 @@ const app = {
     async handlePurchase(e) {
         e.preventDefault();
         const fournisseurCode = document.getElementById('purchase-supplier').value;
-        const produitCode = document.getElementById('purchase-product').value;
-        const quantite = parseFloat(document.getElementById('purchase-quantite').value);
-        const prixUnitaire = parseFloat(document.getElementById('purchase-prix').value);
         const montantPaye = parseFloat(document.getElementById('purchase-montant-paye').value) || 0;
-        if (!produitCode || !quantite || isNaN(prixUnitaire)) return;
+        const produits = this.purchaseProducts.filter(p => p.quantite > 0 && p.prix_unitaire >= 0).map(p => ({
+            produit_code: p.code,
+            quantite: p.quantite,
+            prix_unitaire: p.prix_unitaire,
+        }));
+        if (!produits.length) return;
         const btn = e.target.querySelector('button[type="submit"]');
         this.setButtonLoading(btn, true);
 
         try {
             await this.api('/purchases', {
                 method: 'POST',
-                body: JSON.stringify({ fournisseur_code: fournisseurCode || null, produit_code: produitCode, quantite, prix_unitaire: prixUnitaire, montant_paye: montantPaye, client_now: new Date().toISOString() }),
+                body: JSON.stringify({ fournisseur_code: fournisseurCode || null, produits, montant_paye, client_now: new Date().toISOString() }),
             });
+            this.purchaseProducts = [];
+            this.renderPurchaseChips();
+            this.updatePurchaseTotal();
             document.getElementById('purchase-supplier').value = '';
-            document.getElementById('purchase-product').value = '';
-            document.getElementById('purchase-quantite').value = '';
-            document.getElementById('purchase-prix').value = '';
-            document.getElementById('purchase-montant-display').value = '0 F';
+            document.getElementById('purchase-product-search').value = '';
             document.getElementById('purchase-montant-paye').value = '';
             this.toast('Achat enregistré', 'success')
             this.refreshBadges();
@@ -1966,13 +1935,12 @@ const app = {
     },
 
     async loadPurchaseOptions() {
-        const select = document.getElementById('purchase-product');
-        if (!select) return;
+        this.purchaseProducts = [];
+        this.renderPurchaseChips();
+        this.updatePurchaseTotal();
         try {
             const data = await this.api('/products');
-            const products = data.data.products || [];
-            select.innerHTML = '<option value="">Sélectionner un produit</option>' +
-                products.map(p => `<option value="${this.escapeHtml(p.code_produit)}">${this.escapeHtml(p.libelle_produit)} (${this.escapeHtml(p.unite_produit)})</option>`).join('');
+            this.purchaseAllProducts = data.data.products || [];
         } catch (err) {
             this.toast(err.message, 'error');
         }
@@ -1986,6 +1954,122 @@ const app = {
         } catch (err) {
             this.toast(err.message, 'error');
         }
+    },
+
+    filterPurchaseProducts(query) {
+        const q = query.toLowerCase().trim();
+        if (!q) return this.purchaseAllProducts.slice(0, 10);
+        return this.purchaseAllProducts.filter(p =>
+            p.libelle_produit.toLowerCase().includes(q) ||
+            p.code_produit.toLowerCase().includes(q) ||
+            (p.unite_produit && p.unite_produit.toLowerCase().includes(q))
+        ).slice(0, 10);
+    },
+
+    onPurchaseProductSearch(query) {
+        const autocomplete = document.getElementById('purchase-product-autocomplete');
+        if (!autocomplete) return;
+        const matches = this.filterPurchaseProducts(query);
+        if (!matches.length) {
+            autocomplete.innerHTML = '<div class="product-autocomplete-item">Aucun produit trouvé</div>';
+            autocomplete.style.display = 'block';
+            return;
+        }
+        autocomplete.innerHTML = matches.map(p => `
+            <div class="product-autocomplete-item" onclick="app.addPurchaseProduct('${this.escapeHtml(p.code_produit)}')">
+                <div class="pa-name">${this.escapeHtml(p.libelle_produit)}</div>
+                <div class="pa-meta">${this.escapeHtml(p.code_produit)} • ${this.escapeHtml(p.unite_produit || '')} • ${this.formatMoney(parseFloat(p.prix_vente_produit || p.prix_achat_produit || 0))}</div>
+            </div>
+        `).join('');
+        autocomplete.style.display = 'block';
+    },
+
+    onPurchaseProductKeydown(e) {
+        const autocomplete = document.getElementById('purchase-product-autocomplete');
+        if (!autocomplete || autocomplete.style.display === 'none') {
+            if (e.key === 'Escape') return;
+            if (e.key === 'Enter') {
+                const first = autocomplete ? autocomplete.querySelector('.product-autocomplete-item') : null;
+                if (first && first.onclick) first.onclick();
+            }
+            return;
+        }
+        if (e.key === 'Escape') {
+            autocomplete.style.display = 'none';
+            e.target.value = '';
+            return;
+        }
+    },
+
+    addPurchaseProduct(code) {
+        const product = this.purchaseAllProducts.find(p => p.code_produit === code);
+        if (!product) return;
+        if (this.purchaseProducts.find(p => p.code === code)) {
+            this.toast('Produit déjà ajouté', 'error');
+            return;
+        }
+        this.purchaseProducts.push({
+            code: product.code_produit,
+            name: product.libelle_produit,
+            unit: product.unite_produit || '',
+            quantite: 1,
+            prix_unitaire: parseFloat(product.prix_vente_produit || product.prix_achat_produit || 0),
+        });
+        this.renderPurchaseChips();
+        this.updatePurchaseTotal();
+        document.getElementById('purchase-product-search').value = '';
+        document.getElementById('purchase-product-autocomplete').style.display = 'none';
+    },
+
+    removePurchaseProduct(code) {
+        this.purchaseProducts = this.purchaseProducts.filter(p => p.code !== code);
+        this.renderPurchaseChips();
+        this.updatePurchaseTotal();
+    },
+
+    renderPurchaseChips() {
+        const container = document.getElementById('purchase-product-chips');
+        if (!container) return;
+        if (!this.purchaseProducts.length) {
+            container.innerHTML = '';
+            return;
+        }
+        container.innerHTML = this.purchaseProducts.map(p => `
+            <div class="product-chip" data-code="${this.escapeHtml(p.code)}">
+                <div class="product-chip-info">
+                    <div class="product-chip-name">${this.escapeHtml(p.name)}</div>
+                    <div class="product-chip-unit">${this.escapeHtml(p.unit)}</div>
+                </div>
+                <input type="number" class="chip-qty" value="${this.escapeHtml(String(p.quantite))}" placeholder="Qté" inputmode="numeric" step="1" min="1" onchange="app.updatePurchaseProductQty('${this.escapeHtml(p.code)}', this.value)" oninput="app.updatePurchaseProductQty('${this.escapeHtml(p.code)}', this.value)">
+                <input type="number" class="chip-price" value="${this.escapeHtml(String(p.prix_unitaire))}" placeholder="Prix" inputmode="decimal" step="1" min="0" onchange="app.updatePurchaseProductPrice('${this.escapeHtml(p.code)}', this.value)" oninput="app.updatePurchaseProductPrice('${this.escapeHtml(p.code)}', this.value)">
+                <button type="button" class="chip-remove" onclick="app.removePurchaseProduct('${this.escapeHtml(p.code)}')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+        `).join('');
+    },
+
+    updatePurchaseProductQty(code, value) {
+        const product = this.purchaseProducts.find(p => p.code === code);
+        if (product) {
+            product.quantite = Math.max(1, parseFloat(value) || 1);
+            this.updatePurchaseTotal();
+        }
+    },
+
+    updatePurchaseProductPrice(code, value) {
+        const product = this.purchaseProducts.find(p => p.code === code);
+        if (product) {
+            product.prix_unitaire = Math.max(0, parseFloat(value) || 0);
+            this.updatePurchaseTotal();
+        }
+    },
+
+    updatePurchaseTotal() {
+        const display = document.getElementById('purchase-montant-display');
+        if (!display) return;
+        const total = this.purchaseProducts.reduce((sum, p) => sum + (p.quantite * p.prix_unitaire), 0);
+        display.textContent = this.formatMoney(total);
     },
 
     async loadSaleOptions() {
@@ -2900,20 +2984,33 @@ const app = {
         try {
             const data = await this.api(`/purchases/detail?code=${encodeURIComponent(code)}`);
             const a = data.data.purchase;
+            const lignes = data.data.lignes || [];
+            const lignesHtml = lignes.length
+                ? lignes.map(l => `
+                    <div class="list-item">
+                        <div class="list-item-info">
+                            <div class="list-item-title">${this.escapeHtml(l.produit_libelle || l.produit_code)}</div>
+                            <div class="list-item-meta">${this.formatNumber(l.quantite)} ${this.escapeHtml(l.produit_unite || '')} × ${this.formatMoney(l.prix_unitaire)}</div>
+                        </div>
+                        <span class="list-item-amount">${this.formatMoney(l.montant)}</span>
+                    </div>
+                `).join('')
+                : '<div class="empty-state">Aucune ligne</div>';
+
             const html = `
                 <div class="detail-section">
-                    <div class="detail-item"><span>Produit</span><strong>${this.escapeHtml(data.data.produit_libelle || a.produit_code)}</strong></div>
-                    <div class="detail-item"><span>Code achat</span><strong>${this.escapeHtml(a.code_achat)}</strong></div>
                     <div class="detail-item"><span>Fournisseur</span><strong>${this.escapeHtml(data.data.fournisseur_nom || '-')}</strong></div>
-                </div>
-                <div class="detail-section">
-                    <div class="detail-item"><span>Quantité</span><strong>${this.formatNumber(a.quantite_achat)} ${this.escapeHtml(data.data.produit_unite || '')}</strong></div>
-                    <div class="detail-item"><span>Prix unitaire</span><strong>${this.formatMoney(a.prix_unitaire_achat)}</strong></div>
-                    <div class="detail-item"><span>Montant</span><strong>${this.formatMoney(a.montant_achat)}</strong></div>
-                    <div class="detail-item"><span>Montant payé</span><strong>${this.formatMoney(a.montant_paye_achat || 0)}</strong></div>
-                    <div class="detail-item"><span>Reste à payer</span><strong>${this.formatMoney(a.reste_a_payer_achat || 0)}</strong></div>
+                    <div class="detail-item"><span>Code achat</span><strong>${this.escapeHtml(a.code_achat)}</strong></div>
+                    <div class="detail-item"><span>Statut paiement</span><strong><span class="badge ${a.statut_paiement_achat === 'credit' ? 'badge-inactif' : 'badge-actif'}">${this.escapeHtml(a.statut_paiement_achat)}</span></strong></div>
                     <div class="detail-item"><span>Date</span><strong>${this.escapeHtml(this.formatFrenchDate(a.date_achat))}</strong></div>
                 </div>
+                <div class="detail-section">
+                    <div class="detail-item"><span>Montant total</span><strong>${this.formatMoney(a.montant_achat)}</strong></div>
+                    <div class="detail-item"><span>Montant payé</span><strong>${this.formatMoney(a.montant_paye_achat || 0)}</strong></div>
+                    <div class="detail-item"><span>Reste à payer</span><strong>${this.formatMoney(a.reste_a_payer_achat || 0)}</strong></div>
+                </div>
+                <h4 class="detail-title">Lignes d'achat</h4>
+                <div class="list-container">${lignesHtml}</div>
                 ${(parseFloat(a.reste_a_payer_achat || 0) > 0) ? `<button class="btn btn-success btn-full" style="margin-top:12px;" onclick="app.openPayment('achat', '${this.escapeHtml(a.code_achat)}')">Régler le reste (${this.formatMoney(a.reste_a_payer_achat || 0)})</button>` : ''}
                 ${this.renderPaiementsHtml(data.data.paiements)}
             `;

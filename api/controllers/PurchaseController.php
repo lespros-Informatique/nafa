@@ -62,42 +62,59 @@ class PurchaseController extends Controller
             Response::error('Boutique introuvable', [], 404);
         }
 
-        $produitCode = trim($this->input('produit_code', ''));
-        $quantite = (float) ($this->input('quantite', 0));
-        $prixUnitaire = (float) ($this->input('prix_unitaire', 0));
         $fournisseurCode = trim($this->input('fournisseur_code', ''));
-
-        if (!$produitCode) {
-            Response::error('Produit requis');
-        }
-        if (!$quantite || $quantite <= 0) {
-            Response::error('Quantité invalide');
-        }
-        if ($prixUnitaire < 0) {
-            Response::error('Prix unitaire invalide');
-        }
-
-        $product = Product::findByCode($produitCode);
-        if (!$product) {
-            Response::error('Produit introuvable', [], 404);
-        }
-
-        $montant = $quantite * $prixUnitaire;
-
         $montantPaye = (float) ($this->input('montant_paye', 0));
 
-        $code = 'ACH' . time() . mt_rand(100, 999);
+        $produits = $this->input('produits', []);
+        if (!is_array($produits)) {
+            $produits = [];
+        }
+
+        $produitsValides = [];
+        foreach ($produits as $prod) {
+            $produitCode = trim($prod['produit_code'] ?? '');
+            $quantite = (float) ($prod['quantite'] ?? 0);
+            $prixUnitaire = (float) ($prod['prix_unitaire'] ?? 0);
+            if (!$produitCode || !$quantite || $quantite <= 0) continue;
+            $product = Product::findByCode($produitCode);
+            if (!$product) continue;
+
+            $produitsValides[] = [
+                'produit_code' => $produitCode,
+                'quantite' => $quantite,
+                'prix_unitaire' => $prixUnitaire,
+            ];
+        }
+
+        if (empty($produitsValides)) {
+            Response::error('Aucun produit valide');
+        }
+
+        $montant = 0;
+        foreach ($produitsValides as $prod) {
+            $montant += $prod['quantite'] * $prod['prix_unitaire'];
+        }
+
         $purchase = Purchase::create([
-            'code_achat' => $code,
+            'code_achat' => 'ACH' . time() . mt_rand(100, 999),
             'boutique_code' => $shop['code_boutique'],
             'fournisseur_code' => $fournisseurCode ?: null,
-            'produit_code' => $produitCode,
-            'quantite_achat' => $quantite,
-            'prix_unitaire_achat' => $prixUnitaire,
             'montant_achat' => $montant,
             'montant_paye_achat' => $montantPaye,
             'date_achat' => $this->input('client_now', date('Y-m-d H:i:s')),
         ]);
+
+        foreach ($produitsValides as $prod) {
+            $montantLigne = $prod['quantite'] * $prod['prix_unitaire'];
+            PurchaseLine::create([
+                'code_ligne' => 'LIG' . time() . mt_rand(100, 999),
+                'achat_code' => $purchase['code_achat'],
+                'produit_code' => $prod['produit_code'],
+                'quantite' => $prod['quantite'],
+                'prix_unitaire' => $prod['prix_unitaire'],
+                'montant' => $montantLigne,
+            ]);
+        }
 
         Response::success('Achat enregistré', ['purchase' => $purchase]);
     }
@@ -202,14 +219,27 @@ class PurchaseController extends Controller
             Response::error('Achat introuvable', [], 404);
         }
 
-        $produitLibelle = '';
-        $produitUnite = '';
-        if (!empty($purchase['produit_code'])) {
-            $product = Product::findByCode($purchase['produit_code']);
-            if ($product) {
-                $produitLibelle = $product['libelle_produit'] ?? '';
-                $produitUnite = $product['unite_produit'] ?? '';
+        $lines = PurchaseLine::getByPurchase($code);
+
+        $lignes = [];
+        foreach ($lines as $line) {
+            $produitLibelle = '';
+            $produitUnite = '';
+            if (!empty($line['produit_code'])) {
+                $product = Product::findByCode($line['produit_code']);
+                if ($product) {
+                    $produitLibelle = $product['libelle_produit'] ?? '';
+                    $produitUnite = $product['unite_produit'] ?? '';
+                }
             }
+            $lignes[] = [
+                'produit_code' => $line['produit_code'],
+                'produit_libelle' => $produitLibelle,
+                'produit_unite' => $produitUnite,
+                'quantite' => (float) $line['quantite'],
+                'prix_unitaire' => (float) $line['prix_unitaire'],
+                'montant' => (float) $line['montant'],
+            ];
         }
 
         $fournisseurNom = '';
@@ -222,8 +252,7 @@ class PurchaseController extends Controller
 
         Response::success('Achat', [
             'purchase' => $purchase,
-            'produit_libelle' => $produitLibelle,
-            'produit_unite' => $produitUnite,
+            'lignes' => $lignes,
             'fournisseur_nom' => $fournisseurNom,
             'paiements' => Paiement::getByReference('achat', $code),
         ]);

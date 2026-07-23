@@ -500,23 +500,17 @@
                         </button>
                     </div>
                 </div>
-                <div class="input-group">
-                    <label for="purchase-product">Produit</label>
-                    <select id="purchase-product" required>
-                        <option value="">Sélectionner un produit</option>
-                    </select>
+                <div class="input-group input-group-full">
+                    <label>Produits</label>
+                    <div class="product-search-wrapper">
+                        <input type="text" class="product-search-input" id="purchase-product-search" placeholder="Rechercher un produit..." autocomplete="off" oninput="app.onPurchaseProductSearch(this.value)" onkeydown="app.onPurchaseProductKeydown(event)">
+                        <div class="product-autocomplete" id="purchase-product-autocomplete" style="display:none;"></div>
+                    </div>
+                    <div class="product-chips" id="purchase-product-chips"></div>
                 </div>
                 <div class="input-group">
-                    <label for="purchase-quantite">Quantité</label>
-                    <input type="number" id="purchase-quantite" placeholder="0" required inputmode="numeric" step="1" >
-                </div>
-                <div class="input-group">
-                    <label for="purchase-prix">Prix unitaire</label>
-                    <input type="number" id="purchase-prix" placeholder="0" required inputmode="decimal" step="1" min="0">
-                </div>
-                <div class="input-group">
-                    <label>Montant</label>
-                    <input type="text" id="purchase-montant-display" readonly style="padding: 12px 16px; background: var(--white); border: 2px solid #E5E7EB; border-radius: 14px; font-weight: 600; color: var(--text); cursor: pointer;" value="0 F">
+                    <label>Montant total</label>
+                    <div class="input-group" id="purchase-montant-display" style="padding: 12px 16px; background: var(--white); border: 2px solid #E5E7EB; border-radius: 14px; font-weight: 600; color: var(--text);">0 F</div>
                 </div>
                 <div class="input-group">
                     <label for="purchase-montant-paye">Montant payé</label>

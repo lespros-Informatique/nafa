@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../core/Database.php';
 require_once __DIR__ . '/Paiement.php';
+require_once __DIR__ . '/PurchaseLine.php';
 
 class Purchase
 {
@@ -21,9 +22,9 @@ class Purchase
                 'code_achat' => $data['code_achat'],
                 'boutique_code' => $data['boutique_code'],
                 'fournisseur_code' => $data['fournisseur_code'] ?? null,
-                'produit_code' => $data['produit_code'],
-                'quantite_achat' => $data['quantite_achat'],
-                'prix_unitaire_achat' => $data['prix_unitaire_achat'],
+                'produit_code' => '',
+                'quantite_achat' => 0,
+                'prix_unitaire_achat' => 0,
                 'montant_achat' => $montant,
                 'date_achat' => $data['date_achat'],
             ]);
@@ -168,6 +169,7 @@ class Purchase
             $stmt = $conn->prepare('UPDATE achats SET statut_achat = "supprime" WHERE code_achat = :code AND statut_achat != "supprime"');
             $stmt->execute(['code' => $code]);
             Paiement::softDeleteByReference('achat', $code);
+            PurchaseLine::softDeleteByPurchase($code);
             $conn->commit();
             return true;
         } catch (\Exception $e) {
