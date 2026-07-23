@@ -165,6 +165,37 @@ const app = {
         });
 
         const qtyInput = document.getElementById('purchase-quantite');
+        const prixInput = document.getElementById('purchase-prix');
+        const productSelect = document.getElementById('purchase-product');
+        const montantDisplay = document.getElementById('purchase-montant-display');
+
+        const updateMontant = () => {
+            if (!qtyInput || !prixInput || !montantDisplay) return;
+            const qte = parseFloat(qtyInput.value) || 0;
+            const prix = parseFloat(prixInput.value) || 0;
+            const total = qte * prix;
+            montantDisplay.value = this.formatMoney(total);
+        };
+
+        if (productSelect) {
+            productSelect.addEventListener('change', async () => {
+                if (!productSelect.value) return;
+                try {
+                    const data = await this.api(`/products/detail?code=${encodeURIComponent(productSelect.value)}`);
+                    const product = data.data.product;
+                    if (product && prixInput) {
+                        const prix = parseFloat(product.prix_achat_produit || product.prix_vente_produit || 0);
+                        prixInput.value = prix;
+                        updateMontant();
+                    }
+                } catch (err) {
+                    this.toast(err.message, 'error');
+                }
+            });
+        }
+
+        if (qtyInput) qtyInput.addEventListener('input', updateMontant);
+        if (prixInput) prixInput.addEventListener('input', updateMontant);
     },
 
     navigate(page) {
@@ -1921,7 +1952,7 @@ const app = {
             document.getElementById('purchase-product').value = '';
             document.getElementById('purchase-quantite').value = '';
             document.getElementById('purchase-prix').value = '';
-            document.getElementById('purchase-montant-display').textContent = '0 F';
+            document.getElementById('purchase-montant-display').value = '0 F';
             this.toast('Achat enregistré', 'success')
             this.refreshBadges();
             this.navigate('purchases');
