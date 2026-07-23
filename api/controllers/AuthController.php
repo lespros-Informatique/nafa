@@ -22,6 +22,7 @@ class AuthController extends Controller
 
         $authToken = bin2hex(random_bytes(32));
         Session::set('auth_token', $authToken);
+        Session::set('user', $user);
 
         Response::success('Connexion réussie', [
             'user' => $user,

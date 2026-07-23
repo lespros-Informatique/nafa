@@ -34,6 +34,10 @@ abstract class Controller
             $token = trim($matches[1]);
 
             if (preg_match('/^[a-f0-9]{64}$/', $token)) {
+                if (session_status() === PHP_SESSION_ACTIVE) {
+                    session_write_close();
+                }
+
                 $sessionDir = rtrim(session_save_path() ?: sys_get_temp_dir(), '/\\');
                 $maxAge = time() - 86400 * 30;
 
@@ -42,13 +46,10 @@ abstract class Controller
                         continue;
                     }
 
-                    $content = file_get_contents($sessionFile);
+                    $content = @file_get_contents($sessionFile);
                     if ($content !== false && str_contains($content, 'auth_token|s:64:"' . $token . '";')) {
                         $sessionId = substr(basename($sessionFile), 5);
 
-                        if (session_status() === PHP_SESSION_ACTIVE) {
-                            session_write_close();
-                        }
                         session_id($sessionId);
                         Session::start();
 
