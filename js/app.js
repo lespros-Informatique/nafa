@@ -1939,6 +1939,7 @@ const app = {
         const produitCode = document.getElementById('purchase-product').value;
         const quantite = parseFloat(document.getElementById('purchase-quantite').value);
         const prixUnitaire = parseFloat(document.getElementById('purchase-prix').value);
+        const montantPaye = parseFloat(document.getElementById('purchase-montant-paye').value) || 0;
         if (!produitCode || !quantite || isNaN(prixUnitaire)) return;
         const btn = e.target.querySelector('button[type="submit"]');
         this.setButtonLoading(btn, true);
@@ -1946,13 +1947,14 @@ const app = {
         try {
             await this.api('/purchases', {
                 method: 'POST',
-                body: JSON.stringify({ fournisseur_code: fournisseurCode || null, produit_code: produitCode, quantite, prix_unitaire: prixUnitaire, client_now: new Date().toISOString() }),
+                body: JSON.stringify({ fournisseur_code: fournisseurCode || null, produit_code: produitCode, quantite, prix_unitaire: prixUnitaire, montant_paye: montantPaye, client_now: new Date().toISOString() }),
             });
             document.getElementById('purchase-supplier').value = '';
             document.getElementById('purchase-product').value = '';
             document.getElementById('purchase-quantite').value = '';
             document.getElementById('purchase-prix').value = '';
             document.getElementById('purchase-montant-display').value = '0 F';
+            document.getElementById('purchase-montant-paye').value = '';
             this.toast('Achat enregistré', 'success')
             this.refreshBadges();
             this.navigate('purchases');

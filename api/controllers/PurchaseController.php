@@ -84,6 +84,8 @@ class PurchaseController extends Controller
 
         $montant = $quantite * $prixUnitaire;
 
+        $montantPaye = (float) ($this->input('montant_paye', 0));
+
         $code = 'ACH' . time() . mt_rand(100, 999);
         $purchase = Purchase::create([
             'code_achat' => $code,
@@ -93,6 +95,7 @@ class PurchaseController extends Controller
             'quantite_achat' => $quantite,
             'prix_unitaire_achat' => $prixUnitaire,
             'montant_achat' => $montant,
+            'montant_paye_achat' => $montantPaye,
             'date_achat' => $this->input('client_now', date('Y-m-d H:i:s')),
         ]);
 
