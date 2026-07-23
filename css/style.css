@@ -51,6 +51,12 @@ html, body {
     display: block;
     padding-bottom: 80px;
 }
+ .mt-list{
+        margin-top:90px;
+    }
+ .download-list{
+        margin-top:30px;
+    }
 
 #page-stock .list-container {
     padding-top: 32px;

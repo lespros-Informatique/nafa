@@ -30,15 +30,20 @@ abstract class Controller
         $headers = getallheaders();
         $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
 
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            Session::start();
+        }
+
         if ($authHeader && preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
             $token = trim($matches[1]);
 
             if (preg_match('/^[a-f0-9]{64}$/', $token)) {
-                if (session_status() === PHP_SESSION_ACTIVE) {
-                    session_write_close();
+                if (isset($_SESSION['auth_token']) && $_SESSION['auth_token'] === $token && isset($_SESSION['user'])) {
+                    return $_SESSION['user'];
                 }
 
-                $sessionDir = rtrim(session_save_path() ?: sys_get_temp_dir(), '/\\');
+                $rawSessionDir = session_save_path() ?: sys_get_temp_dir();
+                $sessionDir = rtrim(str_replace(['\\', '/'], '/', $rawSessionDir), '/');
                 $maxAge = time() - 86400 * 30;
 
                 foreach (glob($sessionDir . '/sess_*') as $sessionFile) {
@@ -50,23 +55,35 @@ abstract class Controller
                     if ($content !== false && str_contains($content, 'auth_token|s:64:"' . $token . '";')) {
                         $sessionId = substr(basename($sessionFile), 5);
 
-                        session_id($sessionId);
-                        Session::start();
+                        if ($sessionId !== session_id()) {
+                            session_write_close();
+                            session_id($sessionId);
+                            if (session_status() === PHP_SESSION_NONE) {
+                                session_start();
+                            }
+                        }
 
-                        if (Session::has('user')) {
+                        if (isset($_SESSION['user'])) {
+                            error_log('[AUTH] Token OK session=' . $sessionId . ' user=' . ($_SESSION['user']['code_user'] ?? ''));
                             return $_SESSION['user'];
                         }
+                        error_log('[AUTH] Token found but no user in session=' . $sessionId);
                         break;
                     }
                 }
+                error_log('[AUTH] Token not found in any session file');
+            } else {
+                error_log('[AUTH] Invalid token format');
             }
 
             Response::error('Non autorisé', [], 401);
         }
 
-        Session::start();
+        $sid = session_id();
+        $hasUser = isset($_SESSION['user']);
+        error_log('[AUTH] Cookie fallback session=' . $sid . ' hasUser=' . ($hasUser ? 'yes' : 'no'));
 
-        if (Session::has('user')) {
+        if ($hasUser) {
             return $_SESSION['user'];
         }
 

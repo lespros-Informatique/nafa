@@ -9,7 +9,7 @@ class PurchaseLine
         $conn = Database::getConnection();
         $stmt = $conn->prepare(
             'INSERT INTO lignes_achats (code_ligne, achat_code, produit_code, quantite, prix_unitaire, montant, statut_ligne)
-             VALUES (:code_ligne, :achat_code, :produit_code, :quantite, :prix_unitaire, :montant, :actif)'
+             VALUES (:code_ligne, :achat_code, :produit_code, :quantite, :prix_unitaire, :montant, :statut_ligne)'
         );
         $stmt->execute([
             'code_ligne' => $data['code_ligne'],
@@ -18,6 +18,7 @@ class PurchaseLine
             'quantite' => $data['quantite'],
             'prix_unitaire' => $data['prix_unitaire'],
             'montant' => $data['montant'],
+            'statut_ligne' => $data['statut_ligne'] ?? 'actif',
         ]);
         $id = (int) $conn->lastInsertId();
         return self::findById($id);

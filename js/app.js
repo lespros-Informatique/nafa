@@ -309,7 +309,9 @@ const app = {
                 'Content-Type': 'application/json',
                 ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
             };
-            const response = await fetch(`${API_BASE}${url}`, {
+            const fetchUrl = `${API_BASE}${url}`;
+            console.log('[API]', options.method || 'GET', fetchUrl, options.body ? JSON.parse(options.body) : '', { headers });
+            const response = await fetch(fetchUrl, {
                 ...options,
                 headers: { ...headers, ...options.headers },
                 credentials: 'same-origin',
@@ -319,8 +321,10 @@ const app = {
             try {
                 data = JSON.parse(text);
             } catch (e) {
+                console.error('[API] Réponse non-JSON brute:', text);
                 data = { success: false, message: 'Réponse invalide du serveur', data: [] };
             }
+            console.log('[API]', response.status, fetchUrl, data);
             if (response.status === 401 || response.status === 403) {
                 this.autoLogout();
                 throw new Error(data.message || 'Session expirée');
@@ -506,7 +510,7 @@ const app = {
     },
 
     async downloadApk() {
-        const apkUrl = this.assetUrl('images/nafa_2_1.1.apk');
+        const apkUrl = this.assetUrl('images/nafa_2_2.2.apk');
         try {
             const resp = await fetch(apkUrl, { credentials: 'same-origin' });
             if (!resp.ok) throw new Error('Fichier introuvable');
@@ -514,7 +518,7 @@ const app = {
             const objectUrl = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = objectUrl;
-            a.download = 'NAFA-2.1.1.apk';
+            a.download = 'NAFA-2.2.2.apk';
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -526,7 +530,7 @@ const app = {
         }
         const a = document.createElement('a');
         a.href = apkUrl;
-        a.download = 'NAFA-2.1.1.apk';
+        a.download = 'NAFA-2.2.2.apk';
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -1916,7 +1920,7 @@ const app = {
         try {
             await this.api('/purchases', {
                 method: 'POST',
-                body: JSON.stringify({ fournisseur_code: fournisseurCode || null, produits, montant_paye, client_now: new Date().toISOString() }),
+                body: JSON.stringify({ fournisseur_code: fournisseurCode || null, produits, montant_paye: montantPaye, client_now: new Date().toISOString() }),
             });
             this.purchaseProducts = [];
             this.renderPurchaseChips();
