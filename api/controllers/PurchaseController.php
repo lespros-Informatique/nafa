@@ -173,34 +173,22 @@ class PurchaseController extends Controller
             Response::error('Achat introuvable', [], 404);
         }
 
-        $produitCode = trim($this->input('produit_code', $purchase['produit_code']));
-        $quantite = (float) ($this->input('quantite', $purchase['quantite_achat']));
-        $prixUnitaire = (float) ($this->input('prix_unitaire', $purchase['prix_unitaire_achat']));
+        $fournisseurCode = trim($this->input('fournisseur_code', $purchase['fournisseur_code'] ?? ''));
+        $dateAchat = trim($this->input('date_achat', $purchase['date_achat'] ?? ''));
 
-        if (!$produitCode) {
-            Response::error('Produit requis');
+        $updateData = [];
+        if ($fournisseurCode !== '' || array_key_exists('fournisseur_code', $this->jsonInput())) {
+            $updateData['fournisseur_code'] = $fournisseurCode ?: null;
         }
-        if (!$quantite || $quantite <= 0) {
-            Response::error('Quantité invalide');
-        }
-        if ($prixUnitaire < 0) {
-            Response::error('Prix unitaire invalide');
+        if ($dateAchat !== '' || array_key_exists('date_achat', $this->jsonInput())) {
+            $updateData['date_achat'] = $dateAchat ?: date('Y-m-d H:i:s');
         }
 
-        $product = Product::findByCode($produitCode);
-        if (!$product) {
-            Response::error('Produit introuvable', [], 404);
+        if (empty($updateData)) {
+            Response::error('Aucune donnée à mettre à jour');
         }
 
-        $montant = $quantite * $prixUnitaire;
-
-        $purchase = Purchase::update($code, [
-            'produit_code' => $produitCode,
-            'quantite_achat' => $quantite,
-            'prix_unitaire_achat' => $prixUnitaire,
-            'montant_achat' => $montant,
-            'date_achat' => $this->input('client_now', date('Y-m-d H:i:s')),
-        ]);
+        $purchase = Purchase::update($code, $updateData);
 
         Response::success('Achat mis à jour', ['purchase' => $purchase]);
     }

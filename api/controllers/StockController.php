@@ -209,7 +209,7 @@ class StockController extends Controller
                 COALESCE(v.total_ventes, 0) AS total_ventes,
                 COALESCE(aj.total_ajustements, 0) AS total_ajustements
                 FROM produits p
-                LEFT JOIN (SELECT produit_code, SUM(quantite_achat) AS total_achats FROM achats WHERE statut_achat != "supprime" GROUP BY produit_code) a ON a.produit_code = p.code_produit
+                LEFT JOIN (SELECT produit_code, SUM(quantite) AS total_achats FROM lignes_achats WHERE statut_ligne != "supprime" GROUP BY produit_code) a ON a.produit_code = p.code_produit
                 LEFT JOIN (SELECT lv.produit_code, SUM(lv.quantite) AS total_ventes FROM lignes_ventes lv WHERE lv.statut_ligne != "supprime" GROUP BY lv.produit_code) v ON v.produit_code = p.code_produit
                 LEFT JOIN (SELECT produit_code, SUM(quantite) AS total_ajustements FROM stock_ajustements WHERE statut_ajustement != "supprime" GROUP BY produit_code) aj ON aj.produit_code = p.code_produit
                 ' . $where . '
@@ -300,9 +300,10 @@ class StockController extends Controller
         $ventes = $ventesStmt->fetchAll();
 
         $achatsStmt = $conn->prepare(
-            'SELECT DATE(a.date_achat) AS date, SUM(a.quantite_achat) AS quantite, SUM(a.montant_achat) AS montant
-             FROM achats a
-             WHERE a.produit_code = :code AND a.statut_achat != "supprime"
+            'SELECT DATE(a.date_achat) AS date, SUM(la.quantite) AS quantite, SUM(la.montant) AS montant
+             FROM lignes_achats la
+             JOIN achats a ON a.code_achat = la.achat_code
+             WHERE la.produit_code = :code AND la.statut_ligne != "supprime" AND a.statut_achat != "supprime"
              GROUP BY DATE(a.date_achat)
              ORDER BY date DESC'
         );

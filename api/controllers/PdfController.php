@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../core/Controller.php';
 require_once __DIR__ . '/../models/Sale.php';
 require_once __DIR__ . '/../models/Purchase.php';
+require_once __DIR__ . '/../models/PurchaseLine.php';
 require_once __DIR__ . '/../models/Paiement.php';
 require_once __DIR__ . '/../models/Client.php';
 require_once __DIR__ . '/../models/Supplier.php';
@@ -231,6 +232,7 @@ class PdfController extends Controller
             Response::error('Achat introuvable', [], 404);
         }
 
+        $lines = PurchaseLine::getByPurchase($code);
         $paiements = Paiement::getByReference('achat', $code);
 
         $fournisseurNom = '';
@@ -243,19 +245,26 @@ class PdfController extends Controller
             }
         }
 
-        $produitLibelle = '';
-        if (!empty($purchase['produit_code'])) {
-            $product = Product::findByCode($purchase['produit_code']);
-            if ($product) {
-                $produitLibelle = $product['libelle_produit'] ?? $purchase['produit_code'];
-            }
-        }
-
         $shop = Shop::findByCode($purchase['boutique_code']);
         $shopNom = $shop['libelle_boutique'] ?? 'Boutique';
         $shopDevise = $shop['devise_boutique'] ?? 'F';
 
-        $paiementsHtml = '';
+        $lignesHtml = '';
+        foreach ($lines as $line) {
+            $produitLibelle = '';
+            if (!empty($line['produit_code'])) {
+                $product = Product::findByCode($line['produit_code']);
+                if ($product) {
+                    $produitLibelle = $product['libelle_produit'] ?? $line['produit_code'];
+                }
+            }
+            $lignesHtml .= '<tr>
+                <td style="text-align:left; padding:10px 8px; border-bottom:1px solid #E5E7EB; color:#1A1A1A;">' . htmlspecialchars($produitLibelle) . '</td>
+                <td style="text-align:center; padding:10px 8px; border-bottom:1px solid #E5E7EB; color:#1A1A1A;">' . $this->formatNumber($line['quantite']) . '</td>
+                <td style="text-align:right; padding:10px 8px; border-bottom:1px solid #E5E7EB; color:#1A1A1A;">' . $this->formatMoney($line['prix_unitaire'], $shopDevise) . '</td>
+                <td style="text-align:right; padding:10px 8px; border-bottom:1px solid #E5E7EB; color:#1A1A1A; font-weight:600;">' . $this->formatMoney($line['montant'], $shopDevise) . '</td>
+            </tr>';
+        }
         foreach ($paiements as $p) {
             $paiementsHtml .= '<tr>
                 <td style="text-align:center; padding:8px; border-bottom:1px solid #E5E7EB; color:#1A1A1A;">' . $this->formatFrenchDate($p['date_paiement']) . '</td>
@@ -304,23 +313,18 @@ class PdfController extends Controller
     </div>
 
     <div class="card">
-        <div class="section-title">Détail achat</div>
+        <div class="section-title">Lignes achat</div>
         <table class="data-table">
             <thead>
                 <tr>
-                    <th style="width:50%;">Produit</th>
-                    <th style="width:15%; text-align:center;">Quantité</th>
-                    <th style="width:17%; text-align:right;">Prix unit.</th>
-                    <th style="width:18%; text-align:right;">Montant</th>
+                    <th style="width:45%;">Produit</th>
+                    <th style="width:15%; text-align:center;">Qté</th>
+                    <th style="width:20%; text-align:right;">Prix unit.</th>
+                    <th style="width:20%; text-align:right;">Montant</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td style="text-align:left; padding:10px 8px; border-bottom:1px solid #E5E7EB; color:#1A1A1A;">' . htmlspecialchars($produitLibelle) . '</td>
-                    <td style="text-align:center; padding:10px 8px; border-bottom:1px solid #E5E7EB; color:#1A1A1A;">' . $this->formatNumber($purchase['quantite_achat']) . '</td>
-                    <td style="text-align:right; padding:10px 8px; border-bottom:1px solid #E5E7EB; color:#1A1A1A;">' . $this->formatMoney($purchase['prix_unitaire_achat'], $shopDevise) . '</td>
-                    <td style="text-align:right; padding:10px 8px; border-bottom:1px solid #E5E7EB; color:#1A1A1A; font-weight:600;">' . $this->formatMoney($purchase['montant_achat'], $shopDevise) . '</td>
-                </tr>
+                ' . $lignesHtml . '
             </tbody>
         </table>
 

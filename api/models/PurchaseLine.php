@@ -31,6 +31,14 @@ class PurchaseLine
         return $row ?: null;
     }
 
+    public static function findByCode(string $code): ?array
+    {
+        $stmt = Database::getConnection()->prepare('SELECT * FROM lignes_achats WHERE code_ligne = :code AND statut_ligne != "supprime" LIMIT 1');
+        $stmt->execute(['code' => $code]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
     public static function getByPurchase(string $achatCode): array
     {
         $stmt = Database::getConnection()->prepare(
@@ -38,6 +46,32 @@ class PurchaseLine
         );
         $stmt->execute(['achat_code' => $achatCode]);
         return $stmt->fetchAll();
+    }
+
+    public static function delete(string $code): bool
+    {
+        $stmt = Database::getConnection()->prepare(
+            'UPDATE lignes_achats SET statut_ligne = "supprime" WHERE code_ligne = :code AND statut_ligne != "supprime"'
+        );
+        return $stmt->execute(['code' => $code]);
+    }
+
+    public static function update(string $code, array $data): ?array
+    {
+        $sets = [];
+        $params = ['code' => $code];
+        $allowed = ['produit_code', 'quantite', 'prix_unitaire', 'montant'];
+        foreach ($allowed as $field) {
+            if (array_key_exists($field, $data)) {
+                $sets[] = "$field = :$field";
+                $params[$field] = $data[$field];
+            }
+        }
+        if (!$sets) return self::findByCode($code);
+        $sql = 'UPDATE lignes_achats SET ' . implode(', ', $sets) . ' WHERE code_ligne = :code';
+        $stmt = Database::getConnection()->prepare($sql);
+        $stmt->execute($params);
+        return self::findByCode($code);
     }
 
     public static function softDeleteByPurchase(string $achatCode): bool

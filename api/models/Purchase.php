@@ -15,16 +15,13 @@ class Purchase
         $conn->beginTransaction();
         try {
             $stmt = $conn->prepare(
-                'INSERT INTO achats (code_achat, boutique_code, fournisseur_code, produit_code, quantite_achat, prix_unitaire_achat, montant_achat, date_achat)
-                 VALUES (:code_achat, :boutique_code, :fournisseur_code, :produit_code, :quantite_achat, :prix_unitaire_achat, :montant_achat, :date_achat)'
+                'INSERT INTO achats (code_achat, boutique_code, fournisseur_code, montant_achat, date_achat)
+                 VALUES (:code_achat, :boutique_code, :fournisseur_code, :montant_achat, :date_achat)'
             );
             $stmt->execute([
                 'code_achat' => $data['code_achat'],
                 'boutique_code' => $data['boutique_code'],
                 'fournisseur_code' => $data['fournisseur_code'] ?? null,
-                'produit_code' => '',
-                'quantite_achat' => 0,
-                'prix_unitaire_achat' => 0,
                 'montant_achat' => $montant,
                 'date_achat' => $data['date_achat'],
             ]);
@@ -110,11 +107,13 @@ class Purchase
     public static function search(string $shopCode, string $query, int $limit = 20): array
     {
         $stmt = Database::getConnection()->prepare(
-            'SELECT * FROM achats
-             WHERE boutique_code = :boutique_code
-               AND statut_achat != "supprime"
-               AND (code_achat LIKE :query1 OR produit_code LIKE :query2)
-             ORDER BY date_achat DESC
+            'SELECT a.* FROM achats a
+             LEFT JOIN lignes_achats la ON la.achat_code = a.code_achat AND la.statut_ligne != "supprime"
+             WHERE a.boutique_code = :boutique_code
+               AND a.statut_achat != "supprime"
+               AND (a.code_achat LIKE :query1 OR la.produit_code LIKE :query2)
+             GROUP BY a.code_achat
+             ORDER BY a.date_achat DESC
              LIMIT :limit'
         );
         $like = '%' . $query . '%';
@@ -182,7 +181,7 @@ class Purchase
     {
         $sets = [];
         $params = ['code' => $code];
-        $allowed = ['produit_code', 'quantite_achat', 'prix_unitaire_achat', 'montant_achat', 'date_achat', 'fournisseur_code'];
+        $allowed = ['fournisseur_code', 'date_achat'];
         foreach ($allowed as $field) {
             if (array_key_exists($field, $data)) {
                 $sets[] = "$field = :$field";

@@ -84,6 +84,9 @@ $routes = [
         '/api/sale-lines/update' => [SaleLineController::class, 'update'],
         '/api/sale-lines/delete' => [SaleLineController::class, 'delete'],
         '/api/stock/adjust' => [StockController::class, 'adjust'],
+        '/api/purchase-lines' => [PurchaseLineController::class, 'store'],
+        '/api/purchase-lines/update' => [PurchaseLineController::class, 'update'],
+        '/api/purchase-lines/delete' => [PurchaseLineController::class, 'delete'],
     ],
     'GET' => [
         '/api/auth/me' => [AuthController::class, 'me'],
@@ -117,6 +120,7 @@ $routes = [
         '/api/sales/pdf' => [PdfController::class, 'sale'],
         '/api/purchases/pdf' => [PdfController::class, 'purchase'],
         '/api/sale-lines' => [SaleLineController::class, 'index'],
+        '/api/purchase-lines' => [PurchaseLineController::class, 'index'],
     ],
 ];
 

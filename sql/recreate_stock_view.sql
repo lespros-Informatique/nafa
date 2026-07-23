@@ -18,10 +18,10 @@ SELECT
 FROM (
     (produits p
         LEFT JOIN (
-            SELECT achats.produit_code AS produit_code, SUM(achats.quantite_achat) AS total_achats
-            FROM achats
-            WHERE achats.statut_achat != 'supprime'
-            GROUP BY achats.produit_code
+            SELECT la.produit_code AS produit_code, SUM(la.quantite) AS total_achats
+            FROM lignes_achats la
+            WHERE la.statut_ligne != 'supprime'
+            GROUP BY la.produit_code
         ) a ON (a.produit_code = p.code_produit)
     )
     LEFT JOIN (
@@ -38,3 +38,6 @@ FROM (
     ) aj ON (aj.produit_code = p.code_produit)
 )
 WHERE p.statut_produit != 'supprime';
+
+
+regarde tout les states les page comme dash,liste achats,ventes,depense,histoiriq et autre pour voi si les chiffres sont coherente et logique 
