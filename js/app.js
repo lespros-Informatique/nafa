@@ -362,7 +362,7 @@ const app = {
             const raw = localStorage.getItem('nafa_session');
             if (!raw) return null;
             const data = JSON.parse(raw);
-            return data.sessionId || null;
+            return data.authToken || null;
         } catch (e) {
             return null;
         }
@@ -444,7 +444,7 @@ const app = {
                 method: 'POST',
                 body: JSON.stringify({ phone }),
             });
-            const user = { ...data.data.user, _session_id: data.data.session_id };
+            const user = { ...data.data.user, auth_token: data.data.token };
             this.currentUser = user;
             this.currentShop = data.data.shop || null;
             this.saveSession();
@@ -458,11 +458,11 @@ const app = {
     },
 
     saveSession() {
-        const sessionId = this.currentUser?._session_id ?? null;
+        const authToken = this.currentUser?.auth_token ?? null;
         localStorage.setItem('nafa_session', JSON.stringify({
             user: this.currentUser,
             shop: this.currentShop,
-            sessionId,
+            authToken,
         }));
     },
 

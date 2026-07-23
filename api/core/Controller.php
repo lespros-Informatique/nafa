@@ -32,18 +32,34 @@ abstract class Controller
 
         if ($authHeader && preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
             $token = trim($matches[1]);
-            $sessionDir = session_save_path() ?: sys_get_temp_dir();
-            $sessionFile = rtrim($sessionDir, '/\\') . '/sess_' . $token;
-            if (file_exists($sessionFile)) {
-                if (session_status() === PHP_SESSION_ACTIVE) {
-                    session_write_close();
-                }
-                session_id($token);
-                Session::start();
-                if (Session::has('user')) {
-                    return $_SESSION['user'];
+
+            if (preg_match('/^[a-f0-9]{64}$/', $token)) {
+                $sessionDir = rtrim(session_save_path() ?: sys_get_temp_dir(), '/\\');
+                $maxAge = time() - 86400 * 30;
+
+                foreach (glob($sessionDir . '/sess_*') as $sessionFile) {
+                    if (filemtime($sessionFile) < $maxAge) {
+                        continue;
+                    }
+
+                    $content = file_get_contents($sessionFile);
+                    if ($content !== false && str_contains($content, 'auth_token|s:64:"' . $token . '";')) {
+                        $sessionId = substr(basename($sessionFile), 5);
+
+                        if (session_status() === PHP_SESSION_ACTIVE) {
+                            session_write_close();
+                        }
+                        session_id($sessionId);
+                        Session::start();
+
+                        if (Session::has('user')) {
+                            return $_SESSION['user'];
+                        }
+                        break;
+                    }
                 }
             }
+
             Response::error('Non autorisé', [], 401);
         }
 

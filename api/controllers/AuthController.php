@@ -19,12 +19,14 @@ class AuthController extends Controller
         $shop = Shop::findByUserCode($user['code_user']);
 
         Session::regenerate();
-        Session::set('user', $user);
+
+        $authToken = bin2hex(random_bytes(32));
+        Session::set('auth_token', $authToken);
 
         Response::success('Connexion réussie', [
             'user' => $user,
             'shop' => $shop,
-            'session_id' => session_id(),
+            'token' => $authToken,
         ]);
     }
 

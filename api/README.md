@@ -50,8 +50,8 @@ api/
 
 ## Authentification
 
-- Header: `Authorization: Bearer <base64(phone:timestamp)>`
-- Ou cookie: `nafa_user` (stocké en base64)
+- Header: `Authorization: Bearer <token>`
+- Cookie: `nafa_session` (HttpOnly, géré serveur)
 
 ## Base de données
 
