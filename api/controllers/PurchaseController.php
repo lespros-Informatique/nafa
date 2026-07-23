@@ -20,7 +20,7 @@ class PurchaseController extends Controller
             if ($search !== '') {
                 $purchases = array_values(array_filter($purchases, function ($p) use ($search) {
                     return stripos($p['code_achat'], $search) !== false
-                        || stripos($p['produit_code'], $search) !== false;
+                        || stripos($p['fournisseur_code'] ?? '', $search) !== false;
                 }));
             }
             $total = count($purchases);

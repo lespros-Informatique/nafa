@@ -86,7 +86,7 @@ class HistoryController extends Controller
                     'title' => 'Achat',
                     'meta' => (new DateTime($purchase['date_achat']))->format('d/m/Y H:i'),
                     'amount' => (float) $purchase['montant_achat'],
-                    'mode' => $purchase['produit_code'],
+                    'mode' => $purchase['mode_paiement_achat'] ?? '-',
                     'statut' => $purchase['statut_paiement_achat'] ?? null,
                 ];
             }

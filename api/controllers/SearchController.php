@@ -56,7 +56,7 @@ class SearchController extends Controller
                 'title' => 'Achat',
                 'meta' => $date->format('d/m/Y H:i'),
                 'amount' => (float) $purchase['montant_achat'],
-                'mode' => $purchase['produit_code'],
+                'mode' => $purchase['mode_paiement_achat'] ?? '-',
             ];
         }
 

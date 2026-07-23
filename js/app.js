@@ -2231,7 +2231,7 @@ const app = {
                 <div class="list-item">
                     <div class="list-item-info">
                         <div class="list-item-title">Achat</div>
-                        <div class="list-item-meta">${this.escapeHtml(p.produit_code)} • ${this.escapeHtml(this.formatFrenchDate(p.date_achat))}</div>
+                        <div class="list-item-meta">${this.escapeHtml(p.fournisseur_code || '-')} • ${this.escapeHtml(this.formatFrenchDate(p.date_achat))}</div>
                     </div>
                     <div class="list-item-actions">
                         <span class="list-item-amount negative">-${this.formatMoney(p.montant_achat)}</span>
@@ -3318,7 +3318,6 @@ const app = {
             const filtered = q
                 ? purchases.filter(p =>
                     (p.code_achat || '').toLowerCase().includes(q) ||
-                    (p.produit_code || '').toLowerCase().includes(q) ||
                     (p.fournisseur_code || '').toLowerCase().includes(q) ||
                     (this.formatMoney(p.montant_achat) || '').includes(q))
                 : purchases;
@@ -3332,7 +3331,7 @@ const app = {
                 <div class="list-item">
                     <div class="list-item-info">
                         <div class="list-item-title">${this.escapeHtml(p.code_achat)}</div>
-                        <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(p.date_achat))} • ${this.escapeHtml(p.produit_code || '-')}</div>
+                        <div class="list-item-meta">${this.escapeHtml(this.formatFrenchDate(p.date_achat))} • ${this.escapeHtml(p.fournisseur_code || '-')}</div>
                     </div>
                     <span class="list-item-amount negative">-${this.formatMoney(p.montant_achat)}</span>
                     <button class="list-item-print" onclick="window.open('`+NAFA+`/api/purchases/pdf?code=${encodeURIComponent(p.code_achat)}', '_blank')" title="Imprimer le reçu">

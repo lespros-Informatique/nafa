@@ -12,6 +12,7 @@ class ReportController extends Controller
         if ($isDev) {
             $sales = Sale::getAll();
             $expenses = Expense::getAll();
+            $purchases = Purchase::getAll();
         } else {
             $shop = Shop::findByUserCode($user['code_user']);
             if (!$shop) {
@@ -19,28 +20,32 @@ class ReportController extends Controller
             }
             $sales = Sale::getAllByShop($shop['code_boutique']);
             $expenses = Expense::getAllByShop($shop['code_boutique']);
+            $purchases = Purchase::getByShop($shop['code_boutique']);
         }
 
         $totalSales = array_sum(array_column($sales, 'montant_vente'));
         $totalExpenses = array_sum(array_column($expenses, 'montant_depense'));
+        $totalPurchases = array_sum(array_column($purchases, 'montant_achat'));
 
         $period = $_GET['period'] ?? 'day';
         $clientDate = $_GET['client_date'] ?? null;
-        $chartData = $this->buildChartData($sales, $expenses, $period, $clientDate);
+        $chartData = $this->buildChartData($sales, $expenses, $purchases, $period, $clientDate);
 
         Response::success('Rapports', [
             'sales' => $this->formatMoney($totalSales),
             'expenses' => $this->formatMoney($totalExpenses),
+            'purchases' => $this->formatMoney($totalPurchases),
             'net' => $this->formatMoney($totalSales - $totalExpenses),
             'chart' => $chartData,
         ]);
     }
 
-    private function buildChartData(array $sales, array $expenses, string $period, $clientDate = null): array
+    private function buildChartData(array $sales, array $expenses, array $purchases, string $period, $clientDate = null): array
     {
         $labels = [];
         $dataV = [];
         $dataE = [];
+        $dataP = [];
 
         $now = $clientDate ? new DateTime($clientDate) : new DateTime();
 
@@ -52,6 +57,7 @@ class ReportController extends Controller
                 $dayStr = $d->format('Y-m-d');
                 $dataV[] = array_sum(array_column(array_filter($sales, function ($s) use ($dayStr) { return strpos($s['created_at_vente'], $dayStr) === 0; }), 'montant_vente'));
                 $dataE[] = array_sum(array_column(array_filter($expenses, function ($e) use ($dayStr) { return strpos($e['date_depense_depense'], $dayStr) === 0; }), 'montant_depense'));
+                $dataP[] = array_sum(array_column(array_filter($purchases, function ($p) use ($dayStr) { return strpos($p['date_achat'], $dayStr) === 0; }), 'montant_achat'));
             }
         } elseif ($period === 'week') {
             for ($i = 3; $i >= 0; $i--) {
@@ -67,6 +73,10 @@ class ReportController extends Controller
                     $d = substr($e['date_depense_depense'], 0, 10);
                     return $d >= $weekStart && $d <= $weekEnd;
                 }), 'montant_depense'));
+                $dataP[] = array_sum(array_column(array_filter($purchases, function($p) use ($weekStart, $weekEnd) {
+                    $d = substr($p['date_achat'], 0, 10);
+                    return $d >= $weekStart && $d <= $weekEnd;
+                }), 'montant_achat'));
             }
         } else {
             $months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
@@ -76,6 +86,7 @@ class ReportController extends Controller
                 $month = $d->format('Y-m');
                 $dataV[] = array_sum(array_column(array_filter($sales, function ($s) use ($month) { return strpos($s['created_at_vente'], $month) === 0; }), 'montant_vente'));
                 $dataE[] = array_sum(array_column(array_filter($expenses, function ($e) use ($month) { return strpos($e['date_depense_depense'], $month) === 0; }), 'montant_depense'));
+                $dataP[] = array_sum(array_column(array_filter($purchases, function ($p) use ($month) { return strpos($p['date_achat'], $month) === 0; }), 'montant_achat'));
             }
         }
 
@@ -83,6 +94,7 @@ class ReportController extends Controller
             'labels' => $labels,
             'sales' => $dataV,
             'expenses' => $dataE,
+            'purchases' => $dataP,
         ];
     }
 
