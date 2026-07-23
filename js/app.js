@@ -360,8 +360,14 @@ const app = {
     },
 
     getAuthToken() {
-        const match = document.cookie.match(/nafa_token=([^;]+)/);
-        return match ? match[1] : null;
+        try {
+            const raw = localStorage.getItem('nafa_session');
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            return data.sessionId || null;
+        } catch (e) {
+            return null;
+        }
     },
 
     async renderSubscription() {
@@ -440,7 +446,8 @@ const app = {
                 method: 'POST',
                 body: JSON.stringify({ phone }),
             });
-            this.currentUser = data.data.user;
+            const user = { ...data.data.user, _session_id: data.data.session_id };
+            this.currentUser = user;
             this.currentShop = data.data.shop || null;
             this.saveSession();
             this.navigate('dashboard');
@@ -453,9 +460,11 @@ const app = {
     },
 
     saveSession() {
+        const sessionId = this.currentUser?._session_id ?? null;
         localStorage.setItem('nafa_session', JSON.stringify({
             user: this.currentUser,
             shop: this.currentShop,
+            sessionId,
         }));
     },
 

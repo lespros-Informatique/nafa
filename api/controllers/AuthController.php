@@ -18,13 +18,13 @@ class AuthController extends Controller
 
         $shop = Shop::findByUserCode($user['code_user']);
 
-        $token = base64_encode($user['telephone_user'] . ':' . time());
-        setcookie('nafa_token', $token, time() + 86400 * 30, '/', '', false, true);
-        setcookie('nafa_user', base64_encode(json_encode($user)), time() + 86400 * 30, '/', '', false, true);
+        Session::regenerate();
+        Session::set('user', $user);
 
         Response::success('Connexion réussie', [
             'user' => $user,
             'shop' => $shop,
+            'session_id' => session_id(),
         ]);
     }
 
@@ -40,8 +40,7 @@ class AuthController extends Controller
 
     public function logout(): void
     {
-        setcookie('nafa_token', '', time() - 3600, '/');
-        setcookie('nafa_user', '', time() - 3600, '/');
+        Session::destroy();
         Response::success('Déconnexion réussie');
     }
 }

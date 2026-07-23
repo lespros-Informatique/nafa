@@ -1,7 +1,13 @@
 <?php
 
 require_once __DIR__ . '/core/Database.php';
+require_once __DIR__ . '/core/App.php';
+require_once __DIR__ . '/core/Session.php';
 require_once __DIR__ . '/core/Response.php';
+
+App::load(__DIR__ . '/config/app.php');
+Session::start();
+
 require_once __DIR__ . '/models/User.php';
 require_once __DIR__ . '/models/Shop.php';
 require_once __DIR__ . '/models/Sale.php';

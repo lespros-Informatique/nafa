@@ -28,27 +28,28 @@ abstract class Controller
     protected function requireAuth(): array
     {
         $headers = getallheaders();
-        $token = $headers['Authorization'] ?? $headers['authorization'] ?? null;
-        if (!$token && isset($_COOKIE['nafa_user'])) {
-            $userData = json_decode(base64_decode($_COOKIE['nafa_user']), true);
-            if ($userData && isset($userData['telephone_user'])) {
-                return $userData;
+        $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
+
+        if ($authHeader && preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
+            $token = trim($matches[1]);
+            $sessionFile = sys_get_temp_dir() . '/sess_' . $token;
+            if (file_exists($sessionFile)) {
+                session_id($token);
+                Session::start();
+                if (Session::has('user')) {
+                    return $_SESSION['user'];
+                }
             }
-        }
-        if (!$token) {
             Response::error('Non autorisé', [], 401);
         }
-        $token = preg_replace('/^Bearer\s+/i', '', $token);
-        $parts = explode(':', base64_decode($token));
-        if (count($parts) !== 2) {
-            Response::error('Token invalide', [], 401);
+
+        Session::start();
+
+        if (Session::has('user')) {
+            return $_SESSION['user'];
         }
-        [$phone] = $parts;
-        $user = User::findByPhone($phone);
-        if (!$user) {
-            Response::error('Utilisateur introuvable', [], 401);
-        }
-        return $user;
+
+        Response::error('Non autorisé', [], 401);
     }
 
     protected function requireActiveSubscription(): array
