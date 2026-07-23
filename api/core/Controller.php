@@ -32,8 +32,12 @@ abstract class Controller
 
         if ($authHeader && preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
             $token = trim($matches[1]);
-            $sessionFile = sys_get_temp_dir() . '/sess_' . $token;
+            $sessionDir = session_save_path() ?: sys_get_temp_dir();
+            $sessionFile = rtrim($sessionDir, '/\\') . '/sess_' . $token;
             if (file_exists($sessionFile)) {
+                if (session_status() === PHP_SESSION_ACTIVE) {
+                    session_write_close();
+                }
                 session_id($token);
                 Session::start();
                 if (Session::has('user')) {
